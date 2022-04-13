@@ -17,7 +17,7 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         ds = ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         return ds, imagenet1k.zeroshot_templates, imagenet1k.classnames
     elif dataset_name == "mscoco_captions":
-        ds = CocoCaptions(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
+        ds = CocoCaptions(root=root, annFile=args.annotation_file, transform=transform, **kwargs)
         return ds, None, None
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are: f{available_datasets}")
