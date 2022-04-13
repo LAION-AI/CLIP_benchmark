@@ -1,11 +1,6 @@
 # CLIP Benchmark
 
 
-![https://img.shields.io/pypi/v/clip_benchmark.svg](https://pypi.python.org/pypi/clip_benchmark)
-
-![https://img.shields.io/travis/mehdidc/clip_benchmark.svg](https://travis-ci.com/mehdidc/clip_benchmark)
-
-
 The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
 retrieval.
@@ -17,10 +12,15 @@ retrieval.
 
 ## How to install?
 
-`pip install clip_benchmark`
+```bash
+git clone https://github.com/LAION-AI/CLIP_benchmark
+cd CLIP_benchmark
+python setup.py install
+```
 
-In order to use the CLI, you also need to install [OpenCLIP](https://github.com/mlfoundations/open_clip) using
-`pip install open_clip_torch`.
+In order to use the CLI, you also need to install [OpenCLIP](https://github.com/mlfoundations/open_clip) using:
+
+`pip install open_clip_torch`
 
 ## How to use?
 
@@ -37,7 +37,11 @@ the results are written into a JSON file.
 Here is the content of `result.json` after the evaluation is done:
 
 ```json
-{"dataset": "cifar10", "model": "ViT-B-32-quickgelu", "pretrained": "laion400m_e32", "task": "zeroshot_classification", "metrics": {"top1_zeroshot_accuracy": 0.9074, "top5_zeroshot_accuracy": 0.998}}
+{
+    "dataset": "cifar10", "model": "ViT-B-32-quickgelu", 
+    "pretrained": "laion400m_e32", "task": "zeroshot_classification",
+    "metrics": {"top1_zeroshot_accuracy": 0.9074, "top5_zeroshot_accuracy": 0.998}
+}
 ```
 
  Here is an example for COCO captions zero-shot retrieval:
@@ -54,6 +58,6 @@ does not belong to currently supported models.
 
 ## Credits
 
-- Thanks to [OpenCLIP](https://github.com/mlfoundations/open_clip) authors, zero-shot accuracy code and pre-trained models in the CLIP are using OpenCLIP.
+- Thanks to [OpenCLIP](https://github.com/mlfoundations/open_clip) authors, zero-shot accuracy code is adapted from there and pre-trained models are used in the command line interface.
 - Thanks to [SLIP](https://github.com/facebookresearch/SLIP) authors, zero-shot templates and classnames are used from there.
 - This package was created with [Cookiecutter]( https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
