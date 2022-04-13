@@ -50,8 +50,11 @@ def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]
     positive_pairs[torch.arange(len(scores)), texts_image_index] = True
     metrics = {}
     for recall_k in recall_k_list:
-        metrics[f"image_retrieval_recall@{recall_k}"] = batchify(recall_at_k, scores, positive_pairs, batch_size, device, k=recall_k).mean().item()
-        metrics[f"text_retrieval_recall@{recall_k}"] = batchify(recall_at_k, scores.T, positive_pairs.T, batch_size, device, k=recall_k).mean().item()
+        # implement text/image retrieval call the way it is done in CLIP-like papers
+        # recall is 1 if there is at least we retrieve a positive text (image) for each image (text)
+        metrics[f"image_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores, positive_pairs, batch_size, device, k=recall_k)>0).float().mean().item()
+        metrics[f"text_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores.T, positive_pairs.T, batch_size, device, k=recall_k)>0).float().mean().item()
+
     return metrics
 
 def dataloader_with_indices(dataloader):
@@ -73,15 +76,16 @@ def recall_at_k(scores, positive_pairs, k):
     nb_texts, nb_images = scores.shape
     # for each text, sort according to image scores in decreasing order
     topk_indices = torch.topk(scores, k, dim=1)[1]
-    # compute number of positives
+    # compute number of positives for each text
     nb_positive = positive_pairs.sum(dim=1)
     # nb_texts, k, nb_images
     topk_indices_onehot = torch.nn.functional.one_hot(topk_indices, num_classes=nb_images)
     # compute number of true positives
     positive_pairs_reshaped = positive_pairs.view(nb_texts, 1, nb_images)
+    # a true positive means a positive among the topk
     nb_true_positive = (topk_indices_onehot * positive_pairs_reshaped).sum(dim=(1,2))
     # compute recall at k
-    recall_at_k = nb_true_positive / nb_positive
+    recall_at_k = (nb_true_positive / nb_positive)
     return recall_at_k
 
 def batchify(func, X, Y, batch_size, device, *args, **kwargs):
