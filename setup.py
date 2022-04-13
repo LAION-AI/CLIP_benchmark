@@ -10,7 +10,7 @@ with open('README.md') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ["torch", "torchvision", "tqdm"]
+requirements = ["torch>=1.8.1", "torchvision>=0.8.0", "tqdm"]
 
 test_requirements = requirements + ["pytest", "pytest-runner"]
 
