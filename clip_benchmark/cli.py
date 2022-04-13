@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--task', type=str, default="zeroshot_classification", choices=["zeroshot_classification", "zeroshot_retrieval"])
     parser.add_argument('--amp', default=False, action="store_true", help="whether to use mixed precision")
     parser.add_argument('--num_workers', default=4, type=int)
+    parser.add_argument('--recall_k', default=[5], type=int, help="for retrieval, select the k for Recall@K metric. ", nargs="+",)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--dataset_root', default="root", type=str, help="dataset root")
     parser.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets")
@@ -31,7 +32,7 @@ def main():
     model = model.to(args.device)
     dataset, collate_fn, zeroshot_templates, classnames = build_dataset(
         args, transform=transform, train=False)
-    
+    print("Dataset size", len(dataset))
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=args.batch_size, 
         shuffle=False, num_workers=args.num_workers, 
@@ -52,7 +53,7 @@ def main():
             model, 
             dataloader, 
             open_clip.tokenizer.tokenize, 
-            recall_k_list=[5],
+            recall_k_list=args.recall_k,
             device=args.device, amp=args.amp
         )
     else:
