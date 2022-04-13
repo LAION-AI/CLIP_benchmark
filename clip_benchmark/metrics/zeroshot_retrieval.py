@@ -13,7 +13,6 @@ def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]
     :param tokenizer: tokenizer to use for evaluation
     :param device: device to use for evaluation
     """
-    start = 0
     # list of batch of images embedding
     batch_images_emb_list = []
     # list of batch of text embedding
@@ -36,6 +35,8 @@ def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]
         batch_images_emb_list.append(batch_images_emb.cpu())
         batch_texts_emb_list.append(batch_texts_emb.cpu())
         texts_image_index.extend(batch_texts_image_index)
+        
+    batch_size = len(batch_images_emb_list[0])
 
     # concatenate all embeddings
     images_emb = torch.cat(batch_images_emb_list)
@@ -49,8 +50,8 @@ def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]
     positive_pairs[torch.arange(len(scores)), texts_image_index] = True
     metrics = {}
     for recall_k in recall_k_list:
-        metrics[f"image_retrieval_recall@{recall_k}"] = avg_recall_at_k(scores, recall_k, positive_pairs)
-        metrics[f"text_retrieval_recall@{recall_k}"] = avg_recall_at_k(scores.T, recall_k, positive_pairs.T)
+        metrics[f"image_retrieval_recall@{recall_k}"] = batchify(recall_at_k, scores, positive_pairs, batch_size, device, k=recall_k).mean().item()
+        metrics[f"text_retrieval_recall@{recall_k}"] = batchify(recall_at_k, scores.T, positive_pairs.T, batch_size, device, k=recall_k).mean().item()
     return metrics
 
 def dataloader_with_indices(dataloader):
@@ -61,9 +62,9 @@ def dataloader_with_indices(dataloader):
         yield x, y, inds
         start = end
 
-def avg_recall_at_k(scores, k, positive_pairs):
+def recall_at_k(scores, positive_pairs, k):
     """
-    Compute the recall at k
+    Compute the recall at k for each sample
     :param scores: compability score between  text and image embeddings (nb texts, nb images)
     :param k: number of images to consider per text, for retrieval
     :param positive_pairs: boolean matrix of positive pairs (nb texts, nb images)
@@ -81,4 +82,14 @@ def avg_recall_at_k(scores, k, positive_pairs):
     nb_true_positive = (topk_indices_onehot * positive_pairs_reshaped).sum(dim=(1,2))
     # compute recall at k
     recall_at_k = nb_true_positive / nb_positive
-    return recall_at_k.mean().item()
+    return recall_at_k
+
+def batchify(func, X, Y, batch_size, device, *args, **kwargs):
+    results = []
+    for start in range(0, len(X), batch_size):
+        end = start + batch_size
+        x = X[start:end].to(device)
+        y = Y[start:end].to(device)
+        result = func(x, y, *args, **kwargs).cpu()
+        results.append(result)
+    return torch.cat(results)
