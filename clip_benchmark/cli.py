@@ -5,7 +5,7 @@ import json
 import torch
 import open_clip
 
-from clip_benchmark.datasets.builder import build_dataset
+from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, zeroshot_classification_templates
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval
 
 from torch.utils.data import default_collate
@@ -30,8 +30,8 @@ def main():
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
     model = model.to(args.device)
-    dataset, collate_fn, zeroshot_templates, classnames = build_dataset(
-        args, transform=transform, train=False)
+    dataset = build_dataset(args, transform=transform, train=False)
+    collate_fn = get_dataset_collate_fn(args.dataset)
     print("Dataset size", len(dataset))
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=args.batch_size, 
@@ -40,6 +40,8 @@ def main():
     )
 
     if args.task == "zeroshot_classification":
+        zeroshot_templates = zeroshot_classification_templates.get(args.dataset)
+        classnames = dataset.classes if hasattr(dataset, "classes") else None
         assert (zeroshot_templates is not None and classnames is not None), "Dataset does not support classification"
         metrics = zeroshot_classification.evaluate(
             model, 
