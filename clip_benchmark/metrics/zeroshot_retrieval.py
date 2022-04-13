@@ -21,7 +21,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]
     # for each text, we collect the corresponding image index, as each image can have multiple corresponding texts
     texts_image_index = []
     dataloader = dataloader_with_indices(dataloader)
-    for batch_images, batch_texts, inds in dataloader:
+    for batch_images, batch_texts, inds in tqdm(dataloader):
         batch_images = batch_images.to(device)
         # tokenize all texts in the batch
         batch_texts_tok = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
