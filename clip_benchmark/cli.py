@@ -25,6 +25,7 @@ def main():
     args = parser.parse_args()
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
+    model = model.to(args.device)
     dataset, zeroshot_templates, classnames = build_dataset(args, transform=transform, train=False)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
