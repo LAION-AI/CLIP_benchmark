@@ -50,6 +50,10 @@ Here is the content of `result.json` after the evaluation is done:
  
  (see <https://cocodataset.org/#home> for instructions on how to download)
 
+ Note that for using COCO, you also need to install `pycocotools`, using:
+
+ `pip install pycocotools`
+
 ### API
 
 You can also use the API directly. This is especially useful if your model
