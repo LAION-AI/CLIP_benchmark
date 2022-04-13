@@ -27,7 +27,7 @@ In order to use the CLI, you also need to install [OpenCLIP](https://github.com/
 ### Command line interface (CLI)
 
 The easiest way to to benchmark the models is using the CLI, `clip_benchmark`.
-You can specify the model to use, the dataset and the task to evaluate on. Once it is done, evaluation is run and
+You can specify the model to use, the dataset and the task to evaluate on. Once it is done, evaluation is performed and
 the results are written into a JSON file.
 
  Here is an example for CIFAR-10 zero-shot classification using OpenCLIP's pre-trained model on LAION-400m:
