@@ -33,7 +33,7 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         return Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "flowers":
         ds = Flowers102(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
-        ds.classes = flowers_classes
+        ds = FlowersDatasetWrapper(ds)
         return ds
     elif dataset_name == "mnist":
         ds = MNIST(root=root, train=train, transform=transform, download=download, **kwargs)
@@ -247,6 +247,19 @@ zeroshot_classification_templates = {
         'a photo of the number: "{c}".',
     ]
 }
+
+class FlowersDatasetWrapper:
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.classes = flowers_classes
+    
+    def __getitem__(self, idx):
+        x, y = self.dataset[idx]
+        return x, y - 1
+    
+    def __len__(self):
+        return len(self.dataset)
 
 flowers_classes = [
     'pink primrose',
