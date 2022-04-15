@@ -10,7 +10,7 @@ from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval
 
 from torch.utils.data import default_collate
 
-
+    
 def main():
     """Console script for clip_benchmark."""
     parser = argparse.ArgumentParser()
