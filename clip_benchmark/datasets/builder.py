@@ -2,11 +2,11 @@ import os
 from collections import defaultdict
 from torchvision.datasets import (
     VisionDataset,
-    CIFAR10, CIFAR100, ImageNet, CocoCaptions, Flickr30k, Food101, SUN397,
+    CIFAR10, CIFAR100, ImageNet, CocoCaptions, Flickr8k, Flickr30k, Food101, SUN397,
     StanfordCars, FGVCAircraft, DTD, OxfordIIITPet, Caltech101, Flowers102,
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
 )
-from . import voc2007
+from . import voc2007, flickr
 from torch.utils.data import default_collate
 
 
@@ -24,7 +24,9 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
     elif dataset_name == "mscoco_captions":
         return CocoCaptions(root=root, annFile=args.annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
-        return Flickr30k(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
+        return flickr.Flickr(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
+    elif dataset_name == "flickr8k":
+        return flickr.Flickr(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
     elif dataset_name == "food101":
         return Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "sun397":
@@ -40,8 +42,7 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
     elif dataset_name == "caltech101":
         return Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "flowers":
-        ds = Flowers102(root=root, split="train" if train else "test", transform=transform, target_transform=lambda y:y-1, download=download, **kwargs)
-        return ds
+        return Flowers102(root=root, split="train" if train else "test", transform=transform, target_transform=lambda y:y-1, download=download, **kwargs)
     elif dataset_name == "mnist":
         ds = MNIST(root=root, train=train, transform=transform, download=download, **kwargs)
         ds.classes = list(map(str, range(10)))
@@ -64,7 +65,7 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "flickr30k"):
+    if dataset_name in ("mscoco_captions", "flickr30k", "flickr8k"):
         return image_captions_collate_fn
     else:
         return default_collate
