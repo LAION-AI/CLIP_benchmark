@@ -46,7 +46,11 @@ def run_classification(model, classifier, dataloader, device, amp=False):
                 logits = 100. * image_features @ classifier
 
             # measure accuracy
-            acc1, acc5 = accuracy(logits, target, topk=(1, 5))
+            if len(dataloader.dataset.classes) >= 5:
+                acc1, acc5 = accuracy(logits, target, topk=(1, 5))
+            else:
+                acc1, = accuracy(logits, target, topk=(1,))
+                acc5 = float("nan")
             top1 += acc1
             top5 += acc5
             n += images.size(0)

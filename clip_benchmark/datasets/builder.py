@@ -28,9 +28,14 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
     elif dataset_name == "flickr8k":
         return flickr.Flickr(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
     elif dataset_name == "food101":
-        return Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds = Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds.classes = list(map(lambda s:" ".join(s.split("_")), ds.classes))
+        return ds
     elif dataset_name == "sun397":
-        return SUN397(root=root, transform=transform, download=download, **kwargs)
+        ds = SUN397(root=root, transform=transform, download=download, **kwargs)
+        ds.classes = list(map(lambda s:" ".join(s.split("_")), ds.classes ))
+        ds.classes = list(map(lambda s:" ".join(s.split("/")), ds.classes ))
+        return ds
     elif dataset_name == "cars":
         return StanfordCars(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "fgvc_aircraft":
@@ -40,9 +45,12 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
     elif dataset_name == "pets":
         return OxfordIIITPet(root=root, split="train" if train else "test", target_types="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "caltech101":
+        # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
         return Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "flowers":
-        return Flowers102(root=root, split="train" if train else "test", transform=transform, target_transform=lambda y:y-1, download=download, **kwargs)
+        ds = Flowers102(root=root, split="train" if train else "test", transform=transform, target_transform=lambda y:y-1, download=download, **kwargs)
+        ds.classes = flowers_classes
+        return ds
     elif dataset_name == "mnist":
         ds = MNIST(root=root, train=train, transform=transform, download=download, **kwargs)
         ds.classes = list(map(str, range(10)))
@@ -50,14 +58,24 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
     elif dataset_name == "stl10":
         return STL10(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "eurosat":
-        return EuroSAT(root=root, transform=transform, download=download, **kwargs)
+        ds = EuroSAT(root=root, transform=transform, download=download, **kwargs)
+        ds.classes = eurosat_classes
+        return ds
     elif dataset_name == "gtsrb":
-        return GTSRB(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds =  GTSRB(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds.classes = gtsrb_classes
+        return ds
     elif dataset_name == "kitti":
-        return Kitti(root=root, train=train, transform=transform, download=download, **kwargs)
+        # no classnames, needs to target_transform
+        ds = Kitti(root=root, train=train, transform=transform, download=download, **kwargs)
+        ds.classes = kitti_classes
+        return ds
     elif dataset_name == "country211":
-        return Country211(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds = Country211(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds.classes = country211_classes
+        return ds
     elif dataset_name == "pcam":
+        #  google drive links are not downloadead, fixed by this PR https://github.com/pytorch/vision/pull/5645
         return PCAM(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "renderedsst2":
         return RenderedSST2(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
@@ -221,7 +239,14 @@ zeroshot_classification_templates = {
         'a photo of the {c}, a type of aircraft.',
     ],
     "dtd":[
-        "a photo of a {c} object"
+        'a photo of a {c} texture.',
+        'a photo of a {c} pattern.',
+        'a photo of a {c} thing.',
+        'a photo of a {c} object.',
+        'a photo of the {c} texture.',
+        'a photo of the {c} pattern.',
+        'a photo of the {c} thing.',
+        'a photo of the {c} object.',    
     ],
     "pets":[
         'a photo of a {c}, a type of pet.',
@@ -408,4 +433,277 @@ flowers_classes = [
     'blanket flower',
     'trumpet creeper',
     'blackberry lily',
+]
+
+gtsrb_classes = [
+    'red and white circle 20 kph speed limit',
+    'red and white circle 30 kph speed limit',
+    'red and white circle 50 kph speed limit',
+    'red and white circle 60 kph speed limit',
+    'red and white circle 70 kph speed limit',
+    'red and white circle 80 kph speed limit',
+    'end / de-restriction of 80 kph speed limit',
+    'red and white circle 100 kph speed limit',
+    'red and white circle 120 kph speed limit',
+    'red and white circle red car and black car no passing',
+    'red and white circle red truck and black car no passing',
+    'red and white triangle road intersection warning',
+    'white and yellow diamond priority road',
+    'red and white upside down triangle yield right-of-way',
+    'stop',
+    'empty red and white circle',
+    'red and white circle no truck entry',
+    'red circle with white horizonal stripe no entry',
+    'red and white triangle with exclamation mark warning',
+    'red and white triangle with black left curve approaching warning',
+    'red and white triangle with black right curve approaching warning',
+    'red and white triangle with black double curve approaching warning',
+    'red and white triangle rough / bumpy road warning',
+    'red and white triangle car skidding / slipping warning',
+    'red and white triangle with merging / narrow lanes warning',
+    'red and white triangle with person digging / construction / road work warning',
+    'red and white triangle with traffic light approaching warning',
+    'red and white triangle with person walking warning',
+    'red and white triangle with child and person walking warning',
+    'red and white triangle with bicyle warning',
+    'red and white triangle with snowflake / ice warning',
+    'red and white triangle with deer warning',
+    'white circle with gray strike bar no speed limit',
+    'blue circle with white right turn arrow mandatory',
+    'blue circle with white left turn arrow mandatory',
+    'blue circle with white forward arrow mandatory',
+    'blue circle with white forward or right turn arrow mandatory',
+    'blue circle with white forward or left turn arrow mandatory',
+    'blue circle with white keep right arrow mandatory',
+    'blue circle with white keep left arrow mandatory',
+    'blue circle with white arrows indicating a traffic circle',
+    'white circle with gray strike bar indicating no passing for cars has ended',
+    'white circle with gray strike bar indicating no passing for trucks has ended',
+]
+
+country211_classes = [
+    'Andorra',
+    'United Arab Emirates',
+    'Afghanistan',
+    'Antigua and Barbuda',
+    'Anguilla',
+    'Albania',
+    'Armenia',
+    'Angola',
+    'Antarctica',
+    'Argentina',
+    'Austria',
+    'Australia',
+    'Aruba',
+    'Aland Islands',
+    'Azerbaijan',
+    'Bosnia and Herzegovina',
+    'Barbados',
+    'Bangladesh',
+    'Belgium',
+    'Burkina Faso',
+    'Bulgaria',
+    'Bahrain',
+    'Benin',
+    'Bermuda',
+    'Brunei Darussalam',
+    'Bolivia',
+    'Bonaire, Saint Eustatius and Saba',
+    'Brazil',
+    'Bahamas',
+    'Bhutan',
+    'Botswana',
+    'Belarus',
+    'Belize',
+    'Canada',
+    'DR Congo',
+    'Central African Republic',
+    'Switzerland',
+    "Cote d'Ivoire",
+    'Cook Islands',
+    'Chile',
+    'Cameroon',
+    'China',
+    'Colombia',
+    'Costa Rica',
+    'Cuba',
+    'Cabo Verde',
+    'Curacao',
+    'Cyprus',
+    'Czech Republic',
+    'Germany',
+    'Denmark',
+    'Dominica',
+    'Dominican Republic',
+    'Algeria',
+    'Ecuador',
+    'Estonia',
+    'Egypt',
+    'Spain',
+    'Ethiopia',
+    'Finland',
+    'Fiji',
+    'Falkland Islands',
+    'Faeroe Islands',
+    'France',
+    'Gabon',
+    'United Kingdom',
+    'Grenada',
+    'Georgia',
+    'French Guiana',
+    'Guernsey',
+    'Ghana',
+    'Gibraltar',
+    'Greenland',
+    'Gambia',
+    'Guadeloupe',
+    'Greece',
+    'South Georgia and South Sandwich Is.',
+    'Guatemala',
+    'Guam',
+    'Guyana',
+    'Hong Kong',
+    'Honduras',
+    'Croatia',
+    'Haiti',
+    'Hungary',
+    'Indonesia',
+    'Ireland',
+    'Israel',
+    'Isle of Man',
+    'India',
+    'Iraq',
+    'Iran',
+    'Iceland',
+    'Italy',
+    'Jersey',
+    'Jamaica',
+    'Jordan',
+    'Japan',
+    'Kenya',
+    'Kyrgyz Republic',
+    'Cambodia',
+    'St. Kitts and Nevis',
+    'North Korea',
+    'South Korea',
+    'Kuwait',
+    'Cayman Islands',
+    'Kazakhstan',
+    'Laos',
+    'Lebanon',
+    'St. Lucia',
+    'Liechtenstein',
+    'Sri Lanka',
+    'Liberia',
+    'Lithuania',
+    'Luxembourg',
+    'Latvia',
+    'Libya',
+    'Morocco',
+    'Monaco',
+    'Moldova',
+    'Montenegro',
+    'Saint-Martin',
+    'Madagascar',
+    'Macedonia',
+    'Mali',
+    'Myanmar',
+    'Mongolia',
+    'Macau',
+    'Martinique',
+    'Mauritania',
+    'Malta',
+    'Mauritius',
+    'Maldives',
+    'Malawi',
+    'Mexico',
+    'Malaysia',
+    'Mozambique',
+    'Namibia',
+    'New Caledonia',
+    'Nigeria',
+    'Nicaragua',
+    'Netherlands',
+    'Norway',
+    'Nepal',
+    'New Zealand',
+    'Oman',
+    'Panama',
+    'Peru',
+    'French Polynesia',
+    'Papua New Guinea',
+    'Philippines',
+    'Pakistan',
+    'Poland',
+    'Puerto Rico',
+    'Palestine',
+    'Portugal',
+    'Palau',
+    'Paraguay',
+    'Qatar',
+    'Reunion',
+    'Romania',
+    'Serbia',
+    'Russia',
+    'Rwanda',
+    'Saudi Arabia',
+    'Solomon Islands',
+    'Seychelles',
+    'Sudan',
+    'Sweden',
+    'Singapore',
+    'St. Helena',
+    'Slovenia',
+    'Svalbard and Jan Mayen Islands',
+    'Slovakia',
+    'Sierra Leone',
+    'San Marino',
+    'Senegal',
+    'Somalia',
+    'South Sudan',
+    'El Salvador',
+    'Sint Maarten',
+    'Syria',
+    'Eswatini',
+    'Togo',
+    'Thailand',
+    'Tajikistan',
+    'Timor-Leste',
+    'Turkmenistan',
+    'Tunisia',
+    'Tonga',
+    'Turkey',
+    'Trinidad and Tobago',
+    'Taiwan',
+    'Tanzania',
+    'Ukraine',
+    'Uganda',
+    'United States',
+    'Uruguay',
+    'Uzbekistan',
+    'Vatican',
+    'Venezuela',
+    'British Virgin Islands',
+    'United States Virgin Islands',
+    'Vietnam',
+    'Vanuatu',
+    'Samoa',
+    'Kosovo',
+    'Yemen',
+    'South Africa',
+    'Zambia',
+    'Zimbabwe',
+]
+
+eurosat_classes = [
+    'forest',
+    'permanent crop land',
+    'residential buildings or homes or apartments',
+    'river',
+    'pasture land',
+    'lake or sea',
+    'brushland or shrubland',
+    'annual crop land',
+    'industrial buildings or commercial buildings',
+    'highway or road',
 ]
