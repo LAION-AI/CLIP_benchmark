@@ -1,4 +1,4 @@
-# Code from thanks to the authors
+# Code from https://github.com/SsnL/dataset-distillation/blob/master/datasets/pascal_voc.py , thanks to the authors
 """Dataset setting and data loader for PASCAL VOC 2007 as a classification task.
 
 Modified from
