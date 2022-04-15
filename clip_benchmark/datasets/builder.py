@@ -6,7 +6,7 @@ from torchvision.datasets import (
     StanfordCars, FGVCAircraft, DTD, OxfordIIITPet, Caltech101, Flowers102,
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
 )
-from . import voc2007, flickr
+from . import voc2007, flickr, caltech101
 from torch.utils.data import default_collate
 
 
@@ -50,11 +50,15 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         return OxfordIIITPet(root=root, split="train" if train else "test", target_types="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "caltech101":
         # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
-        ds = Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
+        ds = caltech101.Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
         ds.classes = caltech101_classes
         return ds
     elif dataset_name == "flowers":
-        ds = Flowers102(root=root, split="train" if train else "test", transform=transform, target_transform=lambda y:y-1, download=download, **kwargs)
+        ds = Flowers102(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        # indices started by 1, fixed in this PR ()
+        # if older, torchvision version, fix it 
+        if ds[0][1] == 1:
+            ds.target_transform = lambda y:y-1
         ds.classes = flowers_classes
         return ds
     elif dataset_name == "mnist":
