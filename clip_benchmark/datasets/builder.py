@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 from torchvision.datasets import (
-    VisionDataset,
+    VisionDataset, ImageFolder,
     CIFAR10, CIFAR100, ImageNet, CocoCaptions, Flickr8k, Flickr30k, Food101, SUN397,
     StanfordCars, FGVCAircraft, DTD, OxfordIIITPet, Caltech101, Flowers102,
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
@@ -24,8 +24,10 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
     elif dataset_name == "mscoco_captions":
         return CocoCaptions(root=root, annFile=args.annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
+        # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
         return flickr.Flickr(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr8k":
+        # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr8k
         return flickr.Flickr(root=root, ann_file=args.annotation_file, transform=transform, **kwargs)
     elif dataset_name == "food101":
         ds = Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
@@ -79,6 +81,11 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         return PCAM(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "renderedsst2":
         return RenderedSST2(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+    elif dataset_name == "fer2013":
+        # downloadable from  https://www.kaggle.com/datasets/msambare/fer2013
+        ds = ImageFolder(root=os.path.join(root, "train" if train else "test"), transform=transform)
+        ds.classes = fer2013_classes
+        return ds
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
 
@@ -325,6 +332,14 @@ zeroshot_classification_templates = {
     ],
     "voc2007":[
         'a photo of a {c}.',
+    ],
+    "fer2013":[
+        'a photo of a {c} looking face.',
+        'a photo of a face showing the emotion: {c}.',
+        'a photo of a face looking {c}.',
+        'a face that looks {c}.',
+        'they look {c}.',
+        'look at how {c} they are.',
     ]
 }
 
@@ -706,4 +721,14 @@ eurosat_classes = [
     'annual crop land',
     'industrial buildings or commercial buildings',
     'highway or road',
+]
+
+fer2013_classes = [
+    "angry",
+    "disgusted",
+    "fearful",
+    "happy",
+    "neutral",
+    "sad",
+    "surprised",
 ]
