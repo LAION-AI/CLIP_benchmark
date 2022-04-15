@@ -48,7 +48,9 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         return OxfordIIITPet(root=root, split="train" if train else "test", target_types="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "caltech101":
         # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
-        return Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
+        ds = Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
+        ds.classes = caltech101_classes
+        return ds
     elif dataset_name == "flowers":
         ds = Flowers102(root=root, split="train" if train else "test", transform=transform, target_transform=lambda y:y-1, download=download, **kwargs)
         ds.classes = flowers_classes
@@ -78,7 +80,9 @@ def build_dataset(args, transform, train=False, download=True, **kwargs):
         return ds
     elif dataset_name == "pcam":
         #  google drive links are not downloadead, fixed by this PR https://github.com/pytorch/vision/pull/5645
-        return PCAM(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds =  PCAM(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
+        ds.classes = pcam_classes
+        return ds
     elif dataset_name == "renderedsst2":
         return RenderedSST2(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "fer2013":
@@ -325,7 +329,7 @@ zeroshot_classification_templates = {
         'a photo showing the country of {c}.',
     ],
     "pcam":[
-        '{c}',
+        'this is a photo of {c}',
     ],
     "renderedsst2":[
         'a {c} review of a movie.',
@@ -731,4 +735,114 @@ fer2013_classes = [
     "neutral",
     "sad",
     "surprised",
+]
+
+caltech101_classes = [
+    'background',
+    'off-center face',
+    'centered face',
+    'leopard',
+    'motorbike',
+    'accordion',
+    'airplane',
+    'anchor',
+    'ant',
+    'barrel',
+    'bass',
+    'beaver',
+    'binocular',
+    'bonsai',
+    'brain',
+    'brontosaurus',
+    'buddha',
+    'butterfly',
+    'camera',
+    'cannon',
+    'side of a car',
+    'ceiling fan',
+    'cellphone',
+    'chair',
+    'chandelier',
+    'body of a cougar cat',
+    'face of a cougar cat',
+    'crab',
+    'crayfish',
+    'crocodile',
+    'head of a  crocodile',
+    'cup',
+    'dalmatian',
+    'dollar bill',
+    'dolphin',
+    'dragonfly',
+    'electric guitar',
+    'elephant',
+    'emu',
+    'euphonium',
+    'ewer',
+    'ferry',
+    'flamingo',
+    'head of a flamingo',
+    'garfield',
+    'gerenuk',
+    'gramophone',
+    'grand piano',
+    'hawksbill',
+    'headphone',
+    'hedgehog',
+    'helicopter',
+    'ibis',
+    'inline skate',
+    'joshua tree',
+    'kangaroo',
+    'ketch',
+    'lamp',
+    'laptop',
+    'llama',
+    'lobster',
+    'lotus',
+    'mandolin',
+    'mayfly',
+    'menorah',
+    'metronome',
+    'minaret',
+    'nautilus',
+    'octopus',
+    'okapi',
+    'pagoda',
+    'panda',
+    'pigeon',
+    'pizza',
+    'platypus',
+    'pyramid',
+    'revolver',
+    'rhino',
+    'rooster',
+    'saxophone',
+    'schooner',
+    'scissors',
+    'scorpion',
+    'sea horse',
+    'snoopy (cartoon beagle)',
+    'soccer ball',
+    'stapler',
+    'starfish',
+    'stegosaurus',
+    'stop sign',
+    'strawberry',
+    'sunflower',
+    'tick',
+    'trilobite',
+    'umbrella',
+    'watch',
+    'water lilly',
+    'wheelchair',
+    'wild cat',
+    'windsor chair',
+    'wrench',
+    'yin and yang symbol',
+]
+
+pcam_classes = [
+    'lymph node',
+    'lymph node containing metastatic tumor tissue',
 ]
