@@ -50,8 +50,15 @@ def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]
     positive_pairs[torch.arange(len(scores)), texts_image_index] = True
     metrics = {}
     for recall_k in recall_k_list:
-        # implement text/image retrieval call the way it is done in CLIP-like papers
-        # recall is 1 if there is at least we retrieve a positive text (image) for each image (text)
+        # Note that recall_at_k computes **actual** recall i.e. nb_true_positive/nb_positives, where the number
+        # of true positives, e.g. for text retrieval, is, for each image,  the number of retrieved texts matching that image among the top-k.
+        # Also, the number of positives are the total number of texts matching the image in the dataset, as we have a set of captions
+        # for each image, that number will be greater than 1 for text retrieval.
+        # However, image/text retrieval recall@k, the way it is done in CLIP-like papers, is a bit different.
+        # recall@k, in CLIP-like papers, is, for each image, either 1 or 0. It is 1 if atleast one text matches the image among the top-k.
+        # so we can easily compute that using the actual recall, by checking whether there is at least one true positive,
+        # which would be the case if the recall is greater than 0. One we compute the recal for each image (or text), we average
+        # it over the dataset.
         metrics[f"image_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores, positive_pairs, batch_size, device, k=recall_k)>0).float().mean().item()
         metrics[f"text_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores.T, positive_pairs.T, batch_size, device, k=recall_k)>0).float().mean().item()
 
