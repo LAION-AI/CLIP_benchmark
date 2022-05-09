@@ -10,7 +10,7 @@ with open('README.md') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ["torch>=1.8.1", "torchvision>=0.8.0", "tqdm"]
+requirements = [l.strip() for l in open("requirements.txt").readlines() ]
 
 test_requirements = requirements + ["pytest", "pytest-runner"]
 
@@ -46,4 +46,8 @@ setup(
     url='https://github.com/mehdidc/clip_benchmark',
     version='0.1.0',
     zip_safe=False,
+    extra_require = {
+        "vtab": ["task_adaptation==0.1"],
+        "tfds": ["tfds-nightly", "timm>=0.5.4"]
+    }
 )
