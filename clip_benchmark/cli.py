@@ -10,9 +10,7 @@ from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval
 
 from torch.utils.data import default_collate
 
-    
 def main():
-    """Console script for clip_benchmark."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default="cifar10", help="Dataset to use for the benchmark")
     parser.add_argument('--split', type=str, default="test", help="Dataset split to use")
@@ -27,8 +25,12 @@ def main():
     parser.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
-
     args = parser.parse_args()
+    run(args)
+    return args
+    
+def run(args):
+    """Console script for clip_benchmark."""
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
     model = model.to(args.device)
