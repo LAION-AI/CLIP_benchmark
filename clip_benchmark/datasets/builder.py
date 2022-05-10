@@ -194,6 +194,7 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
         task = _extract_task(dataset_name)
         assert task in ("label_shape", "label_scale", "label_orientation", "label_x_position", "label_y_position")
         tfds_dataset = DSpritesData(task, data_dir=data_dir)
+        classes = tfds_dataset._dataset_builder.info.features[task].names
     elif dataset_name == "dtd":
         from task_adaptation.data.dtd import DTDData
         tfds_dataset = DTDData(data_dir=data_dir)
