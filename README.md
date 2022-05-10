@@ -30,6 +30,8 @@ The easiest way to to benchmark the models is using the CLI, `clip_benchmark`.
 You can specify the model to use, the dataset and the task to evaluate on. Once it is done, evaluation is performed and
 the results are written into a JSON file.
 
+### CIFAR-10 example
+
  Here is an example for CIFAR-10 zero-shot classification using OpenCLIP's pre-trained model on LAION-400m:
 
  `clip_benchmark --dataset=cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
@@ -43,6 +45,23 @@ Here is the content of `result.json` after the evaluation is done:
     "metrics": {"top1_zeroshot_accuracy": 0.9074, "top5_zeroshot_accuracy": 0.998}
 }
 ```
+
+### VOC2007 example
+
+Here is another example with VOC2007, which is a multi-label classification dataset.
+
+ `clip_benchmark --dataset=voc2007_multilabel --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+
+Here is the content of `result.json` after the evaluation is done:
+
+```json
+{"dataset": "voc2007_multilabel", "model": "ViT-B-32-quickgelu", "pretrained": "laion400m_e32", "task": "zeroshot_classification", "metrics": {"mean_average_precision": 0.7627869844436646}}
+```
+
+Here, we compute the mean average precision or mAP, more details about that metric [here](https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/)
+
+
+### COCO captions
 
  Here is an example for COCO captions zero-shot retrieval:
 
