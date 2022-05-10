@@ -88,4 +88,5 @@ install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
 install-dev: clean
+	pip install -r requirements_dev.txt
 	python setup.py install
