@@ -65,14 +65,13 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
         # we use the default class names, we just  replace "_" by spaces
         # to delimit words
-        ds.classes = list(map(lambda s:" ".join(s.split("_")), ds.classes))
+        ds.classes = [cl.replace("_", " ") for cl in ds.classes]
         return ds
     elif dataset_name == "sun397":
         # we use the default class names, we just  replace "_" and "/" by spaces
         # to delimit words
         ds = SUN397(root=root, transform=transform, download=download, **kwargs)
-        ds.classes = list(map(lambda s:" ".join(s.split("_")), ds.classes ))
-        ds.classes = list(map(lambda s:" ".join(s.split("/")), ds.classes ))
+        ds.classes = [cl.replace("_", " ").replace("/", " ") for cl in ds.classes]
         return ds
     elif dataset_name == "cars":
         return StanfordCars(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
