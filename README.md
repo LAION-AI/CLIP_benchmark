@@ -18,10 +18,6 @@ cd CLIP_benchmark
 python setup.py install
 ```
 
-In order to use the CLI, you also need to install [OpenCLIP](https://github.com/mlfoundations/open_clip) using:
-
-`pip install open_clip_torch`
-
 ## How to use?
 
 ### Command line interface (CLI)
