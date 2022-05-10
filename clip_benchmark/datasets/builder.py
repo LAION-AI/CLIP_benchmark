@@ -44,6 +44,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = classnames["imagenet1k"]
         return ds
     elif dataset_name == "voc2007":
+        return voc2007.PASCALVoc2007Cropped(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
+    elif dataset_name == "voc2007_multilabel":
         return voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "mscoco_captions":
         if not os.path.exists(annotation_file):
@@ -528,6 +530,9 @@ zeroshot_classification_templates = {
         'a {c} review of a movie.',
     ],
     "voc2007":[
+        'a photo of a {c}.',
+    ],
+    "voc2007_multilabel":[
         'a photo of a {c}.',
     ],
     "fer2013":[

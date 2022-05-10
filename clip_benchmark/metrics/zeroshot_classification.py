@@ -113,6 +113,29 @@ def run_classification(model, classifier, dataloader, device, amp=False):
     true = torch.cat(true)
     return pred, true
 
+def average_precision_per_class(scores, targets):
+    # Compute average precision  for each class
+    # this metric is used for multi-label classification
+    # see explanations here https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/
+    # Code is adapted from https://github.com/pytorch/tnt/blob/master/torchnet/meter/meter.py, thanks
+    # to the authors of tnt
+    ap = torch.zeros(scores.size(1))
+    rg = torch.arange(1, scores.size(0) + 1).float()
+    # compute average precision for each class
+    for k in range(scores.size(1)):
+        # sort scores
+        scores_k = scores[:, k]
+        targets_k = targets[:, k]
+        _, sortind = torch.sort(scores_k, 0, True)
+        truth = targets_k[sortind]
+        tp = truth.float().cumsum(0)
+        # compute precision curve
+        precision = tp.div(rg)
+        # compute average precision
+        ap[k] = precision[truth.bool()].sum() / max(float(truth.sum()), 1)
+    return ap
+
+
 def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=False, verbose=False):
     """
     Run zero-shot classification and evalue the metrics
@@ -143,15 +166,29 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Fa
     """
     classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device)
     logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
-    pred = logits.argmax(axis=1)
-    # measure accuracy
-    if len(dataloader.dataset.classes) >= 5:
-        acc1, acc5 = accuracy(logits, target, topk=(1, 5))
-    else:
-        acc1, = accuracy(logits, target, topk=(1,))
-        acc5 = float("nan") 
-    mean_per_class_recall = balanced_accuracy_score(target, pred)
-    if verbose:
-        print(classification_report(target, pred, digits=3))
-    return {"acc1": acc1, "acc5": acc5, "mean_per_class_recall": mean_per_class_recall}
+    is_multilabel = (len(target.shape) == 2)
 
+    if is_multilabel:
+        if verbose:
+            print("Detected a multi-label classification dataset")
+        # Multiple labels per image, multiple classes on the dataset
+        ap_per_class = average_precision_per_class(logits, target)
+        if verbose:
+            for class_name, ap in zip(dataloader.dataset.classes, ap_per_class.tolist()):
+                print(f"Class: {class_name}, AveragePrecision: {ap}")
+        return {"mean_average_precision": ap_per_class.mean().item()}
+    else:
+        # Single label per image, multiple classes on the dataset
+        # just compute accuracy and mean_per_class_recall
+
+        pred = logits.argmax(axis=1)
+        # measure accuracy
+        if len(dataloader.dataset.classes) >= 5:
+            acc1, acc5 = accuracy(logits, target, topk=(1, 5))
+        else:
+            acc1, = accuracy(logits, target, topk=(1,))
+            acc5 = float("nan") 
+        mean_per_class_recall = balanced_accuracy_score(target, pred)
+        if verbose:
+            print(classification_report(target, pred, digits=3))
+        return {"acc1": acc1, "acc5": acc5, "mean_per_class_recall": mean_per_class_recall}

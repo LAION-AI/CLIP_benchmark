@@ -14,6 +14,7 @@ import torch.utils.data as data
 import torchvision
 from PIL import Image
 from six.moves.urllib.parse import urlparse
+import torch
 
 object_categories = ['aeroplane', 'bicycle', 'bird', 'boat',
                      'bottle', 'bus', 'car', 'cat', 'chair',
@@ -167,7 +168,11 @@ def read_bndbox(root, dataset, paths):
 
 
 class PASCALVoc2007(data.Dataset):
-
+    """
+    Multi-label classification problem for voc2007
+    labels are of one hot of shape (C,), denoting the presence/absence
+    of each class in each image, where C is the number of classes.
+    """
     def __init__(self, root, set, transform=None, download=False, target_transform=None):
         self.root = root
         self.path_devkit = os.path.join(root, 'VOCdevkit')
@@ -175,6 +180,49 @@ class PASCALVoc2007(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
+        # download dataset
+        if download:
+            download_voc2007(self.root)
+
+        paths = read_split(self.root, 'VOC2007', set)
+        bndboxes = read_bndbox(self.root, 'VOC2007', paths)
+        labels = torch.zeros(len(paths), len(object_categories))
+        path_index = {}
+        for i, p in enumerate(paths):
+            path_index[p] = i
+        for path, bbox, c in bndboxes:
+            labels[path_index[path], c] = 1
+        self.labels = labels
+        self.classes = object_categories
+        self.paths = paths
+
+    def __getitem__(self, index):
+        path = self.paths[index]
+        img = Image.open(os.path.join(self.path_images, path + '.jpg')).convert('RGB')
+        target = self.labels[index]
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        return img, target
+
+    def __len__(self):
+        return len(self.paths)
+
+class PASCALVoc2007Cropped(data.Dataset):
+    """
+    voc2007 is originally object detection and multi-label.
+    In this version, we just convert it to single-label per image classification
+    problem by looping over bounding boxes in the dataset and cropping the relevant
+    object.
+    """
+    def __init__(self, root, set, transform=None, download=False, target_transform=None):
+        self.root = root
+        self.path_devkit = os.path.join(root, 'VOCdevkit')
+        self.path_images = os.path.join(root, 'VOCdevkit', 'VOC2007', 'JPEGImages')
+        self.transform = transform
+        self.target_transform = target_transform
+        
         # download dataset
         if download:
             download_voc2007(self.root)
