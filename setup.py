@@ -10,7 +10,10 @@ with open('README.md') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [l.strip() for l in open("requirements.txt").readlines() ]
+def load_requirements(f):
+    return [l.strip() for l in open(f).readlines() ]
+
+requirements = load_requirements("requirements.txt")
 
 test_requirements = requirements + ["pytest", "pytest-runner"]
 
@@ -47,7 +50,7 @@ setup(
     version='0.1.0',
     zip_safe=False,
     extra_require = {
-        "vtab": ["task_adaptation==0.1"],
+        "vtab": ["task_adaptation==0.1", "timm>=0.5.4"],
         "tfds": ["tfds-nightly", "timm>=0.5.4"],
         "coco": ["pycocotools>=2.0.4"],
     }
