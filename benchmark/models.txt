@@ -1,0 +1,5 @@
+ViT-B-32-quickgelu,laion400m_e32
+ViT-B-32,openai
+ViT-B-16,laion400m_e32
+ViT-B-16-plus-240,laion400m_e32
+ViT-B-16,openai
