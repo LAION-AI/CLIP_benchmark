@@ -48,6 +48,7 @@ setup(
     zip_safe=False,
     extra_require = {
         "vtab": ["task_adaptation==0.1"],
-        "tfds": ["tfds-nightly", "timm>=0.5.4"]
+        "tfds": ["tfds-nightly", "timm>=0.5.4"],
+        "coco": ["pycocotools>=2.0.4"],
     }
 )
