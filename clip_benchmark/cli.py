@@ -27,7 +27,6 @@ def main():
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
     args = parser.parse_args()
     run(args)
-    return args
     
 def run(args):
     """Console script for clip_benchmark."""

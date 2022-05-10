@@ -9,6 +9,8 @@ retrieval.
 
 * Support for zero-shot classification and zero-shot retrieval
 * Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models
+* Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
+
 
 ## How to install?
 
@@ -56,8 +58,43 @@ Here is the content of `result.json` after the evaluation is done:
 
 Here, we compute the mean average precision or mAP, more details about that metric [here](https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/)
 
+### VTAB example
 
-### COCO captions
+Here is an example on how to run it on [VTAB](https://github.com/google-research/task_adaptation) classification tasks.
+First, you need to install VTAB's dedicated package.
+
+`pip install task_adaptation==0.1`
+
+The name of the dataset follows the template `vtab/<TASK_NAME>`.
+To have the list of the 19 classification tasks using in VTAB, you can use:
+
+`python -c 'from clip_benchmark.datasets.builder import VTAB_19TASKS;print("\n".join(VTAB_19TASKS))'`
+
+
+Then, you can run it by providing the full dataset name.
+Example with `eurosat`:
+
+ `clip_benchmark --dataset=vtab/eurosat --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+
+
+### TensorFlow dataset example
+
+
+
+Here is an example on how to run it on [Tensorflow datasets](https://www.tensorflow.org/datasets).
+First, you need to install `tfds-nightly` and `timm`.
+
+`pip install timm tfds-nightly`
+
+
+The name of the dataset follows the template `tfds/<DATASET_NAME>`.
+
+Example with `cifar10`:
+
+ `clip_benchmark --dataset=tfds/cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+
+
+### COCO captions example
 
  Here is an example for COCO captions zero-shot retrieval:
 
