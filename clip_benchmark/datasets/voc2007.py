@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import torch.utils.data as data
 import torchvision
 from PIL import Image
-import urllib.parse as urlparse
+from urllib.parse import urlparse
 import torch
 
 object_categories = ['aeroplane', 'bicycle', 'bird', 'boat',
