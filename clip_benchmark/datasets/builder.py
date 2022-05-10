@@ -123,7 +123,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "renderedsst2":
         return RenderedSST2(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "fer2013":
-        # Donloadable from  https://www.kaggle.com/datasets/msambare/fer2013
+        # Downloadable from  https://www.kaggle.com/datasets/msambare/fer2013
         root = os.path.join(root, "train" if train else "test")
         if not os.path.exists(root):
             print("You need to download this dataset manually. Please download the dataset from https://www.kaggle.com/datasets/msambare/fer2013")
@@ -140,9 +140,21 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         prefix, *name_list = dataset_name.split("/")
         name = "/".join(name_list)
         return build_vtab_dataset(name, download=download, split=split, data_dir=root, transform=transform)
+    elif dataset_name == "dummy":
+        return Dummy()
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
 
+class Dummy():
+
+    def __init__(self):
+        self.classes = ["blank image", "noisy image"]
+
+    def __getitem__(self, i):
+        return torch.zeros(3,224,224), 0
+
+    def __len__(self):
+        return 1
 
 def get_dataset_collate_fn(dataset_name):
     if dataset_name in ("mscoco_captions", "flickr30k", "flickr8k"):
@@ -596,6 +608,9 @@ zeroshot_classification_templates = {
     ],
     "diabetic_retinopathy":[
         "a retinal image with {c}",        
+    ],
+    "dummy":[
+        "a photo of a {c}"
     ]
 }
 
