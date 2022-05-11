@@ -1,6 +1,6 @@
 # Benchmark
 
-the benchmak results are available in [benchmark.csv](benchmark.csv).
+the benchmark results are available in [benchmark.csv](benchmark.csv).
 You can visualize the results in the [notebook](results.ipynb)
 
 # How to reproduce th CLIP benchmark results
