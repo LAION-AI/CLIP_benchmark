@@ -5,7 +5,8 @@ The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
 retrieval.
 
-The current results of the benchmark can be seen [here](benchmark/README.md).
+The current results of the benchmark can be seen [here](benchmark/README.md)
+or directly in the [notebook](benchmark/results.ipynb).
 
 ## Features
 
