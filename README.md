@@ -42,7 +42,7 @@ Here is the content of `result.json` after the evaluation is done:
 {
     "dataset": "cifar10", "model": "ViT-B-32-quickgelu", 
     "pretrained": "laion400m_e32", "task": "zeroshot_classification",
-    "metrics": {"top1_zeroshot_accuracy": 0.9074, "top5_zeroshot_accuracy": 0.998}
+    "metrics": {"acc1": 0.9074, "acc5": 0.998}
 }
 ```
 
