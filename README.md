@@ -5,7 +5,12 @@ The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
 retrieval.
 
-The current results of the benchmark can be seen [here](benchmark/README.md)
+Below we show the average rank (1 is the best, lower is better) of different CLIP models, evaluated
+on different datasets.
+
+![benchmark.png](benchmark.png)
+
+The current detailed results of the benchmark can be seen [here](benchmark/README.md)
 or directly in the [notebook](benchmark/results.ipynb).
 
 ## Features
@@ -118,5 +123,6 @@ does not belong to currently supported models.
 ## Credits
 
 - Thanks to [OpenCLIP](https://github.com/mlfoundations/open_clip) authors, zero-shot accuracy code is adapted from there and pre-trained models are used in the command line interface.
-- Thanks to [SLIP](https://github.com/facebookresearch/SLIP) authors, zero-shot templates and classnames are used from there.
+- Thanks to [SLIP](https://github.com/facebookresearch/SLIP) authors, some zero-shot templates and classnames are from there.
+- Thanks to [Wise-ft](https://github.com/mlfoundations/wise-ft) authors, Imagenet robustness datasets code is adapted from there
 - This package was created with [Cookiecutter]( https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.

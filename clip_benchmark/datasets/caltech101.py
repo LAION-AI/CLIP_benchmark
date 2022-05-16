@@ -1,5 +1,7 @@
 """
+Code adapted from https://github.com/pytorch/vision/blob/main/torchvision/datasets/caltech.py
 Modification of caltech101 from torchvision where the background class is not removed
+Thanks to the authors of torchvision
 """
 from glob import glob
 import os

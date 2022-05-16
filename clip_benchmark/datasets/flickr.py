@@ -1,3 +1,7 @@
+"""
+Adapted from https://github.com/pytorch/vision/blob/main/torchvision/datasets/flickr.py
+Thanks to the authors of torchvision
+"""
 from collections import defaultdict
 import glob
 import os
