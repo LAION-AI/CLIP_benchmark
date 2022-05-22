@@ -83,7 +83,6 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         return ds
     elif dataset_name == "objectnet":
         # downloadable from https://objectnet.dev/downloads/objectnet-1.0.zip or https://www.dropbox.com/s/raw/cxeztdtm16nzvuw/objectnet-1.0.zip
-        #
         # TODO make download automatic
         ds = objectnet.ObjectNetDataset(root=root, transform=transform)
         return ds
@@ -136,15 +135,15 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "caltech101":
         # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
         # also available in "vtab/caltech101" using VTAB splits, we advice to use VTAB version rather than this one 
-        #since in this one (torchvision) there are not pre-defined test splits
+        # since in this one (torchvision) there are no pre-defined test splits
         ds = caltech101.Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
         ds.classes = classnames["caltech101"]
         return ds
     elif dataset_name == "flowers":
         ds = Flowers102(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
-        # class indices started by 1, fixed in this PR (#TODO link)
+        # class indices started by 1 until it was fixed in  a  PR (#TODO link of the PR)
         # if older torchvision version, fix it using a target transform that decrements label index 
-        # TODO figure out torchvision versio needed instead of decrementing
+        # TODO figure out minimal torchvision version needed instead of decrementing
         if ds[0][1] == 1:
             ds.target_transform = lambda y:y-1
         ds.classes = classnames["flowers"]
@@ -168,7 +167,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = classnames["country211"]
         return ds
     elif dataset_name == "pcam":
-        # Dead link. Fixed by this PR https://github.com/pytorch/vision/pull/5645
+        # Dead link. Fixed by this PR on torchvision https://github.com/pytorch/vision/pull/5645
+        # TODO figure out minimal torchvision version needed
         ds =  PCAM(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
         ds.classes = classnames["pcam"]
         return ds
@@ -256,7 +256,7 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
         classes = classnames["diabetic_retinopathy"]
     elif dataset_name == "dmlab":
         from task_adaptation.data.dmlab import DmlabData
-        download_tfds_dataset("dmlab", data_dir=data_dir) # it's not called in the origina VTAB code, so we do it explictly
+        download_tfds_dataset("dmlab", data_dir=data_dir) # it's not called in the original VTAB code, so we do it explictly
         tfds_dataset = DmlabData(data_dir=data_dir)
         classes = classnames["dmlab"]
     elif dataset_name.startswith("dsprites_"):
@@ -678,7 +678,7 @@ zeroshot_classification_templates = {
 # - CLIP paper (https://github.com/openai/CLIP/blob/main/data/prompts.md)
 # - Lit Paper (https://arxiv.org/pdf/2111.07991.pdf)
 # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
-# Some are fixed mnaually
+# Some are fixed manually
 
 classnames = dict(
     flowers = [

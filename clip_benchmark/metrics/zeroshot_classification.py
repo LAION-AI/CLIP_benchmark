@@ -22,7 +22,7 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device):
         CLIP-like model with `encode_text`
     
     tokenizer:
-        text tokenizer
+        text tokenizer, i.e. convert list of strings to torch.Tensor of integers
     
     classnames: list of str
         name of classes
@@ -58,14 +58,15 @@ def accuracy(output, target, topk=(1,)):
         these are the logits.
     
     target: torch.Tensor
-        shape (N,) where N is the number of examples. Class id of each example.
+        shape (N,) where N is the number of examples. Groundtruth class id of each example.
     
     topk: tuple
-        which topk to compute, topk
+        which topk to compute, e.g., topk=(1,5) will compute top-1 and top-5 accuracies
+    
     Returns
     -------
     
-    list of top-k accuracies in the same order of `topk`
+    list of top-k accuracies in the same order as `topk`
     """
     pred = output.topk(max(topk), 1, True, True)[1].t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
@@ -81,10 +82,9 @@ def run_classification(model, classifier, dataloader, device, amp=False):
         CLIP-like model with `encode_image` and `encode_text`
     
     classifier: torch.Tensor
-        obtained from `zero_shot_classifier`
+        obtained from the function `zero_shot_classifier`
     
     dataloader: torch.utils.data.Dataloader 
-        torch
     
     Returns
     -------
@@ -115,11 +115,30 @@ def run_classification(model, classifier, dataloader, device, amp=False):
     return pred, true
 
 def average_precision_per_class(scores, targets):
-    # Compute average precision  for each class
-    # this metric is used for multi-label classification
-    # see explanations here https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/
-    # Code is adapted from https://github.com/pytorch/tnt/blob/master/torchnet/meter/meter.py, thanks
-    # to the authors of tnt
+    """
+    Compute average precision  for each class
+    this metric is used for multi-label classification
+    see explanations here https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/
+    Code is adapted from https://github.com/pytorch/tnt/blob/master/torchnet/meter/meter.py, thanks
+    to the authors of tnt
+
+    Parameters
+    ----------
+
+    scores: torch.Tensor
+        logits, of shape (N,C) where N is the number of examples, C the number of classes
+    
+    targets: torch.Tensor
+        one-hot vectors of groundtruth targets (N, C), where N is the number of examples, C is the
+        number of classes
+    
+    Returns
+    -------
+
+    torch.Tensor of shape (C,) of avereage precision for each class, where C is     
+    the number of classes.
+    
+    """
     ap = torch.zeros(scores.size(1))
     rg = torch.arange(1, scores.size(0) + 1).float()
     # compute average precision for each class
@@ -139,7 +158,10 @@ def average_precision_per_class(scores, targets):
 
 def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=False, verbose=False):
     """
-    Run zero-shot classification and evalue the metrics
+    Run zero-shot classification and evaluate the metrics
+
+    Parameters
+    ----------
 
     model: torch.nn.Module
         CLIP-like model with `encode_image` and `encode_text`

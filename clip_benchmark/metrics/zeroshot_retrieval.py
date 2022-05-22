@@ -8,10 +8,30 @@ from tqdm import tqdm
 def evaluate(model, dataloader, tokenizer,  device, amp=False, recall_k_list=[5]):
     """
     Evaluate the model on the given dataset
-    :param model: model to evaluate
-    :param dataloader: dataloader to use for evaluation
-    :param tokenizer: tokenizer to use for evaluation
-    :param device: device to use for evaluation
+
+    Parameters
+    ----------
+    
+    model: torch.nn,Module
+        CLIP-like model with `encode_image` and `encode_text`
+    
+    dataloader: torch.utils.data.Dataloader
+        dataloader to use for evaluation
+
+    tokenizer:
+        text tokenizer, i.e. convert list of strings to torch.Tensor of integers
+    
+    device: cpu/cuda
+
+    amp: whether to use automatic mixed precision
+
+    recall_k_list: list of int
+        recall@k k's to use
+    
+    Returns
+    -------
+    
+    dict of retrieval metrics
     """
     # list of batch of images embedding
     batch_images_emb_list = []

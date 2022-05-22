@@ -1,5 +1,5 @@
 RUN=clip_benchmark
-DATASETS=$(cat ds.txt)
+DATASETS=$(cat datasets.txt)
 MODELS=$(cat models.txt)
 BS=128
 WORKERS=4
