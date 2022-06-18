@@ -41,10 +41,8 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.5236298610701723,0.7909371376918392,0.5239784313725491,imagenet_sketch,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.5239904988123515,0.7599366587490103,0.45324234026281546,gtsrb,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
 0.5595,0.834,0.5596,imagenetv2,ViT-B-32,openai,zeroshot_classification,,ViT-B-32 openai
-0.4195,0.7255,0.4350358263296731,imagenet-o,ViT-L-14,laion400m_e32,zeroshot_classification,,ViT-L-14 laion400m_e32
 0.993625,1.0,0.9936250000000001,stl10,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
 0.1918,0.7957333333333333,0.18931349304890568,vtab/clevr_count_all,ViT-B-32,laion2b_e16,zeroshot_classification,,ViT-B-32 laion2b_e16
-0.498,0.8075,0.5097540493132598,imagenet-o,ViT-B-16-plus-240,laion400m_e32,zeroshot_classification,,ViT-B-16-plus-240 laion400m_e32
 0.67044,0.9043,0.6705,imagenet1k,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.4874017443738559,0.7250996015936255,0.4743074954135581,objectnet,ViT-B-32,laion2b_e16,zeroshot_classification,,ViT-B-32 laion2b_e16
 0.7832532051282052,0.9573317307692307,0.8332099220481476,voc2007,ViT-B-16,openai,zeroshot_classification,,ViT-B-16 openai
@@ -124,7 +122,6 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.956,0.999375,0.9559999999999998,stl10,ViT-B-32-quickgelu,laion400m_e32,zeroshot_classification,,ViT-B-32-quickgelu laion400m_e32
 0.0262451171875,0.12030707465277778,0.026739218900914602,vtab/dsprites_label_orientation,ViT-L-14,laion400m_e32,zeroshot_classification,,ViT-L-14 laion400m_e32
 0.7635,0.9345,0.7601785091834727,mnist,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
-0.4235,0.7095,0.43803474456400154,imagenet-o,ViT-B-16,openai,zeroshot_classification,,ViT-B-16 openai
 0.582037037037037,0.952962962962963,0.5903207779490761,vtab/eurosat,ViT-B-16-plus-240,laion400m_e32,zeroshot_classification,,ViT-B-16-plus-240 laion400m_e32
 0.5819047619047619,0.9126984126984127,0.5882477900732029,vtab/resisc45,ViT-B-16,openai,zeroshot_classification,,ViT-B-16 openai
 0.559173583984375,,0.5592759471555107,vtab/pcam,ViT-B-32-quickgelu,laion400m_e32,zeroshot_classification,,ViT-B-32-quickgelu laion400m_e32
@@ -164,7 +161,6 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.902698282910875,0.9964568002180431,0.901779698522761,vtab/pets,ViT-B-16-plus-240,laion400m_e32,zeroshot_classification,,ViT-B-16-plus-240 laion400m_e32
 0.2417623623154441,1.0,0.2539831727054467,vtab/diabetic_retinopathy,ViT-B-32-quickgelu,laion400m_e32,zeroshot_classification,,ViT-B-32-quickgelu laion400m_e32
 0.76572,0.95126,0.76562,imagenet1k,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
-0.3225,0.593,0.3259571724929697,imagenet-o,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
 0.6984754583739449,0.9397539400849624,0.6856083243335275,sun397,ViT-B-16-plus-240,laion400m_e32,zeroshot_classification,,ViT-B-16-plus-240 laion400m_e32
 0.07398640731192875,1.0,0.23214581953629962,vtab/diabetic_retinopathy,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.38779194837123543,0.7808466502765826,0.38421112308055716,vtab/svhn,ViT-B-32,laion2b_e16,zeroshot_classification,,ViT-B-32 laion2b_e16
@@ -200,12 +196,10 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.242,0.7891333333333334,0.239401966433246,vtab/clevr_count_all,ViT-L-14,laion400m_e32,zeroshot_classification,,ViT-L-14 laion400m_e32
 0.7556,0.94582,0.75548,imagenet1k,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
 0.709,0.9164,0.7091000000000002,imagenetv2,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
-0.5025,0.817,0.512838677975791,imagenet-o,ViT-B-32,laion2b_e16,zeroshot_classification,,ViT-B-32 laion2b_e16
 0.9326792041428182,0.9980921231943308,0.9325495517676683,vtab/pets,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
 0.024427625868055556,0.12071397569444445,0.024587991442247815,vtab/dsprites_label_orientation,ViT-B-32,openai,zeroshot_classification,,ViT-B-32 openai
 ,,,voc2007_multilabel,ViT-L-14,openai,zeroshot_classification,0.7903584241867065,ViT-L-14 openai
 0.8923412373943854,0.9964568002180431,0.8917412191511577,vtab/pets,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
-0.4775,0.781,0.49047960548223707,imagenet-o,ViT-B-32,openai,zeroshot_classification,,ViT-B-32 openai
 0.5057798891528108,0.7615993665874901,0.4386264963082455,gtsrb,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
 0.1932702881020453,0.851110622388388,0.16297251445825328,vtab/dmlab,ViT-B-32,openai,zeroshot_classification,,ViT-B-32 openai
 0.16753333333333334,0.8716,0.18638368812960052,vtab/clevr_closest_object_distance,ViT-B-32,laion2b_e16,zeroshot_classification,,ViT-B-32 laion2b_e16
@@ -230,7 +224,6 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.19413333333333332,0.7212,0.19096994288337252,vtab/clevr_count_all,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
 0.908,0.9943,0.9079999999999998,vtab/cifar10,ViT-B-16,openai,zeroshot_classification,,ViT-B-16 openai
 0.2616033755274262,,0.3690524648182607,vtab/kitti_closest_vehicle_distance,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
-0.507,0.8105,0.5155056586559295,imagenet-o,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.9370400654129191,0.9983646770237122,0.9369378413188709,vtab/pets,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
 0.05226337448559671,0.2892181069958848,0.05326167135969435,vtab/smallnorb_label_azimuth,ViT-B-16,openai,zeroshot_classification,,ViT-B-16 openai
 ,,,voc2007_multilabel,ViT-B-32-quickgelu,laion400m_e32,zeroshot_classification,0.762786865234375,ViT-B-32-quickgelu laion400m_e32
@@ -266,7 +259,6 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.15465141851770398,0.8414339124697603,0.1673786406117078,vtab/dmlab,ViT-B-16,openai,zeroshot_classification,,ViT-B-16 openai
 0.09991769547325102,0.5327572016460905,0.09921138950120793,vtab/smallnorb_label_elevation,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.500557258289217,0.9722764001114517,0.49440362981351654,fer2013,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
-0.3275,0.598,0.33193887878117756,imagenet-o,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
 0.6961031318388289,0.9386413373301212,0.681040238565716,sun397,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.2006,0.7316,0.19710251033410803,vtab/clevr_count_all,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai
 0.5959834148833736,0.8429719585765096,0.5962682352941177,imagenet_sketch,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
@@ -317,7 +309,6 @@ acc1,acc5,mean_per_class_recall,dataset,model,pretrained,task,mean_average_preci
 0.8049,0.9390666666666667,0.7911340758419092,imagenet-r,ViT-B-16-plus-240,laion400m_e32,zeroshot_classification,,ViT-B-16-plus-240 laion400m_e32
 0.9172,0.9977,0.9172,vtab/cifar10,ViT-B-16,laion400m_e32,zeroshot_classification,,ViT-B-16 laion400m_e32
 0.6262962962962964,0.9594444444444444,0.639346809281101,vtab/eurosat,ViT-L-14,openai,zeroshot_classification,,ViT-L-14 openai
-0.5345,0.841,0.5392600950691895,imagenet-o,ViT-B-32-quickgelu,laion400m_e32,zeroshot_classification,,ViT-B-32-quickgelu laion400m_e32
 0.5388297872340425,0.8382978723404255,0.5388297872340425,vtab/dtd,ViT-B-32,laion2b_e16,zeroshot_classification,,ViT-B-32 laion2b_e16
 0.2742616033755274,,0.40417802963771,vtab/kitti_closest_vehicle_distance,ViT-B-32,openai,zeroshot_classification,,ViT-B-32 openai
 0.782566270938364,0.9258416002602049,0.7847538752116816,vtab/flowers,ViT-L-14-336,openai,zeroshot_classification,,ViT-L-14-336 openai

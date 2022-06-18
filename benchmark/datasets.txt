@@ -3,7 +3,6 @@ imagenetv2
 imagenet_sketch
 imagenet-a
 imagenet-r
-imagenet-o
 objectnet
 fer2013
 voc2007
