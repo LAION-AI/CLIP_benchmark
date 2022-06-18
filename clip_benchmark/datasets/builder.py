@@ -98,7 +98,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         return CocoCaptions(root=root, annFile=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
-        # kaggle datasets download -d adityajn105/flickr30k
+        # `kaggle datasets download -d adityajn105/flickr30k``
         # TODO make it automatic if `kaggle` package exists
         if not os.path.exists(annotation_file):
             print("You need to download this dataset manually. Please download the dataset from https://www.kaggle.com/datasets/adityajn105/flickr30k")
@@ -106,7 +106,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         return flickr.Flickr(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr8k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr8k
-        # kaggle datasets download -d adityajn105/flickr8k
+        # `kaggle datasets download -d adityajn105/flickr8k`
         # TODO make it automatic if `kaggle` package exists
         if not os.path.exists(annotation_file):
             print("You need to download this dataset manually. Please download the dataset from https://www.kaggle.com/datasets/adityajn105/flickr8k")
@@ -176,7 +176,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         return RenderedSST2(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "fer2013":
         # Downloadable from  https://www.kaggle.com/datasets/msambare/fer2013
-        # kaggle datasets download -d msambare/fer2013
+        # `kaggle datasets download -d msambare/fer2013``
         # TODO make it automatic if `kaggle` package exists
         root = os.path.join(root, "train" if train else "test")
         if not os.path.exists(root):
@@ -251,6 +251,10 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
         from task_adaptation.data.cub import CUB2011Data
         tfds_dataset = CUB2011Data(data_dir=data_dir)
     elif dataset_name == "diabetic_retinopathy":
+        # Needs manual download from Kaggle
+        # 1) `kaggle competitions download -c diabetic-retinopathy-detection` on $ROOT/downloads/manual
+        # 2) extract archives  on $ROOT/downloads/manual
+        # TODO make download automatic
         from task_adaptation.data.diabetic_retinopathy import RetinopathyData
         tfds_dataset = RetinopathyData(config="btgraham-300", data_dir=data_dir)
         classes = classnames["diabetic_retinopathy"]
@@ -303,6 +307,8 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
         tfds_dataset = PatchCamelyonData(data_dir=data_dir)
         classes = classnames["pcam"]
     elif dataset_name == "resisc45":
+        # Needs download from OneDrive: https://1drv.ms/u/s!AmgKYzARBl5ca3HNaHIlzp_IXjs
+        # The archive needs to to be put at <DATASET_ROOT>/downloads/manual then extracted
         from task_adaptation.data.resisc45 import Resisc45Data
         tfds_dataset = Resisc45Data(data_dir=data_dir)
     elif dataset_name.startswith("smallnorb_"):
@@ -663,7 +669,7 @@ zeroshot_classification_templates = {
         "{c}"
     ],
     "diabetic_retinopathy":[
-        "a retinal image with {c}",        
+        "a retinal image with {c}",
     ],
     "dummy":[
         "a photo of a {c}"
