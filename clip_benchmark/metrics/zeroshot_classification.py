@@ -118,9 +118,8 @@ def average_precision_per_class(scores, targets):
     """
     Compute average precision  for each class
     this metric is used for multi-label classification
-    see explanations here https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/
-    Code is adapted from https://github.com/pytorch/tnt/blob/master/torchnet/meter/meter.py, thanks
-    to the authors of tnt
+    see explanations here https://fangdahan.medium.com/calculate-mean-average-precision-map-for-multi-label-classification-b082679d31be
+    Code is adapted from https://github.com/pytorch/tnt/blob/master/torchnet/meter/meter.py, thanks to the authors of `tnt`.
 
     Parameters
     ----------

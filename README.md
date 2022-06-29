@@ -64,7 +64,7 @@ Here is the content of `result.json` after the evaluation is done:
 {"dataset": "voc2007_multilabel", "model": "ViT-B-32-quickgelu", "pretrained": "laion400m_e32", "task": "zeroshot_classification", "metrics": {"mean_average_precision": 0.7627869844436646}}
 ```
 
-Here, we compute the mean average precision or mAP, more details about that metric [here](https://leimao.github.io/blog/Object-Detection-Mean-Average-Precision-mAP/)
+Here, we compute the mean average precision or mAP, more details about that metric [here](https://fangdahan.medium.com/calculate-mean-average-precision-map-for-multi-label-classification-b082679d31be) in the context of multi-label classification.
 
 ### VTAB example
 
