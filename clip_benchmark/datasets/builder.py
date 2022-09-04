@@ -92,6 +92,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         return voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "mscoco_captions":
         # TODO make download automatic
+        # http://images.cocodataset.org/zips/val2017.zip (val2017 folder)
+        # http://images.cocodataset.org/annotations/annotations_trainval2017.zip (annotations/captions_val2017.json)
         if not os.path.exists(annotation_file):
             print("You need to download this dataset manually. Please download the dataset from https://cocodataset.org/")
             sys.exit(1)
