@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 
-def zero_shot_classifier(model, tokenizer, classnames, templates, device):
+def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
     """
     This function returns zero-shot vectors for each class in order
     to use it for zero-shot classification.
@@ -36,7 +36,8 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device):
     torch.Tensor of shape (N,C) where N is the number
     of templates, and C is the number of classes.
     """
-    with torch.no_grad():
+    autocast = torch.cuda.amp.autocast if amp else suppress
+    with torch.no_grad(), autocast():
         zeroshot_weights = []
         for classname in tqdm(classnames):
             texts = [template.format(c=classname) for template in templates]  # format with class
@@ -74,7 +75,7 @@ def accuracy(output, target, topk=(1,)):
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) / n for k in topk]
 
 
-def run_classification(model, classifier, dataloader, device, amp=False):
+def run_classification(model, classifier, dataloader, device, amp=True):
     """
     Run zero-shot classifcation
 
@@ -155,7 +156,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=False, verbose=False):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False):
     """
     Run zero-shot classification and evaluate the metrics
 
