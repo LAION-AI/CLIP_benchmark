@@ -6,3 +6,4 @@ ViT-B-16,openai
 ViT-L-14-336,openai
 ViT-L-14,openai
 ViT-B-32,laion2b_e16
+ViT-L-14,laion400m_e32
