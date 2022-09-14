@@ -92,14 +92,15 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         return voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "mscoco_captions":
         # TODO make download automatic
-        # http://images.cocodataset.org/zips/val2017.zip (val2017 folder)
-        # http://images.cocodataset.org/annotations/annotations_trainval2017.zip (annotations/captions_val2017.json)
+        # https://gist.github.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6 (annotations)
+        # http://images.cocodataset.org/zips/val2014.zip
         if not os.path.exists(annotation_file):
             print("You need to download this dataset manually. Please download the dataset from https://cocodataset.org/")
             sys.exit(1)
         return CocoCaptions(root=root, annFile=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
+        # https://gist.github.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6 (annotations)
         # `kaggle datasets download -d adityajn105/flickr30k``
         # TODO make it automatic if `kaggle` package exists
         if not os.path.exists(annotation_file):
