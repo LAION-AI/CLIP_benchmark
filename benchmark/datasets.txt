@@ -1,3 +1,6 @@
+mscoco_captions
+flickr8k
+flickr30k
 imagenet1k
 imagenetv2
 imagenet_sketch
