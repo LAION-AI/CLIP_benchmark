@@ -45,6 +45,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = classnames["imagenet1k"]
         return ds
     elif dataset_name == "imagenetv2":
+        os.makedirs(root, exist_ok=True)
         ds = imagenetv2.ImageNetV2Dataset(variant="matched-frequency", transform=transform, location=root)
         ds.classes = classnames["imagenet1k"]
         return ds   
