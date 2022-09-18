@@ -40,6 +40,11 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "cifar100":
         return CIFAR100(root=root, train=train, transform=transform, download=download, **kwargs)
     elif dataset_name == "imagenet1k":
+        if not os.path.exists(root):
+            os.makedirs(root, exist_ok=True)
+            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={root}/ILSVRC2012_devkit_t12.tar.gz", shell=True)            
+            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --output-document={root}/ILSVRC2012_img_val.tar", shell=True)            
+
         ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
