@@ -2,12 +2,5 @@
 Credits
 =======
 
-Development Lead
-----------------
-
-* Mehdi Cherti <mehdicherti@gmail.com>
-
-Contributors
-------------
-
-None yet. Why not be the first?
+* `Mehdi Cherti <https://github.com/mehdidc>`_
+* `Romain Beaumont <https://github.com/rom1504>`_
