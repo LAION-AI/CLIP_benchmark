@@ -1,11 +1,13 @@
 import os
 import time
 from tqdm import tqdm
+from contextlib import suppress
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, Sampler
 import numpy as np
 from .zeroshot_classification import accuracy
+
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 def assign_learning_rate(param_group, new_lr):
@@ -55,16 +57,17 @@ class FeatureDataset(Dataset):
 
 
 def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_workers, lr, epochs, 
-            model_id, seed, feature_root, device, amp=True, verbose=False):
+             model_id, seed, feature_root, device, amp=True, verbose=False):
     # warning: we currently only support non-multi-label classification datasets.
     assert device == 'cuda' # need to use cuda for this else too slow
     # first we need to featurize the dataset, and store the result in feature_root
     if not os.path.exists(feature_root):
         os.mkdir(feature_root)
-    feature_dir = os.path.join(feature_root, type(dataloader.dataset).__name__ + f'-{model_id}')
+    feature_dir = os.path.join(feature_root, model_id)
     if not os.path.exists(feature_dir):
         os.mkdir(feature_dir)
 
+    
     featurizer = Featurizer(model).cuda()
     autocast = torch.cuda.amp.autocast if amp else suppress
     if not os.path.exists(os.path.join(feature_dir, 'targets_train.pt')):
@@ -73,8 +76,11 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         featurizer = torch.nn.DataParallel(featurizer, device_ids=devices)
 
         for j, loader in enumerate([dataloader, train_dataloader]):
+            save_str = '_train' if j == 1 else '_val'
             features = []
             targets = []
+            num_batches_tracked = 0
+            num_cached = 0
             with torch.no_grad():
                 for images, target in tqdm(loader):
                     images = images.to(device)
@@ -85,10 +91,35 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                     features.append(feature.cpu())
                     targets.append(target)
 
+                    num_batches_tracked += 1
+                    if (num_batches_tracked % 100) == 0:
+                        features = torch.cat(features)
+                        targets = torch.cat(targets)
+                        
+                        torch.save(features, os.path.join(feature_dir, f'features{save_str}_cache_{num_cached}.pt'))
+                        torch.save(targets, os.path.join(feature_dir, f'targets{save_str}_cache_{num_cached}.pt'))
+                        num_cached += 1
+                        features = []
+                        targets = []
+                        
             features = torch.cat(features)
             targets = torch.cat(targets)
+            torch.save(features, os.path.join(feature_dir, f'features{save_str}_cache_{num_cached}.pt'))
+            torch.save(targets, os.path.join(feature_dir, f'targets{save_str}_cache_{num_cached}.pt'))
+            num_cached += 1
 
-            save_str = '_train' if j == 1 else '_val'
+            features = torch.load(os.path.join(feature_dir, f'features{save_str}_cache_0.pt'))
+            targets = torch.load(os.path.join(feature_dir, f'targets{save_str}_cache_0.pt'))
+            for k in range(1, num_cached):
+                next_features = torch.load(os.path.join(feature_dir, f'features{save_str}_cache_{k}.pt'))
+                next_targets = torch.load(os.path.join(feature_dir, f'targets{save_str}_cache_{k}.pt'))
+                features = torch.cat((features, next_features))
+                targets = torch.cat((targets, next_targets))
+
+            # for k in range(num_cached):
+            #     os.remove(os.path.join(feature_dir, f'features{save_str}_cache_{k}.pt'))
+            #     os.remove(os.path.join(feature_dir, f'targets{save_str}_cache_{k}.pt'))
+
             torch.save(features, os.path.join(feature_dir, f'features{save_str}.pt'))
             torch.save(targets, os.path.join(feature_dir, f'targets{save_str}.pt'))
 

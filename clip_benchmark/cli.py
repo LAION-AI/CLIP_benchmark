@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--fewshot_k', default=-1, type=int, help="for linear probe, how many shots. -1 = whole dataset.")
     parser.add_argument('--fewshot_epochs', default=10, type=int, help="for linear probe, how many epochs.")
     parser.add_argument('--fewshot_lr', default=0.1, type=float, help="for linear probe, what is the learning rate.")
+    parser.add_argument("--skip_load", action="store_true", help="for linear probes, when everything is cached, no need to load model.")
     parser.add_argument('--seed', default=0, type=int, help="random seed.")
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--dataset_root', default="root", type=str, help="dataset root folder where the datasets are downloaded.")
@@ -38,28 +39,31 @@ def run(args):
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     # set seed.
     torch.manual_seed(args.seed)
-    model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
-    model = model.to(args.device)
-    dataset = build_dataset(
-        dataset_name=args.dataset, 
-        root=args.dataset_root, 
-        transform=transform, 
-        split=args.split, 
-        annotation_file=args.annotation_file,
-        download=True,
-    )
-    collate_fn = get_dataset_collate_fn(args.dataset)
-    if args.verbose:
-        print(f"Dataset size: {len(dataset)}")
-        print(f"Dataset split: {args.split}")
-        print(f"Dataset classes: {dataset.classes}")
-        print(f"Dataset number of classes: {len(dataset.classes)}")
+    if args.skip_load:
+        model, transform, collate_fn, dataloader = None, None, None, None
+    else:
+        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
+        model = model.to(args.device)
+        dataset = build_dataset(
+            dataset_name=args.dataset, 
+            root=args.dataset_root, 
+            transform=transform, 
+            split=args.split, 
+            annotation_file=args.annotation_file,
+            download=True,
+        )
+        collate_fn = get_dataset_collate_fn(args.dataset)
+        if args.verbose:
+            print(f"Dataset size: {len(dataset)}")
+            print(f"Dataset split: {args.split}")
+            print(f"Dataset classes: {dataset.classes}")
+            print(f"Dataset number of classes: {len(dataset.classes)}")
 
-    dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=args.batch_size, 
-        shuffle=False, num_workers=args.num_workers, 
-        collate_fn=collate_fn
-    )
+        dataloader = torch.utils.data.DataLoader(
+            dataset, batch_size=args.batch_size, 
+            shuffle=False, num_workers=args.num_workers, 
+            collate_fn=collate_fn
+        )
 
     if args.task == "zeroshot_classification":
         zeroshot_templates = get_zeroshot_classification_templates(args.dataset)
@@ -109,7 +113,7 @@ def run(args):
             args.num_workers,
             args.fewshot_lr,
             args.fewshot_epochs,
-            args.model + '-' + args.pretrained,
+            args.model + '-' + args.pretrained + '-' + args.dataset,
             args.seed,
             args.feature_root,
             device=args.device, 

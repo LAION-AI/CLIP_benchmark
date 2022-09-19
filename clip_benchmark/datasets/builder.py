@@ -49,6 +49,12 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
         return ds
+    elif dataset_name == "imagenet1k-unverified":
+        split = "train" if train else "val"
+        ds =  ImageFolder(root=os.path.join(root, split), transform=transform, **kwargs)
+        # use classnames from OpenAI
+        ds.classes = classnames["imagenet1k"]
+        return ds
     elif dataset_name == "imagenetv2":
         os.makedirs(root, exist_ok=True)
         ds = imagenetv2.ImageNetV2Dataset(variant="matched-frequency", transform=transform, location=root)
