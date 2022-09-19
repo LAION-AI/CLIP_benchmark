@@ -67,31 +67,33 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
 
     featurizer = Featurizer(model).cuda()
     autocast = torch.cuda.amp.autocast if amp else suppress
-    if not os.path.exists(os.path.join(feature_dir, 'targets.pt')):
+    if not os.path.exists(os.path.join(feature_dir, 'targets_train.pt')):
         # now we have to cache the features
         devices = [x for x in range(torch.cuda.device_count())]
         featurizer = torch.nn.DataParallel(featurizer, device_ids=devices)
 
-        features = []
-        targets = []
-        with torch.no_grad():
-            for images, target in tqdm(train_dataloader):
-                images = images.to(device)
+        for j, loader in enumerate([dataloader, train_dataloader]):
+            features = []
+            targets = []
+            with torch.no_grad():
+                for images, target in tqdm(loader):
+                    images = images.to(device)
 
-                with autocast():
-                    feature = featurizer(images)
-                
-                features.append(feature.cpu())
-                targets.append(target)
+                    with autocast():
+                        feature = featurizer(images)
+                    
+                    features.append(feature.cpu())
+                    targets.append(target)
 
-        features = torch.cat(features)
-        targets = torch.cat(targets)
+            features = torch.cat(features)
+            targets = torch.cat(targets)
 
-        torch.save(features, os.path.join(feature_dir, 'features.pt'))
-        torch.save(targets, os.path.join(feature_dir, 'targets.pt'))
+            save_str = '_train' if j == 1 else '_val'
+            torch.save(features, os.path.join(feature_dir, f'features{save_str}.pt'))
+            torch.save(targets, os.path.join(feature_dir, f'targets{save_str}.pt'))
 
-    features = torch.load(os.path.join(feature_dir, 'features.pt'))
-    targets = torch.load(os.path.join(feature_dir, 'targets.pt'))
+    features = torch.load(os.path.join(feature_dir, 'features_train.pt'))
+    targets = torch.load(os.path.join(feature_dir, 'targets_train.pt'))
 
     # second, make a dataloader with k features per class. if k = -1, use all features.
     length = len(features)
@@ -169,19 +171,25 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                 )
 
     # finally, evaluate.
+    features = torch.load(os.path.join(feature_dir, 'features_val.pt'))
+    targets = torch.load(os.path.join(feature_dir, 'targets_val.pt'))
+    feature_dset = FeatureDataset(features, targets)
+    feature_loader = DataLoader(feature_dset, batch_size=batch_size, 
+                                    shuffle=True, num_workers=num_workers, 
+                                    pin_memory=True,
+                                )
     true, pred = [], []
     with torch.no_grad():
-        for images, target in tqdm(dataloader):
-            images = images.to(device)
-            target = target.to(device)
+        for x, y in tqdm(feature_loader):
+            x = x.to(device)
+            y = y.to(device)
 
             with autocast():
                 # predict
-                image_features = featurizer(images)
-                logits = probe(image_features)
+                logits = probe(x)
 
             pred.append(logits.cpu())
-            true.append(target.cpu())
+            true.append(y.cpu())
             
     logits = torch.cat(pred)
     target = torch.cat(true)
@@ -196,5 +204,8 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     mean_per_class_recall = balanced_accuracy_score(target, pred)
     if verbose:
         print(classification_report(target, pred, digits=3))
-    return {"acc1": acc1, "acc5": acc5, "mean_per_class_recall": mean_per_class_recall, 'lr': lr, 'epochs': epochs, 'seed': seed}
+
+    print('acc1:', acc1)
+    return {"acc1": acc1, "acc5": acc5, "mean_per_class_recall": mean_per_class_recall, 
+            'lr': lr, 'epochs': epochs, 'seed': seed, 'fewshot_k': fewshot_k}
 
