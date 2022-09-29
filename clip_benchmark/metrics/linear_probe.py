@@ -101,12 +101,13 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                         num_cached += 1
                         features = []
                         targets = []
-                        
-            features = torch.cat(features)
-            targets = torch.cat(targets)
-            torch.save(features, os.path.join(feature_dir, f'features{save_str}_cache_{num_cached}.pt'))
-            torch.save(targets, os.path.join(feature_dir, f'targets{save_str}_cache_{num_cached}.pt'))
-            num_cached += 1
+            
+            if len(features) > 0:
+                features = torch.cat(features)
+                targets = torch.cat(targets)
+                torch.save(features, os.path.join(feature_dir, f'features{save_str}_cache_{num_cached}.pt'))
+                torch.save(targets, os.path.join(feature_dir, f'targets{save_str}_cache_{num_cached}.pt'))
+                num_cached += 1
 
             features = torch.load(os.path.join(feature_dir, f'features{save_str}_cache_0.pt'))
             targets = torch.load(os.path.join(feature_dir, f'targets{save_str}_cache_0.pt'))

@@ -113,7 +113,7 @@ def run(args):
             args.num_workers,
             args.fewshot_lr,
             args.fewshot_epochs,
-            args.model + '-' + args.pretrained + '-' + args.dataset,
+            (args.model + '-' + args.pretrained + '-' + args.dataset).replace('/', '_'),
             args.seed,
             args.feature_root,
             device=args.device, 
