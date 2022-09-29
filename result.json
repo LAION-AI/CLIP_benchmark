@@ -1,1 +1,1 @@
-{"dataset": "imagenet1k-unverified", "model": "ViT-H-14", "pretrained": "laion2b_s32b_b79k", "task": "linear_probe", "metrics": {"acc1": 0.84616, "acc5": 0.97496, "mean_per_class_recall": 0.84602, "lr": 0.01, "epochs": 10, "seed": 0, "fewshot_k": -1}}
+{"dataset": "imagenet1k-unverified", "model": "ViT-H-14", "pretrained": "laion2b_s32b_b79k", "task": "linear_probe", "metrics": {"lp_acc1": 0.83792, "lp_acc5": 0.9706, "lp_mean_per_class_recall": 0.83806, "lr": 0.01, "epochs": 10, "seed": 0, "fewshot_k": -1}}

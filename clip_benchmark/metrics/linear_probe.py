@@ -116,9 +116,9 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                 features = torch.cat((features, next_features))
                 targets = torch.cat((targets, next_targets))
 
-            # for k in range(num_cached):
-            #     os.remove(os.path.join(feature_dir, f'features{save_str}_cache_{k}.pt'))
-            #     os.remove(os.path.join(feature_dir, f'targets{save_str}_cache_{k}.pt'))
+            for k in range(num_cached):
+                os.remove(os.path.join(feature_dir, f'features{save_str}_cache_{k}.pt'))
+                os.remove(os.path.join(feature_dir, f'targets{save_str}_cache_{k}.pt'))
 
             torch.save(features, os.path.join(feature_dir, f'features{save_str}.pt'))
             torch.save(targets, os.path.join(feature_dir, f'targets{save_str}.pt'))
@@ -227,7 +227,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     pred = logits.argmax(axis=1)
 
     # measure accuracy
-    if len(dataloader.dataset.classes) >= 5:
+    if target.max() >= 5:
         acc1, acc5 = accuracy(logits.float(), target.float(), topk=(1, 5))
     else:
         acc1, = accuracy(logits.float(), target.float(), topk=(1,))
@@ -237,6 +237,6 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         print(classification_report(target, pred, digits=3))
 
     print('acc1:', acc1)
-    return {"acc1": acc1, "acc5": acc5, "mean_per_class_recall": mean_per_class_recall, 
+    return {"lp_acc1": acc1, "lp_acc5": acc5, "lp_mean_per_class_recall": mean_per_class_recall, 
             'lr': lr, 'epochs': epochs, 'seed': seed, 'fewshot_k': fewshot_k}
 
