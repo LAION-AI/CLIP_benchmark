@@ -50,3 +50,5 @@ coverage.xml
 docs/_build/
 features
 root
+cifar-100-*
+probe_benchmark/data
