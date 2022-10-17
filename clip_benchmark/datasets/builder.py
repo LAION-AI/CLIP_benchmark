@@ -1,4 +1,5 @@
 import os
+import warnings
 import sys
 from subprocess import call
 from collections import defaultdict
@@ -56,11 +57,13 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = classnames["imagenet1k"]
         return ds
     elif dataset_name == "imagenetv2":
+        assert split == "test", f"Only test split available for {dataset_name}"
         os.makedirs(root, exist_ok=True)
         ds = imagenetv2.ImageNetV2Dataset(variant="matched-frequency", transform=transform, location=root)
         ds.classes = classnames["imagenet1k"]
         return ds   
     elif dataset_name == "imagenet_sketch":
+        assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://drive.google.com/open?id=1Mj0i5HBthqH1p_yeXzsg22gZduvgoNeA
         if not os.path.exists(root):
             # Automatic download
@@ -78,6 +81,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = classnames["imagenet1k"]
         return ds
     elif dataset_name == "imagenet-a":
+        assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://people.eecs.berkeley.edu/~hendrycks/imagenet-a.tar
         if not os.path.exists(root):
             print("Downloading imagenet-a...")
@@ -92,6 +96,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = [cl for cl, mask in zip(ds.classes, imagenet_a_mask) if mask]
         return ds
     elif dataset_name == "imagenet-r":
+        assert split == "test", f"Only test split available for {dataset_name}"
         # downloadable from https://people.eecs.berkeley.edu/~hendrycks/imagenet-r.tar
         if not os.path.exists(root):
             print("Downloading imagenet-r...")
@@ -106,6 +111,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = [cl for cl, mask in zip(ds.classes, imagenet_r_mask) if mask]
         return ds
     elif dataset_name == "imagenet-o":
+        assert split == "test", f"Only test split available for {dataset_name}"
         # downloadable from https://people.eecs.berkeley.edu/~hendrycks/imagenet-o.tar
         if not os.path.exists(root):
             print("Downloading imagenet-o...")
@@ -120,6 +126,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = [cl for cl, mask in zip(ds.classes, imagenet_o_mask) if mask]
         return ds
     elif dataset_name == "objectnet":
+        assert split == "test", f"Only test split available for {dataset_name}"
         # downloadable from https://objectnet.dev/downloads/objectnet-1.0.zip or https://www.dropbox.com/s/raw/cxeztdtm16nzvuw/objectnet-1.0.zip
         if not os.path.exists(root):
             print("Downloading objectnet...")
@@ -136,21 +143,27 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "voc2007_multilabel":
         return voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "mscoco_captions":
-        # https://gist.github.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6 (annotations)
-        # http://images.cocodataset.org/zips/val2014.zip
-        if not os.path.exists(root):
-            print("Downloading mscoco_captions...")
-            call("wget http://images.cocodataset.org/zips/val2014.zip", shell=True)
-            call("unzip val2014.zip", shell=True)
-            call(f"mv val2014 {root}", shell=True)
+        # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
+        if split == "train":
+            archive_name = "train2014.zip"
+        elif split in ("val", "test"):
+            archive_name = "val2014.zip"
+        else:
+            raise ValueError(f"split should be train or val or test for `{dataset_name}`")
+        root_split = os.path.join(root, archive_name.replace(".zip", ""))
+        if not os.path.exists(root_split):
+            print(f"Downloading mscoco_captions {archive_name}...")
+            if not os.path.exists(os.path.join(root, archive_name)):
+                call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
+            call(f"unzip {root}/{archive_name} -d {root}", shell=True)
+        if not annotation_file:
+            annotation_file = f"{root}/coco_{split}_karpathy.json"
         if not os.path.exists(annotation_file):
-            # Download COCO Karpathy 5K test set
-            annotation_file = f"{root}/coco_test_karpathy.json"
-            call(f"wget https://gist.githubusercontent.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6/raw/4e1ab923dea5513280e8c55f7630ca5c0ecbb80a/coco_test_karpathy.json --output-document={annotation_file}", shell=True)
-        return CocoCaptions(root=root, annFile=annotation_file, transform=transform, **kwargs)
+            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/coco_{split}_karpathy.json --output-document={annotation_file}", shell=True)
+        return CocoCaptions(root=root_split, annFile=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
-        # https://gist.github.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6 (annotations)
+        # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
         # `kaggle datasets download -d adityajn105/flickr30k`
         if not os.path.exists(root):
             # Automatic download
@@ -164,12 +177,13 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv captions.txt {root}", shell=True)
         if not os.path.exists(annotation_file):
             # Download Flickr30K Karpathy test set
-            annotation_file = f"{root}/flickr30k_test_karpathy.txt"
-            call(f"wget https://gist.githubusercontent.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6/raw/4e1ab923dea5513280e8c55f7630ca5c0ecbb80a/flickr30k_test_karpathy.txt --output-document={annotation_file}", shell=True)
+            annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
+            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
         return flickr.Flickr(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr8k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr8k
         # `kaggle datasets download -d adityajn105/flickr8k`
+        # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
         if not os.path.exists(root):
             # Automatic download
             print("Downloading flickr8k...")
@@ -182,8 +196,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv captions.txt {root}", shell=True)
         if not os.path.exists(annotation_file):
             # Download Flickr8K Karpathy test set
-            annotation_file = f"{root}/flickr8k_test_karpathy.txt"
-            call(f"wget https://gist.githubusercontent.com/mehdidc/0745a72acb12d3fc9bf91bda65e1ebb6/raw/6d1d31f8da09310f775905e9ea89aa42d0739f22/flickr8k_test_karpathy.txt --output-document={annotation_file}", shell=True)
+            annotation_file = f"{root}/flickr8k_{split}_karpathy.txt"
+            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr8k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
         return flickr.Flickr(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "food101":
         ds = Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
@@ -192,6 +206,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = [cl.replace("_", " ") for cl in ds.classes]
         return ds
     elif dataset_name == "sun397":
+        warnings.warn(f"split argument ignored for `{dataset_name}`, there is no pre-defined train/test splits for this dataset")
         # we use the default class names, we just  replace "_" and "/" by spaces
         # to delimit words
         ds = SUN397(root=root, transform=transform, download=download, **kwargs)
@@ -206,6 +221,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "pets":
         return OxfordIIITPet(root=root, split="train" if train else "test", target_types="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "caltech101":
+        warnings.warn(f"split argument ignored for `{dataset_name}`, there is no pre-defined train/test splits for this dataset")
         # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
         # also available in "vtab/caltech101" using VTAB splits, we advice to use VTAB version rather than this one 
         # since in this one (torchvision) there are no pre-defined test splits
@@ -228,6 +244,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "stl10":
         return STL10(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "eurosat":
+        warnings.warn(f"split argument ignored for `{dataset_name}`, there is no pre-defined train/test splits for this dataset.")
         ds = EuroSAT(root=root, transform=transform, download=download, **kwargs)
         ds.classes = classnames["eurosat"]
         return ds
