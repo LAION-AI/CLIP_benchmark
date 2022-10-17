@@ -206,7 +206,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = [cl.replace("_", " ") for cl in ds.classes]
         return ds
     elif dataset_name == "sun397":
-        warnings.warn(f"split argument ignored for `{dataset_name}`, there is no pre-defined train/test splits for this dataset")
+        warnings.warn(f"split argument ignored for `{dataset_name}`, there are no pre-defined train/test splits for this dataset")
         # we use the default class names, we just  replace "_" and "/" by spaces
         # to delimit words
         ds = SUN397(root=root, transform=transform, download=download, **kwargs)
@@ -221,7 +221,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "pets":
         return OxfordIIITPet(root=root, split="train" if train else "test", target_types="category", transform=transform, download=download, **kwargs)
     elif dataset_name == "caltech101":
-        warnings.warn(f"split argument ignored for `{dataset_name}`, there is no pre-defined train/test splits for this dataset")
+        warnings.warn(f"split argument ignored for `{dataset_name}`, there are no pre-defined train/test splits for this dataset")
         # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
         # also available in "vtab/caltech101" using VTAB splits, we advice to use VTAB version rather than this one 
         # since in this one (torchvision) there are no pre-defined test splits
@@ -244,7 +244,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "stl10":
         return STL10(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "eurosat":
-        warnings.warn(f"split argument ignored for `{dataset_name}`, there is no pre-defined train/test splits for this dataset.")
+        warnings.warn(f"split argument ignored for `{dataset_name}`, there are no pre-defined train/test splits for this dataset")
         ds = EuroSAT(root=root, transform=transform, download=download, **kwargs)
         ds.classes = classnames["eurosat"]
         return ds
