@@ -21,7 +21,6 @@ def linear_fit(x, y):
 if __name__ == '__main__':
     df = pd.read_json('probe_benchmark/scaling_experiment_data.json')
     
-
     ks = [10, 25, -1]
     datasets = ['imagenet1k-unverified', 'cifar100']
 
@@ -35,20 +34,15 @@ if __name__ == '__main__':
             pdf = df[df.dataset == datasets[i1]]
             pdf = pdf[pdf.fewshot_k == ks[i2]]
 
-
-            for j, (name, groupdf) in enumerate(pdf.groupby('pretrained_short')):
+            # optionally change to pretrained-short
+            for j, (name, groupdf) in enumerate(pdf.groupby('pretrained_clean')):
                 #groupdf = groupdf.sort_values(by='lp_acc1')
                 xs, ys, = [], []
-                for subname, subgroupdf in groupdf.groupby('macts'):
+                # optionally change gmacs total to macts
+                for subname, subgroupdf in groupdf.groupby('gmacs_total'):
                     xs.append(subname)
                     ys.append(subgroupdf['lp_acc1'].max())
 
-
-                # ax.scatter(groupdf.macts, groupdf.lp_acc1, label=name.replace('_e32', ''), color=f'C{j}')
-                # lin_params, _ = linear_fit(np.log(groupdf.macts), groupdf.lp_acc1)
-                # xs = np.log(np.array([groupdf.macts.min(), groupdf.macts.max()]))
-                # ys = lin_params[1] * xs + lin_params[0]
-                # ax.plot(np.exp(xs), ys, color=f'C{j}')
                 xs, ys = np.array(xs), np.array(ys)
                 ax.scatter(xs, ys, label=name.replace('_e32', ''), color=f'C{j}')
                 lin_params, _ = linear_fit(np.log(xs), ys)
@@ -58,8 +52,8 @@ if __name__ == '__main__':
 
             ax.legend()
             ax.set_xscale('log')
-            ax.set_xlabel('Activations (M)')
-            ax.set_ylabel('IN-1k top1')
+            ax.set_xlabel('Total compute (GMACS per sample x samples seen)')
+            ax.set_ylabel('Accuracy')
             dset = 'ImageNet' if i1 == 0 else 'CIFAR100'
             if ks[i2] == -1:
                 ax.set_title(f'dataset = {dset}, full dataset.')

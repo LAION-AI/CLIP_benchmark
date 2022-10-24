@@ -147,7 +147,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     for c in counts:
         if fewshot_k > 0 and counts[c] != fewshot_k:
             print('insufficient data for this eval')
-            exit()
+            return
 
     features = features[idxs]
     targets = targets[idxs]

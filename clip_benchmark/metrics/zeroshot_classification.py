@@ -206,10 +206,10 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
         pred = logits.argmax(axis=1)
         # measure accuracy
-        if len(dataloader.dataset.classes) >= 5:
-            acc1, acc5 = accuracy(logits, target, topk=(1, 5))
+        if target.max() >= 5:
+            acc1, acc5 = accuracy(logits.float(), target.float(), topk=(1, 5))
         else:
-            acc1, = accuracy(logits, target, topk=(1,))
+            acc1, = accuracy(logits.float(), target.float(), topk=(1,))
             acc5 = float("nan") 
         mean_per_class_recall = balanced_accuracy_score(target, pred)
         if verbose:

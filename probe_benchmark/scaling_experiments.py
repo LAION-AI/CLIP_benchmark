@@ -1,7 +1,6 @@
 import os
 from clip_benchmark.cli import run, get_parser_args
 
-# /private/home/mitchellw/miniconda3/envs/cb/bin/python probe_benchmark/scaling_experiments.py
 if __name__ == '__main__':
 
     models = ['ViT-B-32-quickgelu,laion400m_e32',
@@ -19,19 +18,46 @@ if __name__ == '__main__':
             ]
 
     datasets = ['imagenet1k-unverified', 'cifar100']
-
+    datasets = datasets + [
+      'vtab/caltech101',
+      'vtab/cifar10',
+      'vtab/cifar100',
+      'vtab/clevr_count_all',
+      'vtab/clevr_closest_object_distance',
+      'vtab/diabetic_retinopathy',
+      'vtab/dmlab',
+      'vtab/dsprites_label_orientation',
+      'vtab/dsprites_label_x_position',
+      'vtab/dtd',
+      'vtab/eurosat',
+      'vtab/kitti_closest_vehicle_distance',
+      'vtab/flowers',
+      'vtab/pets',
+      'vtab/pcam',
+      'vtab/resisc45',
+      'vtab/smallnorb_label_azimuth',
+      'vtab/smallnorb_label_elevation',
+      'vtab/svhn',
+    ]
     ks = [10, 25, -1]
     lrs = [0.1, 0.01, 0.001]
     epoch_vals = [10, 20, 40]
     batch_sizes = [32 * 8]
+    
+    if not os.path.exists('probe_benchmark/data'):
+      os.mkdir('probe_benchmark/data')
 
     for dataset in datasets:
-      dataset_root = '/datasets01/imagenet_full_size/061417' if dataset.startswith('imagenet') else '/private/home/mitchellw/git/forks/CLIP_benchmark'
+      dataset_root = 'datasets/' + dataset.split('/')[-1] # TODO: change!
+      print(dataset_root)
       for model_info in models:
           model_info_split = model_info.split(',')
           model, pretrained = model_info_split[0], model_info_split[1]
           for epochs in epoch_vals:
+            # For VTAB, do not run >= 25 shot.
             for k in ks:
+              if k >= 25 and dataset.startswith('vtab'):
+                continue
               for lr in lrs:
                 for bs in batch_sizes:
                   args = get_parser_args()
@@ -40,12 +66,13 @@ if __name__ == '__main__':
                   args.task = 'linear_probe'
                   args.pretrained = pretrained
                   args.model = model
-                  args.output = '/private/home/mitchellw/git/forks/CLIP_benchmark/probe_benchmark/data/' + f'{model}-{pretrained}-{dataset}-{epochs}-{k}-{lr}-{bs}.json'.replace('/', '_')
+                  args.output = f'probe_benchmark/data/' + f'{model}-{pretrained}-{dataset}-{epochs}-{k}-{lr}-{bs}.json'.replace('/', '_')
                   if os.path.exists(args.output):
                     print('skipping - exists.')
+                    continue
                   args.fewshot_k = k
                   args.fewshot_epochs = epochs
                   args.fewshot_lr = lr
                   args.batch_size = bs
-                  args.skip_load = True # NOTE
                   run(args)
+                  print(dataset, model, pretrained, epochs, k, lr, bs)
