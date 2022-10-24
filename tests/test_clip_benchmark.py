@@ -18,6 +18,8 @@ class base_args:
     verbose=True
     root="root"
     annotation_file=""
+    seed=0
+    skip_load=False
 
 def test_base():
     run(base_args)
