@@ -89,6 +89,7 @@ if __name__ == '__main__':
                     'dataset' : dataset,
                     'macts' : compute_df[compute_df.model == model.replace('-quickgelu', '')]['image_macts'].values[0],
                     'gmacs_total': mdf[mdf.model_fullname_pretty == alt_models[ii]]['gmacs_total'].values[0],
+                    'model_short' : alt_models[ii],
                   }
                   with open(pth, 'r') as f:
                     row.update(json.load(f)['metrics'])

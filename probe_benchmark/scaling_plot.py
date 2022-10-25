@@ -37,14 +37,18 @@ if __name__ == '__main__':
             # optionally change to pretrained-short
             for j, (name, groupdf) in enumerate(pdf.groupby('pretrained_clean')):
                 #groupdf = groupdf.sort_values(by='lp_acc1')
-                xs, ys, = [], []
+                xs, ys, txt = [], [], []
                 # optionally change gmacs total to macts
                 for subname, subgroupdf in groupdf.groupby('gmacs_total'):
                     xs.append(subname)
                     ys.append(subgroupdf['lp_acc1'].max())
+                    txt.append(subgroupdf['model_short'].values[0])
 
                 xs, ys = np.array(xs), np.array(ys)
                 ax.scatter(xs, ys, label=name.replace('_e32', ''), color=f'C{j}')
+                for i in range(len(xs)):
+                    ax.annotate(txt[i], (xs[i], ys[i] + 0.0035), color=f'C{j}')
+
                 lin_params, _ = linear_fit(np.log(xs), ys)
                 xs = np.log(np.array([xs.min(), xs.max()]))
                 ys = lin_params[1] * xs + lin_params[0]
@@ -62,5 +66,5 @@ if __name__ == '__main__':
             ax.grid()
 
     plt.savefig(
-        f"probe_benchmark/scaling_plot.pdf", bbox_inches="tight"
+        f"probe_benchmark/scaling_plot.png", bbox_inches="tight"
     )
