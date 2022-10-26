@@ -32,7 +32,7 @@ python setup.py install
 
 ### Command line interface (CLI)
 
-The easiest way to to benchmark the models is using the CLI, `clip_benchmark`.
+The easiest way to benchmark the models is using the CLI, `clip_benchmark`.
 You can specify the model to use, the dataset and the task to evaluate on. Once it is done, evaluation is performed and
 the results are written into a JSON file.
 
