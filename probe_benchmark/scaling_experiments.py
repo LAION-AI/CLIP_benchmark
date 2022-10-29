@@ -15,6 +15,7 @@ if __name__ == '__main__':
               'ViT-L-14,laion400m_e32',
               'ViT-L-14,laion2b_s32b_b82k',
               'ViT-H-14,laion2b_s32b_b79k',
+              'ViT-g-14,laion2b_s12b_b42k',
             ]
 
     datasets = ['imagenet1k-unverified', 'cifar100']

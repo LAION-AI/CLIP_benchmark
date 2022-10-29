@@ -20,6 +20,7 @@ if __name__ == '__main__':
               'ViT-L-14,laion400m_e32',
               'ViT-L-14,laion2b_s32b_b82k',
               'ViT-H-14,laion2b_s32b_b79k',
+              'ViT-g-14,laion2b_s12b_b42k',
             ]
     alt_models = ['B/32 400M',
             'B/32 CLIP WIT',
@@ -33,6 +34,7 @@ if __name__ == '__main__':
             'L/14 400M',
             'L/14 2B',
             'H/14 2B',
+            'g/14 2B',
           ]
 
     datasets = ['imagenet1k-unverified', 'cifar100']

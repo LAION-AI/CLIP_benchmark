@@ -52,6 +52,8 @@ if __name__ == '__main__':
     data_y = {}
     count = 0
 
+    name_to_txt = {}
+
     ax = fig.add_subplot(gs[0, 0])
     for i1 in range(len(datasets)):
         for i2 in range(1):
@@ -64,10 +66,12 @@ if __name__ == '__main__':
 
             for j, (name, groupdf) in enumerate(pdf.groupby('pretrained_clean')):
                 #groupdf = groupdf.sort_values(by='lp_acc1')
-                xs, ys, = [], []
+                xs, ys, txt = [], [], []
                 for subname, subgroupdf in groupdf.groupby('gmacs_total'):
                     xs.append(subname)
-                    ys.append(subgroupdf['lp_acc1'].max())
+                    ys.append(100 * ( 1 - subgroupdf['lp_acc1'].max()))
+                    txt.append(subgroupdf['model_short'].values[0])
+                name_to_txt[name] = txt
 
 
                 xs, ys = np.array(xs), np.array(ys)
@@ -92,26 +96,75 @@ if __name__ == '__main__':
     #     'laion400m_e32',
     #     'openai',
     # ]):
+    laion2b_legend, clip_legend, laion400m_legend = False, False, False
     for j, name in enumerate([
         'CLIP-WiT',
         'LAION',
     ]):
         print(name)
+        txt = name_to_txt[name]
         xs, ys = data_x[name], data_y[name]
-        ax.scatter(xs, ys, label=name.replace('_e32', ''), color=f'C{j}')
+        #ax.scatter(xs, ys, label=name.replace('_e32', ''), color=f'C{j}')
+        ###
+        for i in range(len(xs)):
+            print(txt[i])
+            color = 'C0' if 'CLIP' in txt[i] else 'C1'
+            marker = 's' if '2B' in txt[i] else 'o'
+            strs = ['B/32', 'B/16','B/16+', 'L/14', 'H/14', 'g/14']
+            for jj, st in enumerate(strs):
+                if st in txt[i]:
+                    sz = (jj+1)**1.2
+            # if 'B/32' in txt[i]:
+            #     sz = 1
+            # elif 'B/16' in txt[i]:
+            #     sz = 2
+            # elif 'B/16+' in txt[i]:
+            #     sz = 3
+            # elif 'L/14' in txt[i]:
+            #     sz = 4
+            # elif 'H/14'in txt[i]:
+            #     sz = 5
+            # elif 'g/14'in txt[i]:
+            #     sz = 6
+
+            label = None
+            if '2B' in txt[i] and not laion2b_legend:
+                label = 'LAION 2B'
+                laion2b_legend = True
+            elif '400M' in txt[i] and not laion400m_legend:
+                label = 'LAION 400M'
+                laion400m_legend = True
+            elif 'CLIP' in txt[i] and not clip_legend:
+                label = 'CLIP WiT 400M'
+                clip_legend = True
+            
+            if '2B' in txt[i] and 'B/32' in txt[i]:
+                ax.scatter(xs[i], ys[i], marker=marker, color=color, s = 25 * sz, label=label)
+                label=None
+                ax.scatter(xs[i], ys[i], marker=marker, color='gray', s = 25 * sz, label='ViT-B/32')
+            if '2B' in txt[i] and 'L/14' in txt[i]:
+                ax.scatter(xs[i], ys[i], marker=marker, color='gray', s = 25 * sz, label='Vit-L/14')
+            if '2B' in txt[i] and 'g/14' in txt[i]:
+                ax.scatter(xs[i], ys[i], marker=marker, color='gray', s = 25 * sz, label='Vit-g/14')
+            ax.scatter(xs[i], ys[i], marker=marker, color=color, s = 25 * sz, label=label)
+        ###
         lin_params, _ = linear_fit(np.log(xs), ys)
         xs = np.log(np.array([xs.min(), xs.max()]))
         ys = lin_params[1] * xs + lin_params[0]
         ax.plot(np.exp(xs), ys, color=f'C{j}')
 
     ax.legend()
-    ax.set_xscale('log')
-    # ax.set_xlabel('Activations (M)')
-    ax.set_xlabel('Total compute (GMACS per sample x samples seen)')
-
-    ax.set_ylabel('Accuracy')
     dset = datasets[i1]
     ax.set_title(f'VTAB')
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel('Total compute (GMACS per sample x samples seen)')#, fontsize=12)
+    ax.set_ylabel('Error (%)')#, fontsize=12)#ax.set_ylabel('Accuracy')
+    import matplotlib.ticker as mticker
+    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%d'))
+    ax.yaxis.set_minor_formatter(mticker.ScalarFormatter())
+
     ax.grid()
 
     plt.savefig(

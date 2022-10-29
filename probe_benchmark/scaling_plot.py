@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 # optionally change gmacs total to macts
                 for subname, subgroupdf in groupdf.groupby('gmacs_total'):
                     xs.append(subname)
-                    ys.append(subgroupdf['lp_acc1'].max())
+                    ys.append(100 * (1-subgroupdf['lp_acc1'].max()))
                     txt.append(subgroupdf['model_short'].values[0])
 
                 xs, ys = np.array(xs), np.array(ys)
@@ -58,16 +58,22 @@ if __name__ == '__main__':
                     print(txt[i])
                     color = 'C0' if 'CLIP' in txt[i] else 'C1'
                     marker = 's' if '2B' in txt[i] else 'o'
-                    if 'B/32' in txt[i]:
-                        sz = 1
-                    elif 'B/16' in txt[i]:
-                        sz = 2
-                    elif 'B/16+' in txt[i]:
-                        sz = 3
-                    elif 'L/14' in txt[i]:
-                        sz = 4
-                    elif 'H/14'in txt[i]:
-                        sz = 5
+                    strs = ['B/32', 'B/16','B/16+', 'L/14', 'H/14', 'g/14']
+                    for jj, st in enumerate(strs):
+                        if st in txt[i]:
+                            sz = (jj+1)**1.2
+                    # if 'B/32' in txt[i]:
+                    #     sz = 1
+                    # elif 'B/16' in txt[i]:
+                    #     sz = 2
+                    # elif 'B/16+' in txt[i]:
+                    #     sz = 3
+                    # elif 'L/14' in txt[i]:
+                    #     sz = 4
+                    # elif 'H/14'in txt[i]:
+                    #     sz = 5
+                    # elif 'g/14'in txt[i]:
+                    #     sz = 6
 
                     label = None
                     if '2B' in txt[i] and not laion2b_legend:
@@ -80,8 +86,15 @@ if __name__ == '__main__':
                         label = 'CLIP WiT 400M'
                         clip_legend = True
                     
-                    
-                    ax.scatter(xs[i], ys[i], marker=marker, color=color, s = 30 * sz, label=label)
+                    if '2B' in txt[i] and 'B/32' in txt[i]:
+                        ax.scatter(xs[i], ys[i], marker=marker, color=color, s = 25 * sz, label=label)
+                        label=None
+                        ax.scatter(xs[i], ys[i], marker=marker, color='gray', s = 25 * sz, label='ViT-B/32')
+                    if '2B' in txt[i] and 'L/14' in txt[i]:
+                        ax.scatter(xs[i], ys[i], marker=marker, color='gray', s = 25 * sz, label='Vit-L/14')
+                    if '2B' in txt[i] and 'g/14' in txt[i]:
+                        ax.scatter(xs[i], ys[i], marker=marker, color='gray', s = 25 * sz, label='Vit-g/14')
+                    ax.scatter(xs[i], ys[i], marker=marker, color=color, s = 25 * sz, label=label)
                         
                 lin_params, _ = linear_fit(np.log(xs), ys)
                 xs = np.log(np.array([xs.min(), xs.max()]))
@@ -90,8 +103,13 @@ if __name__ == '__main__':
 
 
             ax.set_xscale('log')
-            ax.set_xlabel('Total compute (GMACS per sample x samples seen)')
-            ax.set_ylabel('Accuracy')
+            ax.set_yscale('log')
+            ax.set_xlabel('Total compute (GMACS per sample x samples seen)')#, fontsize=12)
+            ax.set_ylabel('Error (%)')#, fontsize=12)#ax.set_ylabel('Accuracy')
+            import matplotlib.ticker as mticker
+            ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%d'))
+            ax.yaxis.set_minor_formatter(mticker.ScalarFormatter())
+
             dset = 'ImageNet' if i1 == 0 else 'CIFAR100'
             if ks[i2] == -1:
                 ax.set_title(f'dataset = {dset}, full dataset.')
@@ -99,7 +117,11 @@ if __name__ == '__main__':
                 ax.set_title(f'dataset = {dset}, {ks[i2]}-shot.')
             ax.grid()
 
-    ax.legend()
+            #ax.legend()
+            if i1 == 1 and i2 == 2:
+                fig.subplots_adjust(right=0.9)
+                ax.legend(loc='upper center', bbox_to_anchor=(0.9, 1.0),
+                    fancybox=True, shadow=True, ncol=1)
     plt.savefig(
-        f"probe_benchmark/scaling_plot.png", bbox_inches="tight"
+        f"probe_benchmark/scaling_plot.pdf", bbox_inches="tight"
     )
