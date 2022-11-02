@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--model', type=str, default="ViT-B-32-quickgelu", help="Model architecture to use from OpenCLIP")
     parser.add_argument('--pretrained', type=str, default="laion400m_e32", help="Model checkpoint name to use from OpenCLIP")
     parser.add_argument('--task', type=str, default="zeroshot_classification", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe"])
-    parser.add_argument('--amp', default=True, action="store_true", help="whether to use mixed precision")
+    parser.add_argument('--amp', default=False, action="store_true", help="whether to use mixed precision")
     parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--recall_k', default=[5], type=int, help="for retrieval, select the k for Recall@K metric. ", nargs="+",)
     parser.add_argument('--fewshot_k', default=-1, type=int, help="for linear probe, how many shots. -1 = whole dataset.")
