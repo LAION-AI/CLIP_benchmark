@@ -52,10 +52,6 @@ lint/flake8: ## check style with flake8
 
 lint: lint/flake8 ## check style
 
-test: ## run tests quickly with the default Python
-	python -m pytest -x -s -v tests
-
-
 test-all: ## run tests on every Python version with tox
 	tox
 
@@ -84,9 +80,12 @@ dist: clean ## builds source and wheel package
 	python setup.py bdist_wheel
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+install: ## [Local development] Upgrade pip, install requirements, install package.
+	python -m pip install -U pip
+	python -m pip install -e .
 
-install-dev: clean
-	pip install -r requirements_dev.txt
-	python setup.py install
+install-dev: ## [Local development] Install test requirements
+	python -m pip install -r requirements-test.txt
+
+test: ## [Local development] Run unit tests
+	python -m pytest -x -s -v tests

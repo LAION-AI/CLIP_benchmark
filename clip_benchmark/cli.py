@@ -48,6 +48,7 @@ def run(args):
     else:
         model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
         model = model.to(args.device)
+        tokenizer = open_clip.get_tokenizer(args.model)
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=args.dataset_root, 
@@ -69,6 +70,7 @@ def run(args):
             collate_fn=collate_fn
         )
 
+
     if args.task == "zeroshot_classification":
         zeroshot_templates = get_zeroshot_classification_templates(args.dataset)
         if args.verbose:
@@ -78,7 +80,7 @@ def run(args):
         metrics = zeroshot_classification.evaluate(
             model, 
             dataloader, 
-            open_clip.tokenizer.tokenize, 
+            tokenizer, 
             classnames, zeroshot_templates, 
             device=args.device, 
             amp=args.amp,
@@ -88,7 +90,7 @@ def run(args):
         metrics = zeroshot_retrieval.evaluate(
             model, 
             dataloader, 
-            open_clip.tokenizer.tokenize, 
+            tokenizer, 
             recall_k_list=args.recall_k,
             device=args.device, 
             amp=args.amp
