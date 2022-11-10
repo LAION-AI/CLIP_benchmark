@@ -85,8 +85,10 @@ dist: clean ## builds source and wheel package
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
+	pip install -U pip
 	python setup.py install
 
 install-dev: clean
+	pip install -U pip
 	pip install -r requirements_dev.txt
 	python setup.py install
