@@ -109,7 +109,7 @@ def run_classification(model, classifier, dataloader, device, amp=True):
                 logits = 100. * image_features @ classifier
             
             true.append(target.cpu())
-            pred.append(logits.cpu())
+            pred.append(logits.float().cpu())
 
     pred = torch.cat(pred)
     true = torch.cat(true)
