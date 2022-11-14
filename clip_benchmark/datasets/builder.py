@@ -40,6 +40,23 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     with open(os.path.join(current_folder, "en_classnames.json"), "r") as f:
         classnames = json.load(f)
 
+    # Zero-shot classification templates, collected from a bunch of sources
+    # - CLIP paper (https://github.com/openai/CLIP/blob/main/data/prompts.md)
+    # - Lit Paper (https://arxiv.org/pdf/2111.07991.pdf)
+    # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
+    # Some are fixed mnaually
+
+    with open(os.path.join(current_folder, "en_zeroshot_classification_templates.json"), "r") as f:
+        zeroshot_classification_templates = json.load(f)
+    # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
+    DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
+
+    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
+        name = dataset_name.split("/")[1]
+    else:
+        name = dataset_name
+    templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
+
     train = (split == "train")
     if dataset_name == "cifar10":
         ds = CIFAR10(root=root, train=train, transform=transform, download=download, **kwargs)
@@ -280,23 +297,6 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = Dummy()
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
-
-    # Zero-shot classification templates, collected from a bunch of sources
-    # - CLIP paper (https://github.com/openai/CLIP/blob/main/data/prompts.md)
-    # - Lit Paper (https://arxiv.org/pdf/2111.07991.pdf)
-    # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
-    # Some are fixed mnaually
-
-    with open(os.path.join(current_folder, "en_zeroshot_classification_templates.json"), "r") as f:
-        zeroshot_classification_templates = json.load(f)
-    # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
-    DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
-
-    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
-        name = dataset_name.split("/")[1]
-    else:
-        name = dataset_name
-    templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
 
     ds.templates = templates
 
