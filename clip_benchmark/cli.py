@@ -68,7 +68,7 @@ def run(args):
 
 
     if args.task == "zeroshot_classification":
-        zeroshot_templates = dataset.classes if hasattr(dataset, "templates") else None
+        zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
