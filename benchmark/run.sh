@@ -21,7 +21,7 @@ for ds in $DATASETS;do
        fi
        echo "$ds_name"
        echo $TASK
-       $RUN --dataset=$ds --language=$LANGUAGE --annotation_file=$ROOT/$ds/captions.txt --dataset_root $ROOT/$ds --task=$TASK --pretrained=$pretrained --model=$arch --output="${ds_name}_${name}_${arch}.json"  --batch_size=$BS --num_workers=$WORKERS
+       $RUN --dataset=$ds --language=$LANGUAGE --annotation_file=$ROOT/$ds/captions.txt --dataset_root $ROOT/$ds --task=$TASK --pretrained=$pretrained --model=$arch --output="${ds_name}_${name}_${arch}_${LANGUAGE}.json"  --batch_size=$BS --num_workers=$WORKERS
     done
 done
 python build_csv.py

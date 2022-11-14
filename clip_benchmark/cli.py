@@ -131,7 +131,8 @@ def run(args):
         "model": args.model,
         "pretrained": args.pretrained,
         "task": args.task,
-        "metrics": metrics
+        "metrics": metrics,
+        "language": args.language,
     }
     with open(args.output, "w") as f:
         json.dump(dump, f)
