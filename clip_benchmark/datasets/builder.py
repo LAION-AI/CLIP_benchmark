@@ -496,7 +496,7 @@ def get_zeroshot_classification_templates(dataset_name):
 # Some are fixed mnaually
 
 current_folder = os.path.dirname(__file__)
-with open(os.path.join(current_folder, "zeroshot_classification_templates.json"), "r") as f:
+with open(os.path.join(current_folder, "en_zeroshot_classification_templates.json"), "r") as f:
     zeroshot_classification_templates = json.load(f)
 with open(os.path.join(current_folder, "en_classnames.json"), "r") as f:
     classnames = json.load(f)
