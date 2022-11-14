@@ -5,7 +5,7 @@ import json
 import torch
 import open_clip
 
-from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_zeroshot_classification_templates
+from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
 
 from torch.utils.data import default_collate
@@ -68,7 +68,7 @@ def run(args):
 
 
     if args.task == "zeroshot_classification":
-        zeroshot_templates = get_zeroshot_classification_templates(args.dataset)
+        zeroshot_templates = dataset.classes if hasattr(dataset, "templates") else None
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
