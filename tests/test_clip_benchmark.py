@@ -22,6 +22,7 @@ class base_args:
     annotation_file=""
     seed=0
     skip_load=False
+    language="en"
 
 def test_base():
     run(base_args)
