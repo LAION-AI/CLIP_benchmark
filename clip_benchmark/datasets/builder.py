@@ -15,7 +15,7 @@ from . import voc2007, flickr, caltech101, imagenetv2, objectnet
 from torch.utils.data import default_collate
 from PIL import Image
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -37,7 +37,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         and Flickr.
     """
     current_folder = os.path.dirname(__file__)
-    with open(os.path.join(current_folder, "en_classnames.json"), "r") as f:
+    with open(os.path.join(current_folder, language + "_classnames.json"), "r") as f:
         classnames = json.load(f)
 
     # Zero-shot classification templates, collected from a bunch of sources
@@ -46,7 +46,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
     # Some are fixed mnaually
 
-    with open(os.path.join(current_folder, "en_zeroshot_classification_templates.json"), "r") as f:
+    with open(os.path.join(current_folder, language + "_zeroshot_classification_templates.json"), "r") as f:
         zeroshot_classification_templates = json.load(f)
     # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
     DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
