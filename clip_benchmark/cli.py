@@ -44,6 +44,7 @@ def main():
                         help="language of classname and prompts to use for zeroshot classification.")
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
+    parser.add_argument('--model_cache_dir', type=str, help="directory to where downloaded models are cached")
     args = parser.parse_args()
     run(args)
 
@@ -57,7 +58,8 @@ def run(args):
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
+        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained,
+                                                                    cache_dir=args.model_cache_dir)
         model = model.to(args.device)
         tokenizer = open_clip.get_tokenizer(args.model)
         dataset = build_dataset(
@@ -68,6 +70,7 @@ def run(args):
             annotation_file=args.annotation_file,
             download=True,
             language=args.language,
+            task=args.task,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
@@ -76,10 +79,10 @@ def run(args):
             print(f"Dataset classes: {dataset.classes}")
             print(f"Dataset number of classes: {len(dataset.classes)}")
 
-        if args.task == "zeroshot_retrieval" and args.language.lower() != 'en':
+        if args.task == "zeroshot_retrieval" and args.language.lower() not in ['en', 'multilingual_en']:
             print("Loading Multilingual Wrapper")
-            dataset = multilingual_dataset._create_dataset_from_language(dataset, args.dataset, args.language,
-                                                                         args.root)
+            dataset = multilingual_dataset.create_dataset_from_language(dataset, args.dataset, args.language,
+                                                                        args.dataset_root)
 
         dataloader = torch.utils.data.DataLoader(
             dataset, batch_size=args.batch_size,
