@@ -292,7 +292,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         # VTAB datasets support using `tensorflow_datasets` and `task_adaptation`
         prefix, *name_list = dataset_name.split("/")
         name = "/".join(name_list)
-        ds = build_vtab_dataset(name, download=download, split=split, data_dir=root, transform=transform)
+        ds = build_vtab_dataset(name, download=download, split=split, data_dir=root, transform=transform, classnames=classnames)
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
@@ -326,7 +326,7 @@ def has_kaggle():
     return call("which kaggle", shell=True) == 0
 
 
-def build_vtab_dataset(dataset_name, transform, download=True, split="test", data_dir="root"):
+def build_vtab_dataset(dataset_name, transform, download=True, split="test", data_dir="root", classnames=[]):
     # Using VTAB splits instead of default TFDS splits
     from .tfds import VTABIterableDataset, disable_gpus_on_tensorflow, download_tfds_dataset
 
