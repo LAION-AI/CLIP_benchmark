@@ -40,6 +40,7 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
+    long_description_content_type='text/markdown',
     include_package_data=True,
     keywords='clip_benchmark',
     name='clip_benchmark',
@@ -47,7 +48,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/mehdidc/clip_benchmark',
-    version='0.1.0',
+    version='1.0.1',
     zip_safe=False,
     extra_require = {
         "vtab": ["task_adaptation==0.1", "timm>=0.5.4"],

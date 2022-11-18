@@ -54,3 +54,4 @@ cifar-100-*
 probe_benchmark/data
 datasets
 downloads
+.env

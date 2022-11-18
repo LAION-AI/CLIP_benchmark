@@ -5,7 +5,7 @@ import json
 import torch
 import open_clip
 
-from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_zeroshot_classification_templates
+from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
 
 from torch.utils.data import default_collate
@@ -29,6 +29,7 @@ def get_parser_args():
     parser.add_argument('--dataset_root', default="root", type=str, help="dataset root folder where the datasets are downloaded.")
     parser.add_argument('--feature_root', default="features", type=str, help="feature root folder where the features are stored.")
     parser.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
+    parser.add_argument('--language', default="en", type=str, help="language of classname and prompts to use for zeroshot classification.")
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
     args = parser.parse_args()
@@ -56,6 +57,7 @@ def run(args):
             split=args.split, 
             annotation_file=args.annotation_file,
             download=True,
+            language=args.language,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
@@ -72,7 +74,7 @@ def run(args):
 
 
     if args.task == "zeroshot_classification":
-        zeroshot_templates = get_zeroshot_classification_templates(args.dataset)
+        zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
@@ -133,7 +135,8 @@ def run(args):
         "model": args.model,
         "pretrained": args.pretrained,
         "task": args.task,
-        "metrics": metrics
+        "metrics": metrics,
+        "language": args.language,
     }
     with open(args.output, "w") as f:
         json.dump(dump, f)
