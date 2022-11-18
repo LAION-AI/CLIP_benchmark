@@ -21,7 +21,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
 
     dataset_name: str
         name of the dataset
-    
+
     root: str
         root folder where the dataset is downloaded and stored. can be shared among datasets.
 
@@ -31,7 +31,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         split to use, depending on the dataset can have different options.
         In general, `train` and `test` are available.
         For specific splits, please look at the corresponding dataset.
-    
+
     annotation_file: str or None
         only for datasets with captions (used for retrieval) such as COCO
         and Flickr.
@@ -46,6 +46,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
     # Some are fixed mnaually
 
+
+
     with open(os.path.join(current_folder, language + "_zeroshot_classification_templates.json"), "r") as f:
         zeroshot_classification_templates = json.load(f)
     # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
@@ -57,6 +59,10 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         name = dataset_name
     templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
 
+    with open(os.path.join(current_folder, "imagenet_cupl_prompts.json"), "r") as f:
+        imagenet_cupl_prompts = json.load(f)
+    templates_cupl = None
+
     train = (split == "train")
     if dataset_name == "cifar10":
         ds = CIFAR10(root=root, train=train, transform=transform, download=download, **kwargs)
@@ -65,22 +71,25 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "imagenet1k":
         if not os.path.exists(root):
             os.makedirs(root, exist_ok=True)
-            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={root}/ILSVRC2012_devkit_t12.tar.gz", shell=True)            
-            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --output-document={root}/ILSVRC2012_img_val.tar", shell=True)            
+            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={root}/ILSVRC2012_devkit_t12.tar.gz", shell=True)
+            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --output-document={root}/ILSVRC2012_img_val.tar", shell=True)
 
         ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = imagenet_cupl_prompts
     elif dataset_name == "imagenet1k-unverified":
         split = "train" if train else "val"
         ds =  ImageFolder(root=os.path.join(root, split), transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = imagenet_cupl_prompts
     elif dataset_name == "imagenetv2":
         assert split == "test", f"Only test split available for {dataset_name}"
         os.makedirs(root, exist_ok=True)
         ds = imagenetv2.ImageNetV2Dataset(variant="matched-frequency", transform=transform, location=root)
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = imagenet_cupl_prompts
     elif dataset_name == "imagenet_sketch":
         assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://drive.google.com/open?id=1Mj0i5HBthqH1p_yeXzsg22gZduvgoNeA
@@ -98,6 +107,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv sketch {root}", shell=True)
         ds = ImageFolder(root=root, transform=transform, **kwargs)
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = imagenet_cupl_prompts
     elif dataset_name == "imagenet-a":
         assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://people.eecs.berkeley.edu/~hendrycks/imagenet-a.tar
@@ -235,14 +245,14 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "caltech101":
         warnings.warn(f"split argument ignored for `{dataset_name}`, there are no pre-defined train/test splits for this dataset")
         # broken download link (can't download google drive), fixed by this PR https://github.com/pytorch/vision/pull/5645
-        # also available in "vtab/caltech101" using VTAB splits, we advice to use VTAB version rather than this one 
+        # also available in "vtab/caltech101" using VTAB splits, we advice to use VTAB version rather than this one
         # since in this one (torchvision) there are no pre-defined test splits
         ds = caltech101.Caltech101(root=root, target_type="category", transform=transform, download=download, **kwargs)
         ds.classes = classnames["caltech101"]
     elif dataset_name == "flowers":
         ds = Flowers102(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
         # class indices started by 1 until it was fixed in  a  PR (#TODO link of the PR)
-        # if older torchvision version, fix it using a target transform that decrements label index 
+        # if older torchvision version, fix it using a target transform that decrements label index
         # TODO figure out minimal torchvision version needed instead of decrementing
         if ds[0][1] == 1:
             ds.target_transform = lambda y:y-1
@@ -299,6 +309,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
 
     ds.templates = templates
+    ds.templates_cupl = templates_cupl
 
     return ds
 
@@ -404,8 +415,8 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
         from .kitti import KittiData
         task = _extract_task(dataset_name)
         assert task in (
-            "count_all", "count_left", "count_far", "count_near", 
-            "closest_object_distance", "closest_object_x_location", 
+            "count_all", "count_left", "count_far", "count_near",
+            "closest_object_distance", "closest_object_x_location",
             "count_vehicles", "closest_vehicle_distance",
         )
         tfds_dataset = KittiData(task=task, data_dir=data_dir)
@@ -452,9 +463,9 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
     ds =  VTABIterableDataset(
-        tfds_dataset, 
-        input_name="image", label_name="label", 
-        transform=transform, 
+        tfds_dataset,
+        input_name="image", label_name="label",
+        transform=transform,
         target_transform=int,
         split=split,
         classes=classes,
