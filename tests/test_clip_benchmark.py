@@ -2,6 +2,8 @@
 
 """Tests for `clip_benchmark` package."""
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 from clip_benchmark.cli import run
 
 class base_args:
