@@ -5,9 +5,10 @@ import json
 if __name__ == '__main__':
 
     compute_df = pd.read_csv('probe_benchmark/clip_table_2.csv')
-    mdf = pd.read_csv("https://gist.githubusercontent.com/mehdidc/58dee67cecd5431a80ee3a2346c9c165/raw/45288ebccaacc34a97f580f8bf16fb3274927f2c/gistfile1.txt")
+    #mdf = pd.read_csv("https://gist.githubusercontent.com/mehdidc/58dee67cecd5431a80ee3a2346c9c165/raw/45288ebccaacc34a97f580f8bf16fb3274927f2c/gistfile1.txt")
+    mdf = pd.read_csv("probe_benchmark/openclip_results.csv")
     info = []
-
+    #import pdb; pdb.set_trace()
     models = ['ViT-B-32-quickgelu,laion400m_e32',
               'ViT-B-32,openai',
               'ViT-B-32,laion2b_s34b_b79k',
@@ -65,6 +66,14 @@ if __name__ == '__main__':
     epoch_vals = [10, 20, 40]
     batch_sizes = [32 * 8]
 
+    def get_us_dataset(pretrained):
+      if '2b' in pretrained:
+        return 'LAION-2B'
+      elif 'laion' in pretrained:
+        return 'LAION-400M'
+      else:
+        return 'CLIP-WIT'
+
     for dataset in datasets:
       dataset_root = '/datasets01/imagenet_full_size/061417' if dataset.startswith('imagenet') else '/private/home/mitchellw/git/forks/CLIP_benchmark'
       for ii, model_info in enumerate(models):
@@ -84,19 +93,24 @@ if __name__ == '__main__':
                     'lr' : lr,
                     'bs' : bs,
                     'epochs' : epochs,
-                    'model' : model,
+                    'model' : model.replace('-quickgelu', ''),
                     'pretrained' : pretrained,
                     'pretrained_short' : 'laion2b' if 'laion2b' in pretrained else pretrained,
                     'pretrained_clean' : 'LAION' if 'laion' in pretrained else 'CLIP-WiT',
                     'dataset' : dataset,
                     'macts' : compute_df[compute_df.model == model.replace('-quickgelu', '')]['image_macts'].values[0],
-                    'gmacs_total': mdf[mdf.model_fullname_pretty == alt_models[ii]]['gmacs_total'].values[0],
-                    'model_short' : alt_models[ii],
+                    # 'gmacs_total': mdf[mdf.model_fullname_pretty == alt_models[ii]]['gmacs_total'].values[0],
+                    # 'samples_seen': mdf[mdf.model_fullname_pretty == alt_models[ii]]['samples_seen'].values[0],
+                    'gmacs_total': mdf[mdf.model_fullname == models[ii].replace(',', ' ')]['gmacs_total'].values[0],
+                    'samples_seen': mdf[mdf.model_fullname == models[ii].replace(',', ' ')]['samples_seen'].values[0],
+                    'samples_seen_pretty': mdf[mdf.model_fullname == models[ii].replace(',', ' ')]['samples_seen_pretty'].values[0],
+                    'model_short' : models[ii].replace(',', ' '),
+                    'upstream_dataset' : get_us_dataset(pretrained)
                   }
                   with open(pth, 'r') as f:
                     row.update(json.load(f)['metrics'])
                 info.append(row)
     
-    with open('probe_benchmark/scaling_experiment_data.json', 'w') as f:
+    with open('probe_benchmark/scaling_experiment_data2.json', 'w') as f:
       json.dump(info, f)
                   
