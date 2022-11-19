@@ -189,7 +189,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"unzip flickr30k.zip", shell=True)
             call(f"mv Images {root}", shell=True)
             call(f"mv captions.txt {root}", shell=True)
-        if if not annotation_file:
+        if not annotation_file:
             annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
         if not os.path.exists(annotation_file):
             # Download Flickr30K Karpathy test set
