@@ -11,11 +11,36 @@ from torchvision.datasets import (
     StanfordCars, FGVCAircraft, DTD, OxfordIIITPet, Caltech101, Flowers102,
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
 )
+
 from . import voc2007, flickr, caltech101, imagenetv2, objectnet
 from torch.utils.data import default_collate
 from PIL import Image
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", **kwargs):
+def _load_classnames_and_classification_templates(dataset_name, current_folder, language):
+    with open(os.path.join(current_folder, language + "_classnames.json"), "r") as f:
+        classnames = json.load(f)
+
+     # Zero-shot classification templates, collected from a bunch of sources
+    # - CLIP paper (https://github.com/openai/CLIP/blob/main/data/prompts.md)
+    # - Lit Paper (https://arxiv.org/pdf/2111.07991.pdf)
+    # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
+    # Some are fixed mnaually
+
+    with open(os.path.join(current_folder, language + "_zeroshot_classification_templates.json"), "r") as f:
+        zeroshot_classification_templates = json.load(f)
+    # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
+    DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
+
+    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
+        name = dataset_name.split("/")[1]
+    else:
+        name = dataset_name
+    templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
+
+    return classnames, templates
+
+
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task='zeroshot_classification', **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -37,25 +62,10 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         and Flickr.
     """
     current_folder = os.path.dirname(__file__)
-    with open(os.path.join(current_folder, language + "_classnames.json"), "r") as f:
-        classnames = json.load(f)
-
-    # Zero-shot classification templates, collected from a bunch of sources
-    # - CLIP paper (https://github.com/openai/CLIP/blob/main/data/prompts.md)
-    # - Lit Paper (https://arxiv.org/pdf/2111.07991.pdf)
-    # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
-    # Some are fixed mnaually
-
-    with open(os.path.join(current_folder, language + "_zeroshot_classification_templates.json"), "r") as f:
-        zeroshot_classification_templates = json.load(f)
-    # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
-    DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
-
-    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
-        name = dataset_name.split("/")[1]
+    if (task == 'zeroshot_classification'):  # Only load templates and classnames if we have to
+        classnames, templates = _load_classnames_and_classification_templates(dataset_name, current_folder, language)
     else:
-        name = dataset_name
-    templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
+        classnames, templates = None, None
 
     train = (split == "train")
     if dataset_name == "cifar10":
@@ -158,18 +168,42 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "mscoco_captions":
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
-        if split == "train":
-            archive_name = "train2014.zip"
-        elif split in ("val", "test"):
-            archive_name = "val2014.zip"
-        else:
-            raise ValueError(f"split should be train or val or test for `{dataset_name}`")
-        root_split = os.path.join(root, archive_name.replace(".zip", ""))
-        if not os.path.exists(root_split):
-            print(f"Downloading mscoco_captions {archive_name}...")
-            if not os.path.exists(os.path.join(root, archive_name)):
-                call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
-            call(f"unzip {root}/{archive_name} -d {root}", shell=True)
+        def get_archive_name(target_split):
+            if target_split == "train":
+                return "train2014.zip"
+            elif target_split in ("val", "test"):
+                return "val2014.zip"
+            else:
+                raise ValueError(f"split should be train or val or test for `{dataset_name}`")
+
+        def download_mscoco_split(target_split):
+            archive_name = get_archive_name(target_split)
+            root_split = os.path.join(root, archive_name.replace(".zip", ""))
+            if not os.path.exists(root_split):
+                print(f"Downloading mscoco_captions {archive_name}...")
+                if not os.path.exists(os.path.join(root, archive_name)):
+                    call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
+                call(f"unzip {root}/{archive_name} -d {root}", shell=True)
+
+        download_mscoco_split(split)
+        root_split = os.path.join(root, get_archive_name(split).replace(".zip", ""))
+        if (language != 'en'):
+            # Multilingual MS-COCO or XTD-Dataset
+            # 
+            # If we are loading any multilingual version we override the annotation file
+            # We also override the root_split, since the multilingual_en has images from all splits
+            # Instead the image paths have been altered to include to split-folders
+            # We therefore also check so that all splits have been downloaded
+            from clip_benchmark.datasets import multilingual_mscoco
+            annotation_file = os.path.join(root, multilingual_mscoco.IMAGE_INDEX_FILE)
+            if (os.path.exists(annotation_file) == False):
+                multilingual_mscoco.create_english_annotation_file(root)
+            root_split = root
+
+            # The multilingual MS-COCO uses images from various splits
+            for target_split in ['train', 'val', 'test']:
+                download_mscoco_split(target_split)
+
         if not annotation_file:
             annotation_file = f"{root}/coco_{split}_karpathy.json"
         if not os.path.exists(annotation_file):
