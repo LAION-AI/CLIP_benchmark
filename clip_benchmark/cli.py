@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--language', default="en", type=str, help="language of classname and prompts to use for zeroshot classification.")
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
+    parser.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     args = parser.parse_args()
     run(args)
     
@@ -54,6 +55,7 @@ def run(args):
             annotation_file=args.annotation_file,
             download=True,
             language=args.language,
+            cupl=args.cupl
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
