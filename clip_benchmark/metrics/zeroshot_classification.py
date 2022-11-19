@@ -12,27 +12,27 @@ from tqdm import tqdm
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 
-def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
+def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True, cupl=False):
     """
     This function returns zero-shot vectors for each class in order
     to use it for zero-shot classification.
-    
+
 
     model:
         CLIP-like model with `encode_text`
-    
+
     tokenizer:
         text tokenizer, i.e. convert list of strings to torch.Tensor of integers
-    
+
     classnames: list of str
         name of classes
-    
+
     templates: list of str
         templates to use.
-    
+
     Returns
     -------
-    
+
     torch.Tensor of shape (N,C) where N is the number
     of templates, and C is the number of classes.
     """
@@ -40,7 +40,10 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     with torch.no_grad(), autocast():
         zeroshot_weights = []
         for classname in tqdm(classnames):
-            texts = [template.format(c=classname) for template in templates]  # format with class
+            if cupl:
+                texts = templates[classname]
+            else:
+                texts = [template.format(c=classname) for template in templates]  # format with class
             texts = tokenizer(texts).to(device)  # tokenize
             class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
@@ -57,16 +60,16 @@ def accuracy(output, target, topk=(1,)):
     output: torch.Tensor
         shape (N, C) where N is the number of examples, C the number of classes.
         these are the logits.
-    
+
     target: torch.Tensor
         shape (N,) where N is the number of examples. Groundtruth class id of each example.
-    
+
     topk: tuple
         which topk to compute, e.g., topk=(1,5) will compute top-1 and top-5 accuracies
-    
+
     Returns
     -------
-    
+
     list of top-k accuracies in the same order as `topk`
     """
     pred = output.topk(max(topk), 1, True, True)[1].t()
@@ -81,12 +84,12 @@ def run_classification(model, classifier, dataloader, device, amp=True):
 
     model: torch.nn.Module
         CLIP-like model with `encode_image` and `encode_text`
-    
+
     classifier: torch.Tensor
         obtained from the function `zero_shot_classifier`
-    
-    dataloader: torch.utils.data.Dataloader 
-    
+
+    dataloader: torch.utils.data.Dataloader
+
     Returns
     -------
     (pred, true)  where
@@ -107,7 +110,7 @@ def run_classification(model, classifier, dataloader, device, amp=True):
                 image_features = model.encode_image(images)
                 image_features = F.normalize(image_features, dim=-1)
                 logits = 100. * image_features @ classifier
-            
+
             true.append(target.cpu())
             pred.append(logits.float().cpu())
 
@@ -127,17 +130,17 @@ def average_precision_per_class(scores, targets):
 
     scores: torch.Tensor
         logits, of shape (N,C) where N is the number of examples, C the number of classes
-    
+
     targets: torch.Tensor
         one-hot vectors of groundtruth targets (N, C), where N is the number of examples, C is the
         number of classes
-    
+
     Returns
     -------
 
-    torch.Tensor of shape (C,) of avereage precision for each class, where C is     
+    torch.Tensor of shape (C,) of avereage precision for each class, where C is
     the number of classes.
-    
+
     """
     ap = torch.zeros(scores.size(1))
     rg = torch.arange(1, scores.size(0) + 1).float()
@@ -156,7 +159,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, cupl=False, save_clf=None, load_clfs=[]):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -165,17 +168,17 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
     model: torch.nn.Module
         CLIP-like model with `encode_image` and `encode_text`
-    
+
     dataloader: torch.utils.data.Dataloader
 
     tokenizer: text tokenizer
 
     classnames: list of str
         class names
-    
+
     templates: list of str
         templates to use for zero-shot classification
-    
+
     device: cpu/cuda
 
     amp: whether to use automatic mixed precision
@@ -187,7 +190,19 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
     dict of classification metrics
     """
-    classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device)
+    if len(load_clfs) > 0:
+        n = len(load_clfs)
+        classifier = torch.load(load_clfs[0], map_location='cpu') / n
+        for i in range(1, n):
+            classifier = classifier + torch.load(load_clfs[i], map_location='cpu') / n
+        classifier = classifier.to(device)
+    else:
+        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, cupl=cupl)
+    
+    if save_clf is not None:
+        torch.save(classifier, save_clf)
+        exit()
+
     logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
     is_multilabel = (len(target.shape) == 2)
 
@@ -210,7 +225,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
             acc1, acc5 = accuracy(logits, target, topk=(1, 5))
         else:
             acc1, = accuracy(logits, target, topk=(1,))
-            acc5 = float("nan") 
+            acc5 = float("nan")
         mean_per_class_recall = balanced_accuracy_score(target, pred)
         if verbose:
             print(classification_report(target, pred, digits=3))
