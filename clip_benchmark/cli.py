@@ -73,6 +73,8 @@ def run(args):
 
     if args.task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
+        if args.cupl:
+            assert (zeroshot_templates is not None), "Dataset does not support CuPL prompts"        
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
@@ -85,6 +87,7 @@ def run(args):
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
+            cupl=args.cupl
         )
     elif args.task == "zeroshot_retrieval":
         metrics = zeroshot_retrieval.evaluate(

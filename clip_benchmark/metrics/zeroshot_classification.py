@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 
-def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
+def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True, cupl=False):
     """
     This function returns zero-shot vectors for each class in order
     to use it for zero-shot classification.
@@ -40,7 +40,10 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     with torch.no_grad(), autocast():
         zeroshot_weights = []
         for classname in tqdm(classnames):
-            texts = [template.format(c=classname) for template in templates]  # format with class
+            if cupl:
+                texts = templates[classname]
+            else:
+                texts = [template.format(c=classname) for template in templates]
             texts = tokenizer(texts).to(device)  # tokenize
             class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
@@ -156,7 +159,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, cupl=False):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -187,7 +190,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
     dict of classification metrics
     """
-    classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device)
+    classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, cupl=cupl)
     logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
     is_multilabel = (len(target.shape) == 2)
 
