@@ -8,7 +8,7 @@ import open_clip
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_zeroshot_classification_templates
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
 
-from torch.utils.data import default_collate
+from torch.utils.data import default_collate, Subset
 
 def main():
     parser = argparse.ArgumentParser()
@@ -19,6 +19,8 @@ def main():
     parser.add_argument('--task', type=str, default="zeroshot_classification", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe"])
     parser.add_argument('--amp', default=False, action="store_true", help="whether to use mixed precision")
     parser.add_argument('--num_workers', default=4, type=int)
+    parser.add_argument('--subset', default="", type=str)
+    parser.add_argument('--not_subset', default="", type=str)
     parser.add_argument('--recall_k', default=[5], type=int, help="for retrieval, select the k for Recall@K metric. ", nargs="+",)
     parser.add_argument('--fewshot_k', default=-1, type=int, help="for linear probe, how many shots. -1 = whole dataset.")
     parser.add_argument('--fewshot_epochs', default=10, type=int, help="for linear probe, how many epochs.")
@@ -52,6 +54,26 @@ def run(args):
             annotation_file=args.annotation_file,
             download=True,
         )
+        import pandas as pd
+        if args.subset or args.not_subset:
+            fn = args.subset if args.subset else args.not_subset
+            N = len(dataset)
+            paths = open(fn).readlines()
+            paths = ["/p/scratch/ccstdl/cherti1/clip_benchmark_datasets/" + args.dataset + "/" + p.strip() for p in paths]
+            print(paths)
+            inds = [i for i in range(len(dataset)) if dataset.samples[i][0] in paths]
+            if args.not_subset:
+                inds = list(set(range(N)) - set(inds))
+            print(inds)
+            classes = dataset.classes
+            d = dataset
+            dataset = Subset(dataset, inds)
+            dataset.classes = classes
+            T = d.transform
+            d.transform = None
+            dataset[10][0].save(f"{args.dataset}.png")
+            d.transform = T
+
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
             print(f"Dataset size: {len(dataset)}")
