@@ -27,7 +27,7 @@ def main():
     parser.add_argument("--skip_load", action="store_true", help="for linear probes, when everything is cached, no need to load model.")
     parser.add_argument('--seed', default=0, type=int, help="random seed.")
     parser.add_argument('--batch_size', default=64, type=int)
-    parser.add_argument('--model_cache_dir', type=str, help="directory to where downloaded models are cached")
+    parser.add_argument('--model_cache_dir', default=None, type=str, help="directory to where downloaded models are cached")
     parser.add_argument('--dataset_root', default="root", type=str, help="dataset root folder where the datasets are downloaded.")
     parser.add_argument('--feature_root', default="features", type=str, help="feature root folder where the features are stored.")
     parser.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
