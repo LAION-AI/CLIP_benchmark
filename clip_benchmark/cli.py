@@ -32,9 +32,10 @@ def main():
     parser.add_argument('--language', default="en", type=str, help="language of classname and prompts to use for zeroshot classification.")
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
+    parser.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     args = parser.parse_args()
     run(args)
-    
+
 def run(args):
     """Console script for clip_benchmark."""
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,10 +48,10 @@ def run(args):
         model = model.to(args.device)
         tokenizer = open_clip.get_tokenizer(args.model)
         dataset = build_dataset(
-            dataset_name=args.dataset, 
-            root=args.dataset_root, 
-            transform=transform, 
-            split=args.split, 
+            dataset_name=args.dataset,
+            root=args.dataset_root,
+            transform=transform,
+            split=args.split,
             annotation_file=args.annotation_file,
             download=True,
             language=args.language,
@@ -63,55 +64,60 @@ def run(args):
             print(f"Dataset number of classes: {len(dataset.classes)}")
 
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
+            dataset, batch_size=args.batch_size,
+            shuffle=False, num_workers=args.num_workers,
             collate_fn=collate_fn
         )
 
 
     if args.task == "zeroshot_classification":
-        zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
+        if args.cupl:
+            zeroshot_templates = dataset.templates_cupl
+            assert (zeroshot_templates is not None), "Dataset does not support CuPL prompts"
+        else:
+            zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
         assert (zeroshot_templates is not None and classnames is not None), "Dataset does not support classification"
         metrics = zeroshot_classification.evaluate(
-            model, 
-            dataloader, 
-            tokenizer, 
-            classnames, zeroshot_templates, 
-            device=args.device, 
+            model,
+            dataloader,
+            tokenizer,
+            classnames, zeroshot_templates,
+            device=args.device,
             amp=args.amp,
             verbose=args.verbose,
+            cupl = args.cupl
         )
     elif args.task == "zeroshot_retrieval":
         metrics = zeroshot_retrieval.evaluate(
-            model, 
-            dataloader, 
-            tokenizer, 
+            model,
+            dataloader,
+            tokenizer,
             recall_k_list=args.recall_k,
-            device=args.device, 
+            device=args.device,
             amp=args.amp
         )
     elif args.task == "linear_probe":
         # we also need the train split for linear probing.
         train_dataset = build_dataset(
-            dataset_name=args.dataset, 
-            root=args.dataset_root, 
-            transform=transform, 
-            split='train', 
+            dataset_name=args.dataset,
+            root=args.dataset_root,
+            transform=transform,
+            split='train',
             annotation_file=args.annotation_file,
             download=True,
         )
         train_dataloader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
+            train_dataset, batch_size=args.batch_size,
+            shuffle=False, num_workers=args.num_workers,
             collate_fn=collate_fn, pin_memory=True,
         )
         metrics = linear_probe.evaluate(
             model,
-            train_dataloader, 
-            dataloader, 
+            train_dataloader,
+            dataloader,
             args.fewshot_k,
             args.batch_size,
             args.num_workers,
@@ -120,7 +126,7 @@ def run(args):
             (args.model + '-' + args.pretrained + '-' + args.dataset).replace('/', '_'),
             args.seed,
             args.feature_root,
-            device=args.device, 
+            device=args.device,
             amp=args.amp,
             verbose=args.verbose,
         )
