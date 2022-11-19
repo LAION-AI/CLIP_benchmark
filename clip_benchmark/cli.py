@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
     parser.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
+    parser.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
+    parser.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
     args = parser.parse_args()
     run(args)
     
@@ -87,7 +89,9 @@ def run(args):
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
-            cupl=args.cupl
+            cupl=args.cupl,
+            save_clf=args.save_clf,
+            load_clfs=args.load_clfs,
         )
     elif args.task == "zeroshot_retrieval":
         metrics = zeroshot_retrieval.evaluate(

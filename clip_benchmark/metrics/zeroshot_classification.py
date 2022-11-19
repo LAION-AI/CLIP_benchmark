@@ -159,7 +159,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, cupl=False):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, cupl=False, save_clf=None, load_clfs=[]):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -190,7 +190,19 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
     dict of classification metrics
     """
-    classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, cupl=cupl)
+    if len(load_clfs) > 0:
+        n = len(load_clfs)
+        classifier = torch.load(load_clfs[0], map_location='cpu') / n
+        for i in range(1, n):
+            classifier = classifier + torch.load(load_clfs[i], map_location='cpu') / n
+        classifier = classifier.to(device)
+    else:
+        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, cupl=cupl)
+    
+    if save_clf is not None:
+        torch.save(classifier, save_clf)
+        # exit() - not sure if we want to exit here or not.
+
     logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
     is_multilabel = (len(target.shape) == 2)
 
