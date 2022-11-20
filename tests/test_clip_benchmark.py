@@ -23,6 +23,7 @@ class base_args:
     seed=0
     skip_load=False
     language="en"
+    cupl=False
 
 def test_base():
     run(base_args)
