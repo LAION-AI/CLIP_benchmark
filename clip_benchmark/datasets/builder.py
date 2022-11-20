@@ -168,6 +168,26 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "mscoco_captions":
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
+        if split == "train":
+            archive_name = "train2014.zip"
+        elif split in ("val", "test"):
+            archive_name = "val2014.zip"
+        else:
+            raise ValueError(f"split should be train or val or test for `{dataset_name}`")
+        root_split = os.path.join(root, archive_name.replace(".zip", ""))
+        if not os.path.exists(root_split):
+            print(f"Downloading mscoco_captions {archive_name}...")
+            if not os.path.exists(os.path.join(root, archive_name)):
+                call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
+            call(f"unzip {root}/{archive_name} -d {root}", shell=True)
+        if not annotation_file:
+            annotation_file = f"{root}/coco_{split}_karpathy.json"
+        if not os.path.exists(annotation_file):
+            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/coco_{split}_karpathy.json --output-document={annotation_file}", shell=True)
+        ds = CocoCaptions(root=root_split, annFile=annotation_file, transform=transform, **kwargs)
+    elif dataset_name == 'multilingual_mscoco_captions':
+        from clip_benchmark.datasets import multilingual_mscoco
+        
         def get_archive_name(target_split):
             if target_split == "train":
                 return "train2014.zip"
@@ -185,30 +205,15 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
                     call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
                 call(f"unzip {root}/{archive_name} -d {root}", shell=True)
 
-        download_mscoco_split(split)
-        root_split = os.path.join(root, get_archive_name(split).replace(".zip", ""))
-        if (language != 'en'):
-            # Multilingual MS-COCO or XTD-Dataset
-            # 
-            # If we are loading any multilingual version we override the annotation file
-            # We also override the root_split, since the multilingual_en has images from all splits
-            # Instead the image paths have been altered to include to split-folders
-            # We therefore also check so that all splits have been downloaded
-            from clip_benchmark.datasets import multilingual_mscoco
-            annotation_file = os.path.join(root, multilingual_mscoco.IMAGE_INDEX_FILE)
-            if (os.path.exists(annotation_file) == False):
-                multilingual_mscoco.create_english_annotation_file(root)
-            root_split = root
+                # The multilingual MS-COCO uses images from various splits
+        for target_split in ['train', 'val', 'test']:
+            download_mscoco_split(target_split)
 
-            # The multilingual MS-COCO uses images from various splits
-            for target_split in ['train', 'val', 'test']:
-                download_mscoco_split(target_split)
+        annotation_file = os.path.join(root, multilingual_mscoco.IMAGE_INDEX_FILE)
+        if (os.path.exists(annotation_file) == False):
+            multilingual_mscoco.create_english_annotation_file(root)
 
-        if not annotation_file:
-            annotation_file = f"{root}/coco_{split}_karpathy.json"
-        if not os.path.exists(annotation_file):
-            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/coco_{split}_karpathy.json --output-document={annotation_file}", shell=True)
-        ds = CocoCaptions(root=root_split, annFile=annotation_file, transform=transform, **kwargs)
+        ds = multilingual_mscoco.Multilingual_MSCOCO(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
@@ -348,7 +353,7 @@ class Dummy():
         return 1
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "flickr30k", "flickr8k"):
+    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k"):
         return image_captions_collate_fn
     else:
         return default_collate

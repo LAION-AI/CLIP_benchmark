@@ -9,7 +9,6 @@ from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_f
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
 from clip_benchmark.datasets import multilingual_dataset
 
-from torch.utils.data import default_collate
 
 def main():
     parser = argparse.ArgumentParser()
@@ -65,7 +64,7 @@ def run(args):
             print(f"Dataset classes: {dataset.classes}")
             print(f"Dataset number of classes: {len(dataset.classes)}")
 
-        if args.task == "zeroshot_retrieval" and args.language.lower() not in ['en', 'multilingual_en']:
+        if args.task == "zeroshot_retrieval" and args.language.lower() != 'en':
             print("Loading Multilingual Wrapper")
             dataset = multilingual_dataset.create_dataset_from_language(dataset, args.dataset, args.language, args.dataset_root)
 

@@ -18,6 +18,7 @@ class Multilingual_Dataset(torch.utils.data.Dataset):
             new_txt = [self.new_captions[t] for t in txt]
         else:
             new_txt = self.new_captions[txt]
+
         return img, new_txt
 
 
@@ -31,7 +32,7 @@ def _create_dataset_from_path(original_dataset, translations_path):
 def create_dataset_from_language(original_dataset, dataset_name, lang_code, root='root'):
     file_path = os.path.join(root, "{}-{}.json".format(dataset_name, lang_code))
 
-    if (dataset_name == 'mscoco_captions'):
+    if (dataset_name == 'multilingual_mscoco_captions'):
         if (lang_code not in multilingual_mscoco.SUPPORTED_LANGUAGES):
             raise ValueError("mscoco_captions does not support language", lang_code)
 
