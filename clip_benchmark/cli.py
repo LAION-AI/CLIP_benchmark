@@ -64,10 +64,6 @@ def run(args):
             print(f"Dataset classes: {dataset.classes}")
             print(f"Dataset number of classes: {len(dataset.classes)}")
 
-        if args.task == "zeroshot_retrieval" and args.language.lower() != 'en':
-            print("Loading Multilingual Wrapper")
-            dataset = multilingual_dataset.create_dataset_from_language(dataset, args.dataset, args.language, args.dataset_root)
-
         dataloader = torch.utils.data.DataLoader(
             dataset, batch_size=args.batch_size, 
             shuffle=False, num_workers=args.num_workers, 

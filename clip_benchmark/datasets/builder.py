@@ -187,6 +187,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = CocoCaptions(root=root_split, annFile=annotation_file, transform=transform, **kwargs)
     elif dataset_name == 'multilingual_mscoco_captions':
         from clip_benchmark.datasets import multilingual_mscoco
+        if(language not in multilingual_mscoco.SUPPORTED_LANGUAGES):
+            raise ValueError("Unsupported language for multilingual_ms_coco:", language)
         
         def get_archive_name(target_split):
             if target_split == "train":
@@ -209,9 +211,9 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         for target_split in ['train', 'val', 'test']:
             download_mscoco_split(target_split)
 
-        annotation_file = os.path.join(root, multilingual_mscoco.IMAGE_INDEX_FILE)
+        annotation_file = os.path.join(root, multilingual_mscoco.CAPTIONS_FILE_NAME.format(language))
         if (os.path.exists(annotation_file) == False):
-            multilingual_mscoco.create_english_annotation_file(root)
+            multilingual_mscoco.create_annotation_file(root, language)
 
         ds = multilingual_mscoco.Multilingual_MSCOCO(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":

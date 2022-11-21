@@ -59,14 +59,14 @@ def _get_downloadable_file(filename, download_url, is_json=True):
         return [line.strip() for line in fp.readlines()]
 
 
-def create_english_annotation_file(root):
+def create_annotation_file(root, lang_code):
     print("Downloading multilingual_ms_coco index file")
     download_path = os.path.join(GITHUB_MAIN_PATH, IMAGE_INDEX_FILE_DOWNLOAD_NAME)
     target_images = _get_downloadable_file("multilingual_coco_images.txt", download_path, False)
 
-    print("Downloading multilingual_ms_coco english captions")
-    download_path = os.path.join(GITHUB_MAIN_PATH, CAPTIONS_FILE_DOWNLOAD_NAME.format('en'))
-    target_captions = _get_downloadable_file("multilingual_coco_en_captions.txt", download_path, False)
+    print("Downloading multilingual_ms_coco captions:", lang_code)
+    download_path = os.path.join(GITHUB_MAIN_PATH, CAPTIONS_FILE_DOWNLOAD_NAME.format(lang_code))
+    target_captions = _get_downloadable_file('raw_multilingual_coco_captions_{}.txt'.format(lang_code), download_path, False)
 
     number_of_missing_images = 0
     valid_images, valid_annotations, valid_indicies = [], [], []
@@ -87,18 +87,5 @@ def create_english_annotation_file(root):
     if (number_of_missing_images > 0):
         print("*** WARNING *** missing {} files.".format(number_of_missing_images))
 
-    with open(os.path.join(root, IMAGE_INDEX_FILE), 'w') as fp:
-        json.dump({'image_paths': valid_images, 'annotations': valid_annotations, 'indicies': valid_indicies}, fp)
-
-def create_translation_file(index_data, root, lang_code):
-    print("Downloading ms_coco translation file", lang_code)
-
-    download_file_name = CAPTIONS_FILE_DOWNLOAD_NAME.format(lang_code)
-    download_path = os.path.join(GITHUB_MAIN_PATH, download_file_name)
-    new_captions = _get_downloadable_file("multilingual_coco_{}_captions.txt".format(lang_code), download_path, False)
-    eng_captions = index_data['annotations']
-    
-    translation_mapping = {eng_captions[i]: new_captions[i] for i in index_data['indicies']}
     with open(os.path.join(root, CAPTIONS_FILE_NAME.format(lang_code)), 'w') as fp:
-        json.dump(translation_mapping, fp)
-
+        json.dump({'image_paths': valid_images, 'annotations': valid_annotations, 'indicies': valid_indicies}, fp)
