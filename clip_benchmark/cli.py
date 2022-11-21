@@ -7,7 +7,6 @@ import open_clip
 
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
-from clip_benchmark.datasets import multilingual_dataset
 
 
 def main():
