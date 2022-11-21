@@ -58,7 +58,7 @@ if __name__ == '__main__':
       'vtab/resisc45',
       'vtab/smallnorb_label_azimuth',
       'vtab/smallnorb_label_elevation',
-      'vtab_svhn',
+      'vtab/svhn',
     ]
 
     ks = [10, 25, -1]

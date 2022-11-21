@@ -26,7 +26,7 @@ if __name__ == '__main__':
       'vtab/resisc45',
       'vtab/smallnorb_label_azimuth',
       'vtab/smallnorb_label_elevation',
-      'vtab_svhn',
+      'vtab/svhn',
     ]
     all_info = []
     for n, g in df.groupby(['model', 'pretrained', 'samples_seen_pretty']):
