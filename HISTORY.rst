@@ -2,8 +2,8 @@
 
 ### 1.0.2
 
-* Added support for multilingual eval
-* Added support for linear probing
+* Added better support for multilingual eval
+* Added better support for linear probing
 * Added support for CuPL prompts
 
 ### 1.0.1
