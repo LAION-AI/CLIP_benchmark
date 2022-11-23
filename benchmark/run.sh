@@ -13,7 +13,7 @@ for ds in $DATASETS;do
        arch=$(echo $model|cut -d, -f1)
        pretrained=$(echo $model|cut -d, -f2)
        echo $ds $pretrained $arch
-       if [[ "$ds_name" == "flickr30k" || "$ds_name" == "flickr8k" || "$ds_name" == "mscoco_captions" ]]
+       if [[ "$ds_name" == "flickr30k" || "$ds_name" == "flickr8k" || "$ds_name" == "mscoco_captions" || "$ds_name" == "multilingual_mscoco_captions" ]]
        then
                TASK=zeroshot_retrieval
        else
