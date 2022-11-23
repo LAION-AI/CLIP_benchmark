@@ -23,6 +23,9 @@ class base_args:
     seed=0
     skip_load=False
     language="en"
+    cupl=False
+    save_clf=None
+    load_clfs=[]
 
 def test_base():
     run(base_args)

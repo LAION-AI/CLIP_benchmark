@@ -15,7 +15,7 @@ from . import voc2007, flickr, caltech101, imagenetv2, objectnet
 from torch.utils.data import default_collate
 from PIL import Image
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", cupl=False, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -57,6 +57,10 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         name = dataset_name
     templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
 
+    with open(os.path.join(current_folder, "cupl_prompts.json"), "r") as f:
+        cupl_prompts = json.load(f)
+    templates_cupl = None
+
     train = (split == "train")
     if dataset_name == "cifar10":
         ds = CIFAR10(root=root, train=train, transform=transform, download=download, **kwargs)
@@ -71,16 +75,19 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenet1k-unverified":
         split = "train" if train else "val"
         ds =  ImageFolder(root=os.path.join(root, split), transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenetv2":
         assert split == "test", f"Only test split available for {dataset_name}"
         os.makedirs(root, exist_ok=True)
         ds = imagenetv2.ImageNetV2Dataset(variant="matched-frequency", transform=transform, location=root)
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenet_sketch":
         assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://drive.google.com/open?id=1Mj0i5HBthqH1p_yeXzsg22gZduvgoNeA
@@ -98,6 +105,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv sketch {root}", shell=True)
         ds = ImageFolder(root=root, transform=transform, **kwargs)
         ds.classes = classnames["imagenet1k"]
+        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenet-a":
         assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://people.eecs.berkeley.edu/~hendrycks/imagenet-a.tar
@@ -302,7 +310,10 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
 
-    ds.templates = templates
+    if cupl:
+        ds.templates = templates_cupl
+    else:
+        ds.templates = templates
 
     return ds
 
