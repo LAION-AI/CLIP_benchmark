@@ -8,7 +8,6 @@ import open_clip
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
 
-from torch.utils.data import default_collate
 
 def get_parser_args():
     parser = argparse.ArgumentParser()
@@ -26,6 +25,7 @@ def get_parser_args():
     parser.add_argument("--skip_load", action="store_true", help="for linear probes, when everything is cached, no need to load model.")
     parser.add_argument('--seed', default=0, type=int, help="random seed.")
     parser.add_argument('--batch_size', default=64, type=int)
+    parser.add_argument('--model_cache_dir', default=None, type=str, help="directory to where downloaded models are cached")
     parser.add_argument('--dataset_root', default="root", type=str, help="dataset root folder where the datasets are downloaded.")
     parser.add_argument('--feature_root', default="features", type=str, help="feature root folder where the features are stored.")
     parser.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
@@ -50,7 +50,7 @@ def run(args):
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained)
+        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained, cache_dir=args.model_cache_dir)
         model = model.to(args.device)
         tokenizer = open_clip.get_tokenizer(args.model)
         dataset = build_dataset(
@@ -61,6 +61,7 @@ def run(args):
             annotation_file=args.annotation_file,
             download=True,
             language=args.language,
+            task=args.task,
             cupl=args.cupl
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
