@@ -24,6 +24,9 @@ class base_args:
     skip_load=False
     language="en"
     model_cache_dir=None
+    cupl=False
+    save_clf=None
+    load_clfs=[]
 
 def test_base():
     run(base_args)

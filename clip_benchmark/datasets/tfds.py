@@ -9,7 +9,8 @@ def download_tfds_dataset(name, data_dir=None):
     builder.download_and_prepare()
 
 def disable_gpus_on_tensorflow():
-    from timm.data.parsers import parser_tfds # just import to execute code that disables gpu on TFDS
+    import tensorflow as tf
+    tf.config.set_visible_devices([], 'GPU')  
 
 class VTABIterableDataset(torch.utils.data.IterableDataset):
 
