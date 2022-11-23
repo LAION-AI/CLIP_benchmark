@@ -10,7 +10,7 @@ from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, 
 
 from torch.utils.data import default_collate
 
-def main():
+def get_parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default="cifar10", help="Dataset to use for the benchmark")
     parser.add_argument('--split', type=str, default="test", help="Dataset split to use")
@@ -33,6 +33,10 @@ def main():
     parser.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics")
     parser.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
     args = parser.parse_args()
+    return args
+
+def main():
+    args = get_parser_args()
     run(args)
     
 def run(args):
