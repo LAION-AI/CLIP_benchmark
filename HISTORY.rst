@@ -1,6 +1,6 @@
 ## History
 
-### 1.0.2
+### 1.1.0
 
 * Added better support for multilingual eval
 * Added better support for linear probing
