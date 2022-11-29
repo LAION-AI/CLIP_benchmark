@@ -51,8 +51,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
     DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
 
-    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
-        name = dataset_name.split("/")[1]
+    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
+        name = dataset_name.split("/")[-1]
     else:
         name = dataset_name
     templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
@@ -297,6 +297,10 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         prefix, *name_list = dataset_name.split("/")
         name = "/".join(name_list)
         ds = build_vtab_dataset(name, download=download, split=split, data_dir=root, transform=transform, classnames=classnames)
+    elif dataset_name.startswith("wds/"):
+        # WebDataset support using `webdataset` library
+        name = dataset_name.split("/", 1)[1]
+        ds = build_wds_dataset(name, transform=transform, download=download, split=split, data_dir=root)
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
@@ -478,6 +482,31 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     ds = timm.data.create_dataset(f"tfds/{name}", data_dir, split=split, transform=transform, target_transform=int)
     ds.classes = builder.info.features['label'].names if classes is None else classes
     return ds
+
+
+def build_wds_dataset(dataset_name, transform, download=True, split="test", data_dir="root"):
+    """Load a dataset in WebDataset format (for now only local files). Must be in a .tar or .tar.gz"""
+    import webdataset as wds
+
+    name = dataset_name.replace("/", "-")
+    filename = os.path.join(data_dir, "wds_%s_%s.tar" % (name, split))
+    if not os.path.exists(filename) and os.path.exists(filename + ".gz"):
+        filename += ".gz"
+    dataset = (
+        wds.WebDataset(filename)
+        .decode("pil")
+        .to_tuple(["png", "jpg"], "cls")
+        .map_tuple(transform, lambda x: x)
+    )
+    # Get class names
+    try:
+        with open(os.path.join(data_dir, "wds_%s_classes.txt" % name)) as classname_file:
+            dataset.classes = [cname.strip() for cname in classname_file.readlines() if cname.strip()]
+    except FileNotFoundError:
+        print("WARNING: No classnames file was found")
+        dataset.classes = None
+
+    return dataset
 
 
 def _extract_task(dataset_name):

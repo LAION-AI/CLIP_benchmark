@@ -57,7 +57,10 @@ def run(args):
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
-            print(f"Dataset size: {len(dataset)}")
+            try:
+                print(f"Dataset size: {len(dataset)}")
+            except TypeError:
+                print("IterableDataset has no len()")
             print(f"Dataset split: {args.split}")
             print(f"Dataset classes: {dataset.classes}")
             print(f"Dataset number of classes: {len(dataset.classes)}")
