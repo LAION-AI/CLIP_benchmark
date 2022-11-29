@@ -31,8 +31,8 @@ def _load_classnames_and_classification_templates(dataset_name, current_folder, 
     # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
     DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
 
-    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
-        name = dataset_name.split("/")[1]
+    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
+        name = dataset_name.split("/")[-1]
     else:
         name = dataset_name
     templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
