@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 
-def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
+def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True, cupl=False):
     """
     This function returns zero-shot vectors for each class in order
     to use it for zero-shot classification.
@@ -40,7 +40,10 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     with torch.no_grad(), autocast():
         zeroshot_weights = []
         for classname in tqdm(classnames):
-            texts = [template.format(c=classname) for template in templates]  # format with class
+            if cupl:
+                texts = templates[classname]
+            else:
+                texts = [template.format(c=classname) for template in templates]
             texts = tokenizer(texts).to(device)  # tokenize
             class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
@@ -156,7 +159,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, cupl=False, save_clf=None, load_clfs=[]):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -187,7 +190,19 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
     dict of classification metrics
     """
-    classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device)
+    if len(load_clfs) > 0:
+        n = len(load_clfs)
+        classifier = torch.load(load_clfs[0], map_location='cpu') / n
+        for i in range(1, n):
+            classifier = classifier + torch.load(load_clfs[i], map_location='cpu') / n
+        classifier = classifier.to(device)
+    else:
+        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, cupl=cupl)
+    
+    if save_clf is not None:
+        torch.save(classifier, save_clf)
+        # exit() - not sure if we want to exit here or not.
+
     logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
     is_multilabel = (len(target.shape) == 2)
 

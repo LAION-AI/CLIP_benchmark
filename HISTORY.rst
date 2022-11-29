@@ -1,5 +1,11 @@
 ## History
 
+### 1.1.0
+
+* Added better support for multilingual eval
+* Added better support for linear probing
+* Added support for CuPL prompts
+
 ### 1.0.1
 
 * pypi description as markdown
