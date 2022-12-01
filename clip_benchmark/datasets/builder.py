@@ -349,6 +349,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
         ds = build_wds_dataset(name, transform=transform, download=download, split=split, data_dir=root)
+        return ds
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
@@ -535,27 +536,42 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     return ds
 
 
-def build_wds_dataset(dataset_name, transform, download=True, split="test", data_dir="root"):
-    """Load a dataset in WebDataset format (for now only local files). Must be in a .tar or .tar.gz"""
+def build_wds_dataset(dataset_name, transform, download=False, split="test", data_dir="root"):
+    """Load a dataset in WebDataset format. Only local files for now."""
     import webdataset as wds
 
-    name = dataset_name.replace("/", "-")
-    filename = os.path.join(data_dir, "wds_%s_%s.tar" % (name, split))
-    if not os.path.exists(filename) and os.path.exists(filename + ".gz"):
-        filename += ".gz"
+    # Get number of shards
+    nshards_fname = os.path.join(data_dir, split, "nshards.txt")
+    try:
+        with open(nshards_fname) as nshards_file: # TODO: Add HTTP option
+            nshards = int(nshards_file.read())
+    except FileNotFoundError:
+        print("WARNING: nshards.txt not found, using nshards=1")
+        nshards = 1
+    filepattern = os.path.join(data_dir, split, "{0..%d}.tar" % (nshards - 1))
+    # Load webdataset (support WEBP, PNG, and JPG for now)
     dataset = (
-        wds.WebDataset(filename)
-        .decode("pil")
-        .to_tuple(["png", "jpg"], "cls")
+        wds.WebDataset(filepattern)
+        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg"]))
+        .to_tuple(["webp", "png", "jpg"], "cls")
         .map_tuple(transform, lambda x: x)
     )
-    # Get class names
+    # Get class names if present
+    classnames_fname = os.path.join(data_dir, "classnames.txt")
     try:
-        with open(os.path.join(data_dir, "wds_%s_classes.txt" % name)) as classname_file:
-            dataset.classes = [cname.strip() for cname in classname_file.readlines() if cname.strip()]
+        with open(classnames_fname) as classnames_file: # TODO: Add HTTP option
+            dataset.classes = [line.strip() for line in classnames_file.readlines() if line.strip()]
     except FileNotFoundError:
-        print("WARNING: No classnames file was found")
+        print("WARNING: classnames.txt not found")
         dataset.classes = None
+    # Get zeroshot classification templates if present
+    templates_fname = os.path.join(data_dir, "zeroshot_classification_templates.txt")
+    try:
+        with open(templates_fname) as templates_file: # TODO: Add HTTP option
+            dataset.templates = [line.strip() for line in templates_file.readlines() if line.strip()]
+    except FileNotFoundError:
+        print("WARNING: zeroshot_classification_templates.txt not found")
+        dataset.templates = None
 
     return dataset
 
