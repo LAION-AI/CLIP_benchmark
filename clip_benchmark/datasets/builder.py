@@ -537,18 +537,53 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
 
 
 def build_wds_dataset(dataset_name, transform, download=False, split="test", data_dir="root"):
-    """Load a dataset in WebDataset format. Only local files for now."""
+    """Load a dataset in WebDataset format. Only local files for now. Expected file structure is:
+    ```
+    data_dir/
+        train/
+            nshards.txt
+            0.tar
+            1.tar
+            ...
+        test/
+            nshards.txt
+            0.tar
+            1.tar
+            ...
+        classnames.txt
+        zeroshot_classification_templates.txt
+    ```
+    """
     import webdataset as wds
 
+    def read_txt(fname):
+        if "://" in fname:
+            stream = os.popen("curl -L -s --fail '%s'" % fname, "r")
+            value = stream.read()
+            if stream.close():
+                raise FileNotFoundError("Failed to retreive data")
+        else:
+            with open(fname, "r") as file:
+                value = file.read()
+        return value
+    # Special handling for Huggingface datasets
+    # Git LFS files have a different file path to access the raw data than other files
+    if data_dir.startswith("https://huggingface.co/datasets"):
+        # Format: https://huggingface.co/datasets/<USERNAME>/<REPO>/tree/<BRANCH>
+        *split_url_head, _, url_path = data_dir.split("/", 7)
+        url_head = "/".join(split_url_head)
+        metadata_dir = "/".join([url_head, "raw", url_path])
+        tardata_dir = "/".join([url_head, "resolve", url_path])
+    else:
+        metadata_dir = tardata_dir = data_dir
     # Get number of shards
-    nshards_fname = os.path.join(data_dir, split, "nshards.txt")
+    nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
     try:
-        with open(nshards_fname) as nshards_file: # TODO: Add HTTP option
-            nshards = int(nshards_file.read())
+        nshards = int(read_txt(nshards_fname))
     except FileNotFoundError:
         print("WARNING: nshards.txt not found, using nshards=1")
         nshards = 1
-    filepattern = os.path.join(data_dir, split, "{0..%d}.tar" % (nshards - 1))
+    filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
     # Load webdataset (support WEBP, PNG, and JPG for now)
     dataset = (
         wds.WebDataset(filepattern)
@@ -557,18 +592,16 @@ def build_wds_dataset(dataset_name, transform, download=False, split="test", dat
         .map_tuple(transform, lambda x: x)
     )
     # Get class names if present
-    classnames_fname = os.path.join(data_dir, "classnames.txt")
+    classnames_fname = os.path.join(metadata_dir, "classnames.txt")
     try:
-        with open(classnames_fname) as classnames_file: # TODO: Add HTTP option
-            dataset.classes = [line.strip() for line in classnames_file.readlines() if line.strip()]
+        dataset.classes = [line.strip() for line in read_txt(classnames_fname).splitlines() if line.strip()]
     except FileNotFoundError:
         print("WARNING: classnames.txt not found")
         dataset.classes = None
     # Get zeroshot classification templates if present
-    templates_fname = os.path.join(data_dir, "zeroshot_classification_templates.txt")
+    templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
     try:
-        with open(templates_fname) as templates_file: # TODO: Add HTTP option
-            dataset.templates = [line.strip() for line in templates_file.readlines() if line.strip()]
+        dataset.templates = [line.strip() for line in read_txt(templates_fname).splitlines() if line.strip()]
     except FileNotFoundError:
         print("WARNING: zeroshot_classification_templates.txt not found")
         dataset.templates = None
