@@ -35,6 +35,7 @@ setup(
     entry_points={
         'console_scripts': [
             'clip_benchmark=clip_benchmark.cli:main',
+            'clip_benchmark_export_wds=clip_benchmark.webdataset_builder:main',
         ],
     },
     install_requires=requirements,
