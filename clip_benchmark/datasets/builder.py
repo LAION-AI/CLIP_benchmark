@@ -537,7 +537,8 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
 
 
 def build_wds_dataset(dataset_name, transform, download=False, split="test", data_dir="root"):
-    """Load a dataset in WebDataset format. Only local files for now. Expected file structure is:
+    """Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
+    Expected file structure is:
     ```
     data_dir/
         train/

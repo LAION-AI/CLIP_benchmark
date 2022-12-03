@@ -17,7 +17,7 @@ or directly in the [notebook](benchmark/results.ipynb).
 
 * Support for zero-shot classification and zero-shot retrieval
 * Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models
-* Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
+* Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation), and datasets in [webdataset](https://github.com/webdataset/webdataset) format.
 
 
 ## How to install?
@@ -117,6 +117,56 @@ Example with `cifar10`:
  Note that for using COCO, you also need to install `pycocotools`, using:
 
  `pip install pycocotools`
+
+ ### Webdataset example
+
+Here is an example on how to run it on [webdatasets](https://github.com/webdataset/webdataset).
+First, you need to install `webdataset`.
+
+`pip install webdataset`
+
+#### Creating a webdataset
+
+You can either convert an already supported CLIP_benchmark dataset to webdataset format, or manually create your own with the same file structure. For already supported datasets use the CLI command `clip_benchmark_export_wds` as in this example:
+
+```
+$ clip_benchmark_export_wds --dataset cifar10 --split train --dataset_root DATA_DIR/ --output wds_cifar10/
+$ clip_benchmark_export_wds --dataset cifar10 --split test --dataset_root DATA_DIR/ --output wds_cifar10/
+```
+
+which will convert the train and test splits for CIFAR-10 (downloaded to `DATA_DIR/`) and save the webdataset to `wds_cifar10/` (upload to Huggingface Hub must be done manually for now).
+
+For other datasets, data must be stored with the following file structure:
+
+```
+root_dir/
+    train/
+        nshards.txt
+        0.tar
+        1.tar
+        ...
+    test/
+        nshards.txt
+        0.tar
+        ...
+    classnames.txt
+    zeroshot_classification_templates.txt
+```
+
+Each split should be contained in its own folder and `nshards.txt` should contain a single integer corresponding to the number of TAR files. The TAR files should follow webdataset format, with an image file (.webp, .png, or .jpg) and a label (.cls) for each example. Classnames and templates are required for zeroshot classification evaluation, with each classname or template on its own line.
+
+#### Evaluating on a webdataset
+
+The name of the dataset follows the template `wds/<DATASET_NAME>`. Note that the dataset name currently only affects the name in the results output - classnames and templates are loaded directly from the included files. The dataset root directory can be either a local path to the `root_dir` as specified above, or an HTTP URL pointing to a Huggingface Hub dataset file tree.
+
+Example with `cifar10`:
+
+```
+$ clip_benchmark --dataset wds/cifar10 --dataset_root ROOT_DIR/wds_cifar10/
+$ clip_benchmark --dataset wds/cifar10 --dataset_root https://huggingface.co/datasets/djghosh/wds_cifar10_test/tree/main
+```
+
+All other arguments remain the same as in the other examples.
 
 ### API
 

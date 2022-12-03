@@ -40,14 +40,13 @@ def main():
 
 def run(args):
     # Setup dataset folder
-    folder_name = os.path.join(args.output, "wds_%s" % args.dataset.replace("/", "-"))
-    os.makedirs(os.path.join(folder_name, args.split), exist_ok=True)
+    os.makedirs(os.path.join(args.output, args.split), exist_ok=True)
     # Run conversion
     convert_dataset(
         args.dataset,
         args.dataset_root,
         args.split,
-        folder_name,
+        args.output,
         image_format=args.image_format,
         max_count=args.max_count,
         max_size=args.max_size
