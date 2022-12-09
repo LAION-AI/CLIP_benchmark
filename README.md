@@ -18,7 +18,7 @@ or directly in the [notebook](benchmark/results.ipynb).
 * Support for zero-shot classification and zero-shot retrieval
 * Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models
 * Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
-
+* Support [Japanese CLIP by rinna](https://github.com/rinnakk/japanese-clip)
 
 ## How to install?
 
