@@ -27,6 +27,7 @@ class base_args:
     cupl=False
     save_clf=None
     load_clfs=[]
+    ja_clip=False
 
 def test_base():
     run(base_args)
