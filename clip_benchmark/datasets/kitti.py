@@ -169,7 +169,7 @@ class KittiData(base.ImageTfdsData):
     if task not in _TASK_DICT:
       raise ValueError("Unknown task: %s" % task)
 
-    dataset_builder = tfds.builder("kitti:3.2.0", data_dir=data_dir)
+    dataset_builder = tfds.builder("kitti:3.3.0", data_dir=data_dir)
     dataset_builder.download_and_prepare()
 
     tfds_splits = {

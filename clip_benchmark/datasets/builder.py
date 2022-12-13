@@ -31,8 +31,8 @@ def _load_classnames_and_classification_templates(dataset_name, current_folder, 
     # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
     DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
 
-    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/"):
-        name = dataset_name.split("/")[1]
+    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
+        name = dataset_name.split("/")[-1]
     else:
         name = dataset_name
     templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
@@ -345,6 +345,11 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         prefix, *name_list = dataset_name.split("/")
         name = "/".join(name_list)
         ds = build_vtab_dataset(name, download=download, split=split, data_dir=root, transform=transform, classnames=classnames)
+    elif dataset_name.startswith("wds/"):
+        # WebDataset support using `webdataset` library
+        name = dataset_name.split("/", 1)[1]
+        ds = build_wds_dataset(name, transform=transform, download=download, split=split, data_dir=root)
+        return ds
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
@@ -529,6 +534,80 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     ds = timm.data.create_dataset(f"tfds/{name}", data_dir, split=split, transform=transform, target_transform=int)
     ds.classes = builder.info.features['label'].names if classes is None else classes
     return ds
+
+
+def build_wds_dataset(dataset_name, transform, download=False, split="test", data_dir="root"):
+    """Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
+    Expected file structure is:
+    ```
+    data_dir/
+        train/
+            nshards.txt
+            0.tar
+            1.tar
+            ...
+        test/
+            nshards.txt
+            0.tar
+            1.tar
+            ...
+        classnames.txt
+        zeroshot_classification_templates.txt
+    ```
+    """
+    import webdataset as wds
+
+    def read_txt(fname):
+        if "://" in fname:
+            stream = os.popen("curl -L -s --fail '%s'" % fname, "r")
+            value = stream.read()
+            if stream.close():
+                raise FileNotFoundError("Failed to retreive data")
+        else:
+            with open(fname, "r") as file:
+                value = file.read()
+        return value
+    # Special handling for Huggingface datasets
+    # Git LFS files have a different file path to access the raw data than other files
+    if data_dir.startswith("https://huggingface.co/datasets"):
+        # Format: https://huggingface.co/datasets/<USERNAME>/<REPO>/tree/<BRANCH>
+        *split_url_head, _, url_path = data_dir.split("/", 7)
+        url_head = "/".join(split_url_head)
+        metadata_dir = "/".join([url_head, "raw", url_path])
+        tardata_dir = "/".join([url_head, "resolve", url_path])
+    else:
+        metadata_dir = tardata_dir = data_dir
+    # Get number of shards
+    nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
+    try:
+        nshards = int(read_txt(nshards_fname))
+    except FileNotFoundError:
+        print("WARNING: nshards.txt not found, using nshards=1")
+        nshards = 1
+    filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
+    # Load webdataset (support WEBP, PNG, and JPG for now)
+    dataset = (
+        wds.WebDataset(filepattern)
+        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg"]))
+        .to_tuple(["webp", "png", "jpg"], "cls")
+        .map_tuple(transform, lambda x: x)
+    )
+    # Get class names if present
+    classnames_fname = os.path.join(metadata_dir, "classnames.txt")
+    try:
+        dataset.classes = [line.strip() for line in read_txt(classnames_fname).splitlines() if line.strip()]
+    except FileNotFoundError:
+        print("WARNING: classnames.txt not found")
+        dataset.classes = None
+    # Get zeroshot classification templates if present
+    templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
+    try:
+        dataset.templates = [line.strip() for line in read_txt(templates_fname).splitlines() if line.strip()]
+    except FileNotFoundError:
+        print("WARNING: zeroshot_classification_templates.txt not found")
+        dataset.templates = None
+
+    return dataset
 
 
 def _extract_task(dataset_name):
