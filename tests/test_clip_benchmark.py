@@ -27,7 +27,7 @@ class base_args:
     cupl=False
     save_clf=None
     load_clfs=[]
-    ja_clip=False
+    model_type="open_clip"
 
 def test_base():
     run(base_args)
