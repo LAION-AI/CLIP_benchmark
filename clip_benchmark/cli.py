@@ -3,11 +3,10 @@ import argparse
 import sys
 import json
 import torch
-import open_clip
 
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
-from clip_benchmark.models import load_japanese_clip
+from clip_benchmark.models import load_clip, MODEL_TYPES
 
 
 def get_parser_args():
@@ -36,7 +35,7 @@ def get_parser_args():
     parser.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
     parser.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
-    parser.add_argument('--ja_clip', default=False, action="store_true", help="use japanese-clip model. install by `pip install git+https://github.com/rinnakk/japanese-clip.git`")
+    parser.add_argument('--model_type', default="open_clip", type=str, choices=MODEL_TYPES, help="clip model type")
     args = parser.parse_args()
     return args
 
@@ -52,13 +51,13 @@ def run(args):
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        if args.ja_clip:
-            model, transform, tokenizer = load_japanese_clip(model_path=args.pretrained, device=args.device, cache_dir=args.model_cache_dir)
-            print("loaded japanese-clip model")
-        else:
-            model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained, cache_dir=args.model_cache_dir)
-            model = model.to(args.device)
-            tokenizer = open_clip.get_tokenizer(args.model)
+        model, transform, tokenizer = load_clip(
+            model_type=args.model_type,
+            model=args.model,
+            pretrained=args.pretrained,
+            cache_dir=args.model_cache_dir,
+            device=args.device
+        )
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=args.dataset_root, 

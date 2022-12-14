@@ -2,7 +2,7 @@ from typing import Dict
 import torch
 
 
-def load_japanese_clip(model_path: str, device="cpu", **kwargs):
+def load_japanese_clip(pretrained: str, device="cpu", **kwargs):
     """
     Load Japanese CLIP/CLOOB by rinna (https://github.com/rinnakk/japanese-clip)
     Remarks:
@@ -12,7 +12,7 @@ def load_japanese_clip(model_path: str, device="cpu", **kwargs):
         import japanese_clip as ja_clip
     except ImportError:
         raise ImportError("Install `japanese_clip` by `pip install git+https://github.com/rinnakk/japanese-clip.git`")
-    model, transform = ja_clip.load(model_path, device=device, **kwargs)
+    model, transform = ja_clip.load(pretrained, device=device, **kwargs)
 
     class JaTokenizerWrapper:
         def __init__(self, ):
