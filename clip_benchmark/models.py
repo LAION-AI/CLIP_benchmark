@@ -15,6 +15,7 @@ model_collection = {
         ("ViT-H-14","laion2b_s32b_b79k"),
         ("ViT-g-14","laion2b_s12b_b42"),
     ],
+    "openclip_all": open_clip.list_pretrained(),
     "openai": [
         ("ViT-B-32","openai"),
         ("ViT-B-16","openai"),
@@ -22,5 +23,3 @@ model_collection = {
         ("ViT-L-14-336", "openai"),
     ]
 }
-model_collection["openclip_all"] = open_clip.list_pretrained()
-
