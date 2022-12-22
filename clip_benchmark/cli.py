@@ -218,8 +218,17 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    output = args.output.format(model=args.model, pretrained=args.pretrained, task=task, dataset=args.dataset, language=args.language)
-
+    pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
+    pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
+    dataset_slug = args.dataset.replace('/', '_')
+    output = args.output.format(
+        model=args.model, 
+        pretrained=pretrained_slug,
+        pretrained_full_path=pretrained_slug_full_path,
+        task=task, 
+        dataset=dataset_slug,
+        language=args.language
+    )
     if args.verbose:
         print(f"Dump results to: {output}")
     with open(output, "w") as f:
