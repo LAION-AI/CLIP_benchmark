@@ -374,7 +374,7 @@ class Dummy():
         return 1
 
 def get_dataset_default_task(dataset):
-    if dataset in ("flickr30k", "flickr8k", "mscoco_captions"):
+    if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions"):
         return "zeroshot_retrieval"
     else:
         return "zeroshot_classification"
