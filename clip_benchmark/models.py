@@ -15,6 +15,10 @@ model_collection = {
         ("ViT-H-14","laion2b_s32b_b79k"),
         ("ViT-g-14","laion2b_s12b_b42"),
     ],
+    "openclip_multilingual":[
+        ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
+        ("xlm-roberta-large-ViT-H-14", "frozen_laion5b_s13b_b90k"),
+    ],
     "openclip_all": open_clip.list_pretrained(),
     "openai": [
         ("ViT-B-32","openai"),

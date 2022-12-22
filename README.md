@@ -200,7 +200,7 @@ Examples are available in [benchmark/datasets.txt](benchmark/datasets.txt) and [
 
 ### Model and dataset collections
 
-We can also provide model collection names (`openai`, `openclip_base`, `openclip_full` are supported) or dataset collection names (`vtab`, `vtab+`, `retrieval`, `imagenet_robustness` are supported):
+We can also provide model collection names (`openai`, `openclip_base`, `openclip_multilingual`, `openclip_full` are supported) or dataset collection names (`vtab`, `vtab+`, `retrieval`, `imagenet_robustness` are supported):
 
 ```bash
 clip_benchmark --pretrained_model openai openclip_base  --dataset vtab+ retrieval \

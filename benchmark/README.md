@@ -5,7 +5,6 @@ You can visualize the results in the [notebook](results.ipynb)
 
 # How to reproduce th CLIP benchmark results
 
-To run the benchmark with vtab+ and retrieval datasets, use:
 
 ## VTAB+ and retrieval datasets (MS-COCO, Flickr30k, Flickr8k)
 
@@ -27,11 +26,10 @@ python build_csv.py vtab_plus_and_retrieval*.json --output=benchmark.csv
 To run the multilingual ImageNet benchmark, use:
 
 ```bash
-clip_benchmark --pretrained_model  openai openclip_base  --dataset imagenet1k --language zh it jp en \
+clip_benchmark --pretrained_model openclip_multilingual openclip_base openai  --dataset imagenet1k --language cn it jp en \
 --dataset_root "clip_benchmark_datasets/{dataset}" \
---output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+--output "multilingual_{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
-
 (Change `--dataset_root` accordingly)
 
 ## Multilingual MS-COCO benchmark
@@ -39,9 +37,9 @@ clip_benchmark --pretrained_model  openai openclip_base  --dataset imagenet1k --
 To run the multilingual MS-COCO benchmark, use:
 
 ```bash
-clip_benchmark --pretrained_model  openai openclip_base  --dataset multilingual_mscoco_captions --language es it ko pl ru tr zh en \
+clip_benchmark --pretrained_model openclip_multilingual openclip_base openai --dataset multilingual_mscoco_captions --language es it ko pl ru tr zh en \
 --dataset_root "clip_benchmark_datasets/{dataset}" \
---output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+--output "multilingual_{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
 
 (Change `--dataset_root` accordingly)
