@@ -17,7 +17,13 @@ for ds in $DATASETS;do
     for model in $MODELS;do
        arch=$(echo $model|cut -d, -f1)
        pretrained=$(echo $model|cut -d, -f2)
-       echo $ds $pretrained $arch
+       if [ -f "$pretrained" ]; then
+           pretrained_slug=`basename $pretrained`
+       else
+           pretrained_slug=$pretrained
+       fi
+       output="${ds_name}_${pretrained_slug}_${arch}_${LANGUAGE}.json" 
+       echo $ds $pretrained $arch $output
        if [[ "$ds_name" == "flickr30k" || "$ds_name" == "flickr8k" || "$ds_name" == "mscoco_captions" || "$ds_name" == "multilingual_mscoco_captions" ]]
        then
                TASK=zeroshot_retrieval
@@ -27,7 +33,7 @@ for ds in $DATASETS;do
        echo "$ds_name"
        echo "$LANGUAGE"
        echo $TASK
-       $RUN --dataset=$ds --language=$LANGUAGE --dataset_root $ROOT/$ds --task=$TASK --pretrained=$pretrained --model=$arch --output="${ds_name}_${pretrained}_${arch}_${LANGUAGE}.json"  --batch_size=$BS --num_workers=$WORKERS
+       $RUN --dataset=$ds --language=$LANGUAGE --dataset_root $ROOT/$ds --task=$TASK --pretrained=$pretrained --model=$arch --output=$output --batch_size=$BS --num_workers=$WORKERS
     done
 done
 python build_csv.py
