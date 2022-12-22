@@ -91,8 +91,6 @@ Example with `eurosat`:
 
 ### TensorFlow dataset example
 
-
-
 Here is an example on how to run it on [Tensorflow datasets](https://www.tensorflow.org/datasets).
 First, you need to install `tfds-nightly` and `timm`.
 
@@ -118,7 +116,7 @@ Example with `cifar10`:
 
  `pip install pycocotools`
 
- ### Webdataset example
+### Webdataset example
 
 Here is an example on how to run it on [webdatasets](https://github.com/webdataset/webdataset).
 First, you need to install `webdataset`.
@@ -168,11 +166,50 @@ $ clip_benchmark --dataset wds/cifar10 --dataset_root https://huggingface.co/dat
 
 All other arguments remain the same as in the other examples.
 
-### API
+## Evaluate mulitple models on multiple datasets
 
-You can also use the API directly. This is especially useful if your model
-does not belong to currently supported models.
-(TODO)
+For the purpose of benchmarking, it is possible to run the CLI with multiple
+pre-trained models on multiple datasets.
+
+
+### Pretrained models and datasets list as arguments
+
+For models, we can provide list of pretrained model names in the form of 'model,pretrained' (so `model` and `pretrained` are comma separated). For datasets, we can provide a list of datasets.  For languages, we can provide a list of languages.
+Example:
+
+```bash
+clip_benchmark --pretrained_model  ViT-B-32-quickgelu,laion400m_e32 ViT-L-14,laion400m_e32  \
+--dataset cifar10 cifar100 --dataset_root "clip_benchmark_datasets/{dataset}" --language en jp \
+--verbose --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+```
+
+Note that `--dataset_root` and `--output` can be now in the form of a template that depends on the dataset/model/language/task (for `--output`) and dataset name (for `--dataset_root`).
+
+
+### Pretrained models and datasets list as files
+
+We can also provide a path to files with models (each line is in the form of 'model,pretrained' where `model` and `pretrained` are comma separated) and datasets list (one dataset per line):
+
+```bash
+clip_benchmark --pretrained_model  benchmark/models.txt \
+--dataset benchmark/datasets.txt --dataset_root "clip_benchmark_datasets/{dataset}"  \
+--verbose --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+```
+
+Examples are available in [benchmark/datasets.txt](benchmark/datasets.txt) and [benchmark/models.txt](benchmark/models.txt)
+
+### Model and dataset collections
+
+We can also provide model collection names (`openai`, `openclip_base`, `openclip_full` are supported) or dataset collection names (`vtab`, `vtab+`, `retrieval`, `imagenet_robustness` are supported):
+
+```bash
+clip_benchmark --pretrained_model openai openclip_base  --dataset vtab+ retrieval \
+--dataset_root "clip_benchmark_datasets/{dataset}" --verbose \
+--output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+```
+
+See [clip_benchmark/models.py#L6](clip_benchmark/models.py#L6) and [clip_benchmark/datasets/builder.py#L634](clip_benchmark/datasets/builder.py#L634) for more information
+about the collections.
 
 ## Credits
 
