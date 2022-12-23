@@ -38,6 +38,7 @@ def get_parser_args():
     parser.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
     parser.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
+    parser.add_argument('--skip_existing', default=False, action="store_true", help="whether to skip an evaluation if the output file exists.")
     args = parser.parse_args()
     return args
 
@@ -105,11 +106,26 @@ def run(args):
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     # set seed.
     torch.manual_seed(args.seed)
-
     task = args.task
     if task == "auto":
         task = get_dataset_default_task(args.dataset)
-    print(task)
+    pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
+    pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
+    dataset_slug = args.dataset.replace('/', '_')
+    output = args.output.format(
+        model=args.model, 
+        pretrained=pretrained_slug,
+        pretrained_full_path=pretrained_slug_full_path,
+        task=task, 
+        dataset=dataset_slug,
+        language=args.language
+    )
+    if os.path.exists(output) and args.skip_existing:
+        if args.verbose:
+            print(f"Skip {output}, exists already.")
+        return
+    if args.verbose:
+        print(f"Running '{task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
     dataset_root = args.dataset_root.format(dataset=args.dataset)
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
@@ -218,17 +234,6 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
-    pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
-    dataset_slug = args.dataset.replace('/', '_')
-    output = args.output.format(
-        model=args.model, 
-        pretrained=pretrained_slug,
-        pretrained_full_path=pretrained_slug_full_path,
-        task=task, 
-        dataset=dataset_slug,
-        language=args.language
-    )
     if args.verbose:
         print(f"Dump results to: {output}")
     with open(output, "w") as f:
