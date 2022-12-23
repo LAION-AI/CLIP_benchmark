@@ -185,6 +185,7 @@ clip_benchmark --pretrained_model  ViT-B-32-quickgelu,laion400m_e32 ViT-L-14,lai
 
 Note that `--dataset_root` and `--output` can be now in the form of a template that depends on the dataset/model/language/task (for `--output`) and dataset name (for `--dataset_root`).
 
+Note that If the benchmark fails at some point, it is possible to resume it by skipping already evaluated models using `--skip_existing`.
 
 ### Pretrained models and datasets list as files
 
