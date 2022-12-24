@@ -13,7 +13,7 @@ model_collection = {
         ("ViT-L-14","laion400m_e32"),
         ("ViT-L-14","laion2b_s32b_b82k"),
         ("ViT-H-14","laion2b_s32b_b79k"),
-        ("ViT-g-14","laion2b_s12b_b42"),
+        ("ViT-g-14","laion2b_s12b_b42k"),
     ],
     "openclip_multilingual":[
         ("xlm-roberta-base-ViT-B-32", "laion5b_s13b_b90k"),
