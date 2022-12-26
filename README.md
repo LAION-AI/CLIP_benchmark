@@ -110,9 +110,7 @@ Example with `cifar10`:
 
  `clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64` 
  
- Note that for using COCO, you also need to install `pycocotools`, using:
-
- `pip install pycocotools`
+ Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`).
 
 ### Webdataset example
 
