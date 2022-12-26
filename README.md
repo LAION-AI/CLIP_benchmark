@@ -46,6 +46,8 @@ the results are written into a JSON file.
 
  `clip_benchmark eval --dataset=cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
+ By default, the dataset is downloaded into `--dataset_root`, which by default is `root`.
+
 Here is the content of `result.json` after the evaluation is done:
 
 ```json
@@ -55,8 +57,6 @@ Here is the content of `result.json` after the evaluation is done:
     "metrics": {"acc1": 0.9074, "acc5": 0.998}
 }
 ```
-
-By default, the dataset is downloaded into `--dataset_root`, which by default is `root`.
 
 
 ### VOC2007 example
