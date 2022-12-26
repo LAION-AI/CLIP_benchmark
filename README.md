@@ -44,7 +44,7 @@ the results are written into a JSON file.
 
  Here is an example for CIFAR-10 zero-shot classification using OpenCLIP's pre-trained model on LAION-400m:
 
- `clip_benchmark --dataset=cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+ `clip_benchmark eval --dataset=cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
 Here is the content of `result.json` after the evaluation is done:
 
@@ -60,7 +60,7 @@ Here is the content of `result.json` after the evaluation is done:
 
 Here is another example with VOC2007, which is a multi-label classification dataset.
 
- `clip_benchmark --dataset=voc2007_multilabel --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+ `clip_benchmark eval --dataset=voc2007_multilabel --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
 Here is the content of `result.json` after the evaluation is done:
 
@@ -77,16 +77,13 @@ First, you need to install VTAB's dedicated package.
 
 `pip install task_adaptation==0.1`
 
-The name of the dataset follows the template `vtab/<TASK_NAME>`.
-To have the list of the 19 classification tasks using in VTAB, you can use:
-
-`python -c 'from clip_benchmark.datasets.builder import VTAB_19TASKS;print("\n".join(VTAB_19TASKS))'`
-
-
 Then, you can run it by providing the full dataset name.
 Example with `eurosat`:
 
- `clip_benchmark --dataset=vtab/eurosat --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+ `clip_benchmark eval --dataset=vtab/eurosat --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+
+See [clip_benchmark/datasets/builder.py#L634](clip_benchmark/datasets/builder.py#L634) for the full list of 
+VTAB dataset collection.
 
 
 ### TensorFlow dataset example
@@ -101,20 +98,22 @@ The name of the dataset follows the template `tfds/<DATASET_NAME>`.
 
 Example with `cifar10`:
 
- `clip_benchmark --dataset=tfds/cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+ `clip_benchmark eval --dataset=tfds/cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
 
 ### COCO captions example
 
  Here is an example for COCO captions zero-shot retrieval:
 
- `clip_benchmark --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --dataset_root=<PATH_TO_IMAGE_FOLDER> --annotation_file=<PATH_TO_ANNOTATION_FILE> --batch_size=64` 
+ `clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --dataset_root=<PATH_TO_IMAGE_FOLDER> --batch_size=64` 
  
  (see <https://cocodataset.org/#home> for instructions on how to download)
 
  Note that for using COCO, you also need to install `pycocotools`, using:
 
  `pip install pycocotools`
+
+ By default, the annotation file
 
 ### Webdataset example
 
@@ -160,8 +159,8 @@ The name of the dataset follows the template `wds/<DATASET_NAME>`. Note that the
 Example with `cifar10`:
 
 ```
-$ clip_benchmark --dataset wds/cifar10 --dataset_root ROOT_DIR/wds_cifar10/
-$ clip_benchmark --dataset wds/cifar10 --dataset_root https://huggingface.co/datasets/djghosh/wds_cifar10_test/tree/main
+$ clip_benchmark eval --dataset wds/cifar10 --dataset_root ROOT_DIR/wds_cifar10/
+$ clip_benchmark eval --dataset wds/cifar10 --dataset_root https://huggingface.co/datasets/djghosh/wds_cifar10_test/tree/main
 ```
 
 All other arguments remain the same as in the other examples.
@@ -178,7 +177,7 @@ For models, we can provide list of pretrained model names in the form of 'model,
 Example:
 
 ```bash
-clip_benchmark --pretrained_model  ViT-B-32-quickgelu,laion400m_e32 ViT-L-14,laion400m_e32  \
+clip_benchmark eval --pretrained_model  ViT-B-32-quickgelu,laion400m_e32 ViT-L-14,laion400m_e32  \
 --dataset cifar10 cifar100 --dataset_root "clip_benchmark_datasets/{dataset}" --language en jp \
 --verbose --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
@@ -192,7 +191,7 @@ Note that If the benchmark fails at some point, it is possible to resume it by s
 We can also provide a path to files with models (each line is in the form of 'model,pretrained' where `model` and `pretrained` are comma separated) and datasets list (one dataset per line):
 
 ```bash
-clip_benchmark --pretrained_model  benchmark/models.txt \
+clip_benchmark eval --pretrained_model  benchmark/models.txt \
 --dataset benchmark/datasets.txt --dataset_root "clip_benchmark_datasets/{dataset}"  \
 --verbose --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
@@ -204,7 +203,7 @@ Examples are available in [benchmark/datasets.txt](benchmark/datasets.txt) and [
 We can also provide model collection names (`openai`, `openclip_base`, `openclip_multilingual`, `openclip_full` are supported) or dataset collection names (`vtab`, `vtab+`, `retrieval`, `imagenet_robustness` are supported):
 
 ```bash
-clip_benchmark --pretrained_model openai openclip_base  --dataset vtab+ retrieval \
+clip_benchmark eval --pretrained_model openai openclip_base  --dataset vtab+ retrieval \
 --dataset_root "clip_benchmark_datasets/{dataset}" --verbose \
 --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
