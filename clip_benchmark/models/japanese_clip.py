@@ -13,7 +13,7 @@ class DictTensor:
         return {k: v.to(device) for k, v in self.d.items()}
 
 
-class JapaneseCLIPForBenchmark:
+class JaCLIPForBenchmark:
     """
     enable to do model.encode_text(dict_tensor)
     """
@@ -40,7 +40,7 @@ def load_japanese_clip(pretrained: str, device="cpu", **kwargs):
     cache_dir = kwargs.pop("cache_dir", None)
     model, transform = ja_clip.load(pretrained, device=device, cache_dir=cache_dir)
 
-    class JaTokenizerWrapper:
+    class JaTokenizerForBenchmark:
         def __init__(self, ):
             self.tokenizer = ja_clip.load_tokenizer()
 
@@ -51,4 +51,4 @@ def load_japanese_clip(pretrained: str, device="cpu", **kwargs):
         def __len__(self):
             return len(self.tokenizer)
 
-    return JapaneseCLIPForBenchmark(model), transform, JaTokenizerWrapper()
+    return JaCLIPForBenchmark(model), transform, JaTokenizerForBenchmark()
