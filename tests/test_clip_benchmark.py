@@ -27,6 +27,8 @@ class base_args:
     cupl=False
     save_clf=None
     load_clfs=[]
+    which="eval"
+    skip_existing=False
 
 def test_base():
     run(base_args)
