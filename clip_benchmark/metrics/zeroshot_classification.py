@@ -44,13 +44,8 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
                 texts = templates[classname]
             else:
                 texts = [template.format(c=classname) for template in templates]
-            texts = tokenizer(texts) # tokenize
-            if isinstance(texts, dict):
-                texts = {k: v.to(device) for k, v in texts.items()}
-                class_embeddings = model.encode_text(**texts)
-            else:
-                texts = texts.to(device)
-                class_embeddings = model.encode_text(texts)
+            texts = tokenizer(texts).to(device)  # tokenize
+            class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
             class_embedding /= class_embedding.norm()
             zeroshot_weights.append(class_embedding)

@@ -44,18 +44,14 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
     for batch_images, batch_texts, inds in tqdm(dataloader):
         batch_images = batch_images.to(device)
         # tokenize all texts in the batch
-        batch_texts_tok = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts])
+        batch_texts_tok = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
         # store the index of image for each text
         batch_texts_image_index = [ind for ind, texts in zip(inds, batch_texts) for text in texts]
 
         # compute the embedding of images and texts
         with torch.no_grad(), autocast():
             batch_images_emb = F.normalize(model.encode_image(batch_images), dim=-1)
-            if isinstance(batch_texts_tok, dict):
-                batch_texts_tok = {k: v.to(device) for k, v in batch_texts_tok.items()}
-                batch_texts_emb = F.normalize(model.encode_text(**batch_texts_tok), dim=-1)
-            else:
-                batch_texts_emb = F.normalize(model.encode_text(batch_texts_tok.to(device)), dim=-1)
+            batch_texts_emb = F.normalize(model.encode_text(batch_texts_tok), dim=-1)
 
         batch_images_emb_list.append(batch_images_emb.cpu())
         batch_texts_emb_list.append(batch_texts_emb.cpu())
