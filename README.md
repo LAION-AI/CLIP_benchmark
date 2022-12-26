@@ -56,6 +56,9 @@ Here is the content of `result.json` after the evaluation is done:
 }
 ```
 
+By default, the dataset is downloaded into `--dataset_root`, which by default is `root`.
+
+
 ### VOC2007 example
 
 Here is another example with VOC2007, which is a multi-label classification dataset.
@@ -105,15 +108,11 @@ Example with `cifar10`:
 
  Here is an example for COCO captions zero-shot retrieval:
 
- `clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --dataset_root=<PATH_TO_IMAGE_FOLDER> --batch_size=64` 
+ `clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64` 
  
- (see <https://cocodataset.org/#home> for instructions on how to download)
-
  Note that for using COCO, you also need to install `pycocotools`, using:
 
  `pip install pycocotools`
-
- By default, the annotation file
 
 ### Webdataset example
 
