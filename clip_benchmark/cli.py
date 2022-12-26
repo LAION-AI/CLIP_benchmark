@@ -3,6 +3,8 @@ import argparse
 import sys
 import json
 import torch
+import csv
+from copy import copy
 import os
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
