@@ -168,7 +168,7 @@ def run(args):
     else:
         model, transform, tokenizer = load_clip(
             model_type=args.model_type,
-            model=args.model,
+            model_name=args.model,
             pretrained=args.pretrained,
             cache_dir=args.model_cache_dir,
             device=args.device
