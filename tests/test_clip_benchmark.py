@@ -28,6 +28,8 @@ class base_args:
     save_clf=None
     load_clfs=[]
     model_type="open_clip"
+    which="eval"
+    skip_existing=False
 
 def test_base():
     run(base_args)

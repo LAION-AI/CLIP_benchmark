@@ -1,5 +1,9 @@
 ## History
 
+### 1.2.0
+
+* Added support for loading webdatasets
+
 ### 1.1.0
 
 * Added better support for multilingual eval
