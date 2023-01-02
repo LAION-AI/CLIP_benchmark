@@ -1,16 +1,25 @@
 """Console script for clip_benchmark."""
 import argparse
-import sys
-import json
-import torch
 import csv
-from copy import copy
+import glob
+import json
 import os
-import open_clip
+import re
+import sys
+from copy import copy
 
-from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
+import open_clip
+import torch
+
+from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, \
+    dataset_collection, get_dataset_collection_from_file
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
-from clip_benchmark.models import model_collection, get_model_collection_from_file, model_collection
+from clip_benchmark.models import get_model_collection_from_file, model_collection
+
+
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_.lower())]
 
 def get_parser_args():
     parser = argparse.ArgumentParser()
@@ -23,6 +32,8 @@ def get_parser_args():
     parser_eval.add_argument('--model', type=str, default="ViT-B-32-quickgelu", help="Model architecture to use from OpenCLIP")
     parser_eval.add_argument('--pretrained', type=str, default="laion400m_e32", help="Model checkpoint name to use from OpenCLIP")
     parser_eval.add_argument('--pretrained_model', type=str, default="", nargs="+", help="Pre-trained model(s) to use. Can be the full model name where `model` and `pretrained` are comma separated (e.g., --pretrained_model='ViT-B-32-quickgelu,laion400m_e32'), a model collection name ('openai' or 'openclip_base' or 'openclip_multilingual' or 'openclip_all'), or path of a text file where each line is a model fullname where model and pretrained are comma separated (e.g., ViT-B-32-quickgelu,laion400m_e32). --model and --pretrained are ignored if --pretrained_model is used.")
+    parser_eval.add_argument('--pretrained_glob', type=str, default="",
+                             help=".")
     parser_eval.add_argument('--task', type=str, default="auto", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe", "auto"], help="Task to evaluate on. With --task=auto, the task is automatically inferred from the dataset.")
     parser_eval.add_argument('--amp', default=True, action="store_true", help="whether to use mixed precision")
     parser_eval.add_argument('--num_workers', default=4, type=int)
@@ -38,6 +49,7 @@ def get_parser_args():
     parser_eval.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
+    parser_eval.add_argument('--output-summary', default="", type=str, help="")
     parser_eval.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
     parser_eval.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser_eval.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
@@ -96,6 +108,10 @@ def main_eval(base):
                 # if not, assume it is in the form of `model,pretrained`
                 model, pretrained = name.split(',')
                 models.append((model, pretrained))
+    elif base.pretrained_glob:
+        checkpoints = glob.glob(base.pretrained_glob, recursive=True)
+        checkpoints = sorted(checkpoints, key=natural_key)
+        models = [(base.model, c) for c in checkpoints]
     else:
         models = [(base.model, base.pretrained)]
     
@@ -120,6 +136,7 @@ def main_eval(base):
         print(f"Datasets: {datasets}")
         print(f"Languages: {languages}")
 
+    all = []
     for model, pretrained in models:
         for dataset in datasets:
             for language in languages:
@@ -130,7 +147,11 @@ def main_eval(base):
                 args.pretrained = pretrained
                 args.dataset = dataset
                 args.language = language
-                run(args)
+                r = run(args)
+                all += [r]
+    if all and base.output_summary:
+        with open(base.output_summary, "w") as f:
+            json.dump(all, f, indent=2)
 
 def _as_list(l):
     if not l:
@@ -148,25 +169,31 @@ def run(args):
     pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
     pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
     dataset_slug = args.dataset.replace('/', '_')
-    output = args.output.format(
-        model=args.model, 
-        pretrained=pretrained_slug,
-        pretrained_full_path=pretrained_slug_full_path,
-        task=task, 
-        dataset=dataset_slug,
-        language=args.language
-    )
-    if os.path.exists(output) and args.skip_existing:
-        if args.verbose:
-            print(f"Skip {output}, exists already.")
-        return
+    output = None
+    if args.output.format:
+        output = args.output.format(
+            model=args.model,
+            pretrained=pretrained_slug,
+            pretrained_full_path=pretrained_slug_full_path,
+            task=task,
+            dataset=dataset_slug,
+            language=args.language
+        )
+        if os.path.exists(output) and args.skip_existing:
+            if args.verbose:
+                print(f"Skip {output}, exists already.")
+            return {}
     if args.verbose:
         print(f"Running '{task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
     dataset_root = args.dataset_root.format(dataset=args.dataset)
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained, cache_dir=args.model_cache_dir)
+        model, _, transform = open_clip.create_model_and_transforms(
+            args.model,
+            pretrained=args.pretrained,
+            cache_dir=args.model_cache_dir,
+        )
         model = model.to(args.device)
         tokenizer = open_clip.get_tokenizer(args.model)
         dataset = build_dataset(
@@ -194,8 +221,10 @@ def run(args):
                 print("Dataset has no classes.")
 
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
+            dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
             collate_fn=collate_fn
         )
 
@@ -270,11 +299,12 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    if args.verbose:
-        print(f"Dump results to: {output}")
-    with open(output, "w") as f:
-        json.dump(dump, f)
-    return 0
+    if output:
+        if args.verbose:
+            print(f"Dump results to: {output}")
+        with open(output, "w") as f:
+            json.dump(dump, f)
+    return dump
 
 
 if __name__ == "__main__":
