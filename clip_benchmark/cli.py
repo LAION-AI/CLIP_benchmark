@@ -9,7 +9,7 @@ import os
 import open_clip
 
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
-from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
+from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe, mscoco_generative
 from clip_benchmark.models import model_collection, get_model_collection_from_file, model_collection
 
 def get_parser_args():
@@ -23,7 +23,7 @@ def get_parser_args():
     parser_eval.add_argument('--model', type=str, default="ViT-B-32-quickgelu", help="Model architecture to use from OpenCLIP")
     parser_eval.add_argument('--pretrained', type=str, default="laion400m_e32", help="Model checkpoint name to use from OpenCLIP")
     parser_eval.add_argument('--pretrained_model', type=str, default="", nargs="+", help="Pre-trained model(s) to use. Can be the full model name where `model` and `pretrained` are comma separated (e.g., --pretrained_model='ViT-B-32-quickgelu,laion400m_e32'), a model collection name ('openai' or 'openclip_base' or 'openclip_multilingual' or 'openclip_all'), or path of a text file where each line is a model fullname where model and pretrained are comma separated (e.g., ViT-B-32-quickgelu,laion400m_e32). --model and --pretrained are ignored if --pretrained_model is used.")
-    parser_eval.add_argument('--task', type=str, default="auto", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe", "auto"], help="Task to evaluate on. With --task=auto, the task is automatically inferred from the dataset.")
+    parser_eval.add_argument('--task', type=str, default="auto", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe", "mscoco_generative", "auto"], help="Task to evaluate on. With --task=auto, the task is automatically inferred from the dataset.")
     parser_eval.add_argument('--amp', default=True, action="store_true", help="whether to use mixed precision")
     parser_eval.add_argument('--num_workers', default=4, type=int)
     parser_eval.add_argument('--recall_k', default=[5], type=int, help="for retrieval, select the k for Recall@K metric. ", nargs="+",)
@@ -256,6 +256,16 @@ def run(args):
             (args.model + '-' + args.pretrained + '-' + args.dataset).replace('/', '_'),
             args.seed,
             args.feature_root,
+            device=args.device, 
+            amp=args.amp,
+            verbose=args.verbose,
+        )
+    elif task == "mscoco_generative":
+        metrics = mscoco_generative.evaluate(
+            model=model, 
+            dataloader=dataloader, 
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
