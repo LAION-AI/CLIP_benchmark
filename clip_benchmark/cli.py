@@ -6,11 +6,10 @@ import torch
 import csv
 from copy import copy
 import os
-import open_clip
-
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe
-from clip_benchmark.models import model_collection, get_model_collection_from_file, model_collection
+from clip_benchmark.model_collection import get_model_collection_from_file, model_collection
+from clip_benchmark.models import load_clip, MODEL_TYPES
 
 def get_parser_args():
     parser = argparse.ArgumentParser()
@@ -43,6 +42,7 @@ def get_parser_args():
     parser_eval.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
     parser_eval.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
     parser_eval.add_argument('--skip_existing', default=False, action="store_true", help="whether to skip an evaluation if the output file exists.")
+    parser_eval.add_argument('--model_type', default="open_clip", type=str, choices=MODEL_TYPES, help="clip model type")
     parser_eval.set_defaults(which='eval')
 
     parser_build = subparsers.add_parser('build', help='Build CSV from evaluations')
@@ -166,9 +166,13 @@ def run(args):
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained, cache_dir=args.model_cache_dir)
-        model = model.to(args.device)
-        tokenizer = open_clip.get_tokenizer(args.model)
+        model, transform, tokenizer = load_clip(
+            model_type=args.model_type,
+            model_name=args.model,
+            pretrained=args.pretrained,
+            cache_dir=args.model_cache_dir,
+            device=args.device
+        )
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=dataset_root, 
