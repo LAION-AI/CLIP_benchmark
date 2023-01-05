@@ -59,6 +59,19 @@ Here is an example of use
 {"dataset": "imagenet1k", "model": "ViT-B-32-quickgelu", "pretrained": "rinna/japanese-cloob-vit-b-16", "task": "zeroshot_classification", "metrics": {"acc1": 0.54636, "acc5": 0.72856, "mean_per_class_recall": 0.54522}, "language": "jp"}
 ```
 
+### How to add other CLIP models
+
+Please follow these steps:
+1. Add a identity file to load model in `clip_benchmark/models`
+2. Define a loading function, that returns a tuple (model, transform, tokenizer). Please see `clip_benchmark/models/open_clip.py` as an example. 
+3. Add the function into `TYPE2FUNC` in `clip_benchmark/models/__init__.py`
+
+Remarks:
+- The new tokenizer/model must enable to do the following things as https://github.com/openai/CLIP#usage
+  - `tokenizer(texts).to(device)`  ... `texts` is a list of string
+  - `model.encode_text(tokenized_texts)` ... `tokenized_texts` is a output from `tokenizer(texts).to(device)`
+  - `model.encode_image(images)` ... `images` is a image tensor by the `transform`
+
 
 ### CIFAR-10 example
 
