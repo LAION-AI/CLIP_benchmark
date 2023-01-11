@@ -269,6 +269,7 @@ def run(args):
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
+            transform=transform
         )
     else:
         raise ValueError("Unsupported task: {}. task should `zeroshot_classification` or `zeroshot_retrieval`".format(task))
