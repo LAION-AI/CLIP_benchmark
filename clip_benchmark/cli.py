@@ -48,8 +48,9 @@ def get_parser_args():
     parser_eval.add_argument('--feature_root', default="features", type=str, help="feature root folder where the features are stored.")
     parser_eval.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
-    parser_eval.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
-    parser_eval.add_argument('--output-summary', default="", type=str, help="")
+    parser_eval.add_argument('--output', default="'{dataset}_{pretrained}_{model}_{language}_{task}.json", type=str,
+                             help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
+    parser_eval.add_argument('--output_summary', default="", type=str, help="")
     parser_eval.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
     parser_eval.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser_eval.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
@@ -132,23 +133,72 @@ def main_eval(base):
     languages = _as_list(base.language)
 
     if base.verbose:
-        print(f"Models: {models}")
+        print("Models: ")
+        for m in models:
+            print(f"  {m}")
         print(f"Datasets: {datasets}")
         print(f"Languages: {languages}")
 
-    all = []
+    all = {}
+    if base.output_summary and os.path.exists(base.output_summary):
+        with open(base.output_summary, "r") as f:
+            all = json.load(f)
+
     for model, pretrained in models:
         for dataset in datasets:
             for language in languages:
                 # We iterative over all possible model/dataset/languages
                 # TODO: possibility to parallelize evaluation here
+
                 args = copy(base)
                 args.model = model
                 args.pretrained = pretrained
                 args.dataset = dataset
                 args.language = language
-                r = run(args)
-                all += [r]
+                if args.task == "auto":
+                    args.task = get_dataset_default_task(args.dataset)
+                pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(
+                    args.pretrained) else args.pretrained
+                pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(
+                    args.pretrained) else args.pretrained
+                dataset_slug = args.dataset.replace('/', '_')
+
+                output = None
+                run_key = None
+                if args.output_summary:
+                    run_key = f'{dataset_slug}_{pretrained_slug}_{model}_{language}_{args.task}'
+                    if run_key in all and args.skip_existing:
+                        if args.verbose:
+                            print(f"Skip {run_key}, exists already.")
+                        continue
+
+                # mkaing --output work in conjunction w/ --output-summary,
+                # should skip be disabled on output when output_summary is used?
+                if args.output:
+                    output = args.output.format(
+                        model=args.model,
+                        pretrained=pretrained_slug,
+                        pretrained_full_path=pretrained_slug_full_path,
+                        task=args.task,
+                        dataset=dataset_slug,
+                        language=args.language
+                    )
+                    if not run_key:
+                        run_key = os.path.splitext(os.path.basename(output))[0]
+                    if os.path.exists(output) and args.skip_existing:
+                        if args.verbose:
+                            print(f"Skip {output}, exists already.")
+                        continue
+
+                results = run(args)
+                all[run_key] = results
+
+                if output:
+                    if args.verbose:
+                        print(f"Dump results to: {output}")
+                    with open(output, "w") as f:
+                        json.dump(results, f)
+
     if all and base.output_summary:
         with open(base.output_summary, "w") as f:
             json.dump(all, f, indent=2)
@@ -163,31 +213,11 @@ def run(args):
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     # set seed.
     torch.manual_seed(args.seed)
-    task = args.task
-    if task == "auto":
-        task = get_dataset_default_task(args.dataset)
-    pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
-    pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
-    dataset_slug = args.dataset.replace('/', '_')
-    output = None
-    if args.output.format:
-        output = args.output.format(
-            model=args.model,
-            pretrained=pretrained_slug,
-            pretrained_full_path=pretrained_slug_full_path,
-            task=task,
-            dataset=dataset_slug,
-            language=args.language
-        )
-        if os.path.exists(output) and args.skip_existing:
-            if args.verbose:
-                print(f"Skip {output}, exists already.")
-            return {}
     if args.verbose:
-        print(f"Running '{task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
+        print(f"Running '{args.task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
     dataset_root = args.dataset_root.format(dataset=args.dataset)
     if args.skip_load:
-        model, transform, collate_fn, dataloader = None, None, None, None
+        model, transform, collate_fn, dataset, dataloader = None, None, None, None, None
     else:
         model, _, transform = open_clip.create_model_and_transforms(
             args.model,
@@ -204,7 +234,7 @@ def run(args):
             annotation_file=args.annotation_file,
             download=True,
             language=args.language,
-            task=task,
+            task=args.task,
             cupl=args.cupl
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
@@ -228,8 +258,7 @@ def run(args):
             collate_fn=collate_fn
         )
 
-
-    if task == "zeroshot_classification":
+    if args.task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.cupl:
             assert (zeroshot_templates is not None), "Dataset does not support CuPL prompts"        
@@ -249,7 +278,7 @@ def run(args):
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
         )
-    elif task == "zeroshot_retrieval":
+    elif args.task == "zeroshot_retrieval":
         metrics = zeroshot_retrieval.evaluate(
             model, 
             dataloader, 
@@ -258,7 +287,7 @@ def run(args):
             device=args.device, 
             amp=args.amp
         )
-    elif task == "linear_probe":
+    elif args.task == "linear_probe":
         # we also need the train split for linear probing.
         train_dataset = build_dataset(
             dataset_name=args.dataset, 
@@ -290,20 +319,15 @@ def run(args):
             verbose=args.verbose,
         )
     else:
-        raise ValueError("Unsupported task: {}. task should `zeroshot_classification` or `zeroshot_retrieval`".format(task))
+        raise ValueError("Unsupported task: {}. task should `zeroshot_classification` or `zeroshot_retrieval`".format(args.task))
     dump = {
         "dataset": args.dataset,
         "model": args.model,
         "pretrained": args.pretrained,
-        "task": task,
+        "task": args.task,
         "metrics": metrics,
         "language": args.language,
     }
-    if output:
-        if args.verbose:
-            print(f"Dump results to: {output}")
-        with open(output, "w") as f:
-            json.dump(dump, f)
     return dump
 
 
