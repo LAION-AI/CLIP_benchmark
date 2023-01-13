@@ -348,7 +348,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name.startswith("wds/"):
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
-        ds = build_wds_dataset(name, transform=transform, download=download, split=split, data_dir=root)
+        ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=kwargs.get('wds_cache_dir'))
         return ds
     elif dataset_name == "dummy":
         ds = Dummy()
@@ -542,8 +542,9 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     return ds
 
 
-def build_wds_dataset(dataset_name, transform, download=False, split="test", data_dir="root"):
-    """Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
+def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
+    """
+    Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
     Expected file structure is:
     ```
     data_dir/
@@ -560,6 +561,11 @@ def build_wds_dataset(dataset_name, transform, download=False, split="test", dat
         classnames.txt
         zeroshot_classification_templates.txt
     ```
+
+    You can use the `clip_benchmark_export_wds` or corresponding API
+    (`clip_benchmark.webdataset_builder.convert_dataset`) to convert datasets to this format.
+
+    Set `download` to a string to cache the dataset, otherwise, no caching will occur.
     """
     import webdataset as wds
 
@@ -592,10 +598,12 @@ def build_wds_dataset(dataset_name, transform, download=False, split="test", dat
         nshards = 1
     filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
     # Load webdataset (support WEBP, PNG, and JPG for now)
+    if not cache_dir or not isinstance(cache_dir, str):
+        cache_dir = None
     dataset = (
-        wds.WebDataset(filepattern)
-        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg"]))
-        .to_tuple(["webp", "png", "jpg"], "cls")
+        wds.WebDataset(filepattern, cache_dir=cache_dir)
+        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
+        .to_tuple(["webp", "png", "jpg", "jpeg"], "cls")
         .map_tuple(transform, lambda x: x)
     )
     # Get class names if present
