@@ -1,0 +1,1 @@
+{"dataset": "imagenet1k", "model": "xlm-roberta-large-ViT-H-14", "pretrained": "frozen_laion5b_s13b_b90k", "task": "zeroshot_classification", "metrics": {"acc1": 0.36984, "acc5": 0.58912, "mean_per_class_recall": 0.36895999999999995}, "language": "ar"}
