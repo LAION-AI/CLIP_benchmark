@@ -6,20 +6,31 @@ You can visualize the results in the [notebook](results.ipynb)
 # How to reproduce the CLIP benchmark results
 
 
-## VTAB+ and retrieval datasets (MS-COCO, Flickr30k, Flickr8k)
+## Webdataset evaluation: VTAB+ and retrieval datasets (MSCOCO, Flickr8k, Flickr30k)
 
 ```bash
-clip_benchmark eval --pretrained_model  openai openclip_base  --dataset vtab+ retrieval \
---dataset_root "clip_benchmark_datasets/{dataset}" \
---output "vtab_plus_and_retrieval_{dataset}_{pretrained}_{model}_{language}_{task}.json"
+clip_benchmark eval --pretrained_model openai openclip_base \
+    --dataset "webdatasets.txt" \
+    --dataset_root "https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" \
+    --output "benchmark_{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
-(Change `--dataset_root` accordingly)
 
 Once the evaluation finishes, you can construct a CSV with all the results:
 
 ```bash
-clip_benchmark build vtab_plus_and_retrieval*.json --output=benchmark.csv
+clip_benchmark build benchmark_*.json --output benchmark.csv
 ```
+
+*Notes:* Pascal VOC 2007 multilabel is not yet included in the webdataset test suite. Multilingual support with webdataset is in progress.
+
+## Alternative: Local download
+
+```bash
+clip_benchmark eval --pretrained_model  openai openclip_base  --dataset vtab+ retrieval \
+--dataset_root "clip_benchmark_datasets/{dataset}" \
+--output "benchmark_{dataset}_{pretrained}_{model}_{language}_{task}.json"
+```
+(Change `--dataset_root` accordingly)
 
 ## Multilingual ImageNet benchmark
 
