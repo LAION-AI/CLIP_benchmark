@@ -28,6 +28,7 @@ class base_args:
     save_clf=None
     load_clfs=[]
     model_type="open_clip"
+    wds_cache_dir=None
     which="eval"
     skip_existing=False
 
