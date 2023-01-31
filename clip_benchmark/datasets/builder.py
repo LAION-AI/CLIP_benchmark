@@ -560,12 +560,15 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
             ...
         classnames.txt
         zeroshot_classification_templates.txt
+        dataset_type.txt
     ```
+    Classnames and templates are required for zeroshot classification, while dataset type
+    (equal to "retrieval") is required for zeroshot retrieval datasets.
 
     You can use the `clip_benchmark_export_wds` or corresponding API
     (`clip_benchmark.webdataset_builder.convert_dataset`) to convert datasets to this format.
 
-    Set `download` to a string to cache the dataset, otherwise, no caching will occur.
+    Set `cache_dir` to a path to cache the dataset, otherwise, no caching will occur.
     """
     import webdataset as wds
 
