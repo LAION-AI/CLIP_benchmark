@@ -144,11 +144,15 @@ def run(args):
     # set seed.
     torch.manual_seed(args.seed)
     task = args.task
+    if args.dataset.startswith("wds/"):
+        dataset_name = args.dataset.replace("wds/", "", 1)
+    else:
+        dataset_name = args.dataset
     if task == "auto":
-        task = get_dataset_default_task(args.dataset)
+        task = get_dataset_default_task(dataset_name)
     pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
     pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
-    dataset_slug = args.dataset.replace('/', '_')
+    dataset_slug = dataset_name.replace('/', '_')
     output = args.output.format(
         model=args.model, 
         pretrained=pretrained_slug,
@@ -162,8 +166,8 @@ def run(args):
             print(f"Skip {output}, exists already.")
         return
     if args.verbose:
-        print(f"Running '{task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
-    dataset_root = args.dataset_root.format(dataset=args.dataset)
+        print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
+    dataset_root = args.dataset_root.format(dataset=dataset_name)
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
@@ -199,11 +203,17 @@ def run(args):
             except AttributeError:
                 print("Dataset has no classes.")
 
-        dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
-            collate_fn=collate_fn
-        )
+        if args.dataset.startswith("wds/"):
+            dataloader = torch.utils.data.DataLoader(
+                dataset.batched(args.batch_size), batch_size=None, 
+                shuffle=False, num_workers=args.num_workers,
+            )
+        else:
+            dataloader = torch.utils.data.DataLoader(
+                dataset, batch_size=args.batch_size, 
+                shuffle=False, num_workers=args.num_workers, 
+                collate_fn=collate_fn
+            )
 
 
     if task == "zeroshot_classification":

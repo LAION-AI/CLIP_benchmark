@@ -3,7 +3,7 @@
 the benchmark results are available in [benchmark.csv](benchmark.csv).
 You can visualize the results in the [notebook](results.ipynb)
 
-# How to reproduce th CLIP benchmark results
+# How to reproduce the CLIP benchmark results
 
 
 ## VTAB+ and retrieval datasets (MS-COCO, Flickr30k, Flickr8k)
