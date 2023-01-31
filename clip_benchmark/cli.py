@@ -178,6 +178,7 @@ def run(args):
             cache_dir=args.model_cache_dir,
             device=args.device
         )
+        model.eval()
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=dataset_root, 

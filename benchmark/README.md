@@ -37,7 +37,7 @@ clip_benchmark eval --pretrained_model  openai openclip_base  --dataset vtab+ re
 To run the multilingual ImageNet benchmark, use:
 
 ```bash
-clip_benchmark eval --pretrained_model openclip_multilingual openclip_base openai  --dataset imagenet1k --language cn it jp en \
+clip_benchmark eval --pretrained_model openclip_multilingual openclip_base openai  --dataset imagenet1k --language cn it jp en ar\
 --dataset_root "clip_benchmark_datasets/{dataset}" \
 --output "multilingual_{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
