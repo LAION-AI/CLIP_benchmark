@@ -11,7 +11,7 @@ def evaluate(model, dataloader, batch_size, device, transform, train_dataloader=
     for idx, (img, _) in enumerate(tqdm(dataloader)):
         n_samples = img.shape[0] # for last batch
         idxs = [indexer[idx * batch_size + id] for id in range(n_samples)]
-        out = model.generate_beamsearch(img.to(device), 20, num_beams=6, num_beam_groups=3, sot_token_id=49406, eos_token_id=49407)
+        out = model.generate(img.to(device), seq_len=30, generation_type="beam_search",num_beams=6, num_beam_groups=3, sot_token_id=49406, eos_token_id=49407)
         decoded = [_tokenizer.decode(i).split("<end_of_text>")[0].replace("<start_of_text>", "").strip() for i in out.cpu().numpy()]
         for image_id, caption in zip(idxs, decoded):
             results.append({"image_id":image_id, "caption":caption})
