@@ -32,6 +32,7 @@ vtab/clevr_count_all,structured
 vtab/clevr_closest_object_distance,structured
 vtab/dsprites_label_orientation,structured
 vtab/dsprites_label_x_position,structured
+vtab/dsprites_label_y_position,structured
 vtab/smallnorb_label_elevation,structured
 vtab/smallnorb_label_azimuth,structured
 vtab/dmlab,structured

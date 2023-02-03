@@ -210,7 +210,7 @@ Example:
 ```bash
 clip_benchmark eval --pretrained_model  ViT-B-32-quickgelu,laion400m_e32 ViT-L-14,laion400m_e32  \
 --dataset cifar10 cifar100 --dataset_root "clip_benchmark_datasets/{dataset}" --language en jp \
---verbose --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+ --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
 
 Note that `--dataset_root` and `--output` can be now in the form of a template that depends on the dataset/model/language/task (for `--output`) and dataset name (for `--dataset_root`).
@@ -224,7 +224,7 @@ We can also provide a path to files with models (each line is in the form of 'mo
 ```bash
 clip_benchmark eval --pretrained_model  benchmark/models.txt \
 --dataset benchmark/datasets.txt --dataset_root "clip_benchmark_datasets/{dataset}"  \
---verbose --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+ --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
 
 Examples are available in [benchmark/datasets.txt](benchmark/datasets.txt) and [benchmark/models.txt](benchmark/models.txt)
@@ -235,7 +235,7 @@ We can also provide model collection names (`openai`, `openclip_base`, `openclip
 
 ```bash
 clip_benchmark eval --pretrained_model openai openclip_base  --dataset vtab+ retrieval \
---dataset_root "clip_benchmark_datasets/{dataset}" --verbose \
+--dataset_root "clip_benchmark_datasets/{dataset}" --not quiet \
 --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
 ```
 

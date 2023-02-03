@@ -4,3 +4,4 @@ tqdm>=2
 scikit-learn>=1.0,<2
 open_clip_torch>=0.2.1
 webdataset>=0.2.31
+transformers
