@@ -161,7 +161,7 @@ $ clip_benchmark_export_wds --dataset cifar10 --split train --dataset_root DATA_
 $ clip_benchmark_export_wds --dataset cifar10 --split test --dataset_root DATA_DIR/ --output wds_cifar10/
 ```
 
-which will convert the train and test splits for CIFAR-10 (downloaded to `DATA_DIR/`) and save the webdataset to `wds_cifar10/` (upload to Huggingface Hub must be done manually for now).
+which will convert the train and test splits for CIFAR-10 (downloaded to `DATA_DIR/`) and save the webdataset to `wds_cifar10/` (upload to Huggingface Hub must be done manually for now). Retrieval datasets are also supported with the `--retrieval` flag.
 
 For other datasets, data must be stored with the following file structure:
 
@@ -178,22 +178,23 @@ root_dir/
         ...
     classnames.txt
     zeroshot_classification_templates.txt
+    dataset_type.txt
 ```
 
-Each split should be contained in its own folder and `nshards.txt` should contain a single integer corresponding to the number of TAR files. The TAR files should follow webdataset format, with an image file (.webp, .png, or .jpg) and a label (.cls) for each example. Classnames and templates are required for zeroshot classification evaluation, with each classname or template on its own line.
+Each split should be contained in its own folder and `nshards.txt` should contain a single integer corresponding to the number of TAR files. The TAR files should follow webdataset format, with an image file (.webp, .png, or .jpg) and a label (.cls) for each example. Classnames and templates are required for zeroshot classification evaluation, with each classname or template on its own line. Dataset type is required for distinguishing zeroshot retrieval evaluation: the file should just contain the text `retrieval`.
 
 #### Evaluating on a webdataset
 
 The name of the dataset follows the template `wds/<DATASET_NAME>`. Note that the dataset name currently only affects the name in the results output - classnames and templates are loaded directly from the included files. The dataset root directory can be either a local path to the `root_dir` as specified above, or an HTTP URL pointing to a Huggingface Hub dataset file tree.
 
-Example with `cifar10`:
+Example with `vtab/cifar10`:
 
 ```
-$ clip_benchmark eval --dataset wds/cifar10 --dataset_root ROOT_DIR/wds_cifar10/
-$ clip_benchmark eval --dataset wds/cifar10 --dataset_root https://huggingface.co/datasets/djghosh/wds_cifar10_test/tree/main
+$ clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root ROOT_DIR/wds_vtab-cifar10/
+$ clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root https://huggingface.co/datasets/clip-benchmark/wds_vtab-cifar10/tree/main
 ```
 
-All other arguments remain the same as in the other examples.
+All other arguments remain the same as in the other examples. See `https://huggingface.co/clip-benchmark` for a full list of datasets that have already been uploaded to Huggingface.
 
 ## Evaluate mulitple models on multiple datasets
 

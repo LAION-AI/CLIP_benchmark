@@ -43,6 +43,7 @@ def get_parser_args():
     parser_eval.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
     parser_eval.add_argument('--skip_existing', default=False, action="store_true", help="whether to skip an evaluation if the output file exists.")
     parser_eval.add_argument('--model_type', default="open_clip", type=str, choices=MODEL_TYPES, help="clip model type")
+    parser_eval.add_argument('--wds_cache_dir', default=None, type=str, help="optional cache directory for webdataset only")
     parser_eval.set_defaults(which='eval')
 
     parser_build = subparsers.add_parser('build', help='Build CSV from evaluations')
@@ -143,11 +144,15 @@ def run(args):
     # set seed.
     torch.manual_seed(args.seed)
     task = args.task
+    if args.dataset.startswith("wds/"):
+        dataset_name = args.dataset.replace("wds/", "", 1)
+    else:
+        dataset_name = args.dataset
     if task == "auto":
-        task = get_dataset_default_task(args.dataset)
+        task = get_dataset_default_task(dataset_name)
     pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
     pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
-    dataset_slug = args.dataset.replace('/', '_')
+    dataset_slug = dataset_name.replace('/', '_')
     output = args.output.format(
         model=args.model, 
         pretrained=pretrained_slug,
@@ -161,8 +166,8 @@ def run(args):
             print(f"Skip {output}, exists already.")
         return
     if args.verbose:
-        print(f"Running '{task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
-    dataset_root = args.dataset_root.format(dataset=args.dataset)
+        print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
+    dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
@@ -183,7 +188,8 @@ def run(args):
             download=True,
             language=args.language,
             task=task,
-            cupl=args.cupl
+            cupl=args.cupl,
+            wds_cache_dir=args.wds_cache_dir,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
@@ -198,11 +204,17 @@ def run(args):
             except AttributeError:
                 print("Dataset has no classes.")
 
-        dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
-            collate_fn=collate_fn
-        )
+        if args.dataset.startswith("wds/"):
+            dataloader = torch.utils.data.DataLoader(
+                dataset.batched(args.batch_size), batch_size=None, 
+                shuffle=False, num_workers=args.num_workers,
+            )
+        else:
+            dataloader = torch.utils.data.DataLoader(
+                dataset, batch_size=args.batch_size, 
+                shuffle=False, num_workers=args.num_workers, 
+                collate_fn=collate_fn
+            )
 
 
     if task == "zeroshot_classification":
