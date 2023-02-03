@@ -24,15 +24,34 @@ or directly in the [notebook](benchmark/results.ipynb).
 
 `pip install clip-benchmark`
 
-For development, you can also do this:
-
-```bash
-git clone https://github.com/LAION-AI/CLIP_benchmark
-cd CLIP_benchmark
-python setup.py install
-```
 
 ## How to use?
+
+To evaluate we recommend to create a models.txt like
+```
+openai,ViT-B-32
+```
+
+to get the list of datasets 
+```
+wget https://raw.githubusercontent.com/LAION-AI/CLIP_benchmark/main/benchmark/webdatasets.txt
+```
+
+Then to run
+
+```
+clip_benchmark eval --pretrained_model models.txt \
+    --dataset "webdatasets.txt" \
+    --dataset_root "https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" \
+    --output "benchmark_{dataset}_{pretrained}_{model}_{language}_{task}.json"
+```
+
+Then to get the full table
+
+```
+clip_benchmark build benchmark_*.json --output benchmark.csv
+```
+
 
 ### Command line interface (CLI)
 
@@ -241,6 +260,16 @@ clip_benchmark eval --pretrained_model openai openclip_base  --dataset vtab+ ret
 
 See [clip_benchmark/models.py#L6](clip_benchmark/models.py#L6) and [clip_benchmark/datasets/builder.py#L634](clip_benchmark/datasets/builder.py#L634) for more information
 about the collections.
+
+### Development 
+
+For development, you can also do this:
+
+```bash
+git clone https://github.com/LAION-AI/CLIP_benchmark
+cd CLIP_benchmark
+python setup.py install
+```
 
 ## Credits
 
