@@ -17,7 +17,7 @@ class base_args:
     batch_size=64
     dataset_root="root"
     output="result.json"
-    verbose=True
+    quiet=False
     root="root"
     annotation_file=""
     seed=0
@@ -27,6 +27,8 @@ class base_args:
     cupl=False
     save_clf=None
     load_clfs=[]
+    model_type="open_clip"
+    wds_cache_dir=None
     which="eval"
     skip_existing=False
 

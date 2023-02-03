@@ -1,5 +1,16 @@
 ## History
 
+### 1.3.0
+
+* update flickr8k results, solve issue #48, thanks to @orchidmajumder
+* Evaluate multiple models/datasets/languages using the CLI directly
+* Support Japanese CLIP by rinna
+* Add arabic imagenet
+* updating CuPL prompts with more generated sentences + ensembled with openAI prompts
+* put model in eval mode before evaluation
+* Webdataset updates
+* Make verbose the default
+
 ### 1.2.0
 
 * Added support for loading webdatasets

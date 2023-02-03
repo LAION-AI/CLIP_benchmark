@@ -6,11 +6,10 @@ import torch
 import csv
 from copy import copy
 import os
-import open_clip
-
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
 from clip_benchmark.metrics import zeroshot_classification, zeroshot_retrieval, linear_probe, mscoco_generative
-from clip_benchmark.models import model_collection, get_model_collection_from_file, model_collection
+from clip_benchmark.model_collection import get_model_collection_from_file, model_collection
+from clip_benchmark.models import load_clip, MODEL_TYPES
 
 def get_parser_args():
     parser = argparse.ArgumentParser()
@@ -38,11 +37,13 @@ def get_parser_args():
     parser_eval.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
-    parser_eval.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
+    parser_eval.add_argument('--quiet', default=False, action="store_true", help="quiet mode")
     parser_eval.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser_eval.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
     parser_eval.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
     parser_eval.add_argument('--skip_existing', default=False, action="store_true", help="whether to skip an evaluation if the output file exists.")
+    parser_eval.add_argument('--model_type', default="open_clip", type=str, choices=MODEL_TYPES, help="clip model type")
+    parser_eval.add_argument('--wds_cache_dir', default=None, type=str, help="optional cache directory for webdataset only")
     parser_eval.set_defaults(which='eval')
 
     parser_build = subparsers.add_parser('build', help='Build CSV from evaluations')
@@ -115,7 +116,7 @@ def main_eval(base):
     # Get list of languages to evaluate on
     languages = _as_list(base.language)
 
-    if base.verbose:
+    if not base.quiet:
         print(f"Models: {models}")
         print(f"Datasets: {datasets}")
         print(f"Languages: {languages}")
@@ -143,11 +144,15 @@ def run(args):
     # set seed.
     torch.manual_seed(args.seed)
     task = args.task
+    if args.dataset.startswith("wds/"):
+        dataset_name = args.dataset.replace("wds/", "", 1)
+    else:
+        dataset_name = args.dataset
     if task == "auto":
-        task = get_dataset_default_task(args.dataset)
+        task = get_dataset_default_task(dataset_name)
     pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
     pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
-    dataset_slug = args.dataset.replace('/', '_')
+    dataset_slug = dataset_name.replace('/', '_')
     output = args.output.format(
         model=args.model, 
         pretrained=pretrained_slug,
@@ -157,18 +162,23 @@ def run(args):
         language=args.language
     )
     if os.path.exists(output) and args.skip_existing:
-        if args.verbose:
+        if not args.quiet:
             print(f"Skip {output}, exists already.")
         return
-    if args.verbose:
-        print(f"Running '{task}' on '{args.dataset}' with the model '{args.pretrained}' on language '{args.language}'")
-    dataset_root = args.dataset_root.format(dataset=args.dataset)
+    if not args.quiet:
+        print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
+    dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, _, transform = open_clip.create_model_and_transforms(args.model, pretrained=args.pretrained, cache_dir=args.model_cache_dir)
-        model = model.to(args.device)
-        tokenizer = open_clip.get_tokenizer(args.model)
+        model, transform, tokenizer = load_clip(
+            model_type=args.model_type,
+            model_name=args.model,
+            pretrained=args.pretrained,
+            cache_dir=args.model_cache_dir,
+            device=args.device
+        )
+        model.eval()
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=dataset_root, 
@@ -178,33 +188,41 @@ def run(args):
             download=True,
             language=args.language,
             task=task,
-            cupl=args.cupl
+            cupl=args.cupl,
+            wds_cache_dir=args.wds_cache_dir,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
-        if args.verbose:
+        if not args.quiet:
             try:
                 print(f"Dataset size: {len(dataset)}")
             except TypeError:
                 print("IterableDataset has no len()")
             print(f"Dataset split: {args.split}")
-            try:
-                print(f"Dataset classes: {dataset.classes}")
-                print(f"Dataset number of classes: {len(dataset.classes)}")
-            except AttributeError:
-                print("Dataset has no classes.")
+            if dataset.classes:
+                try:
+                    print(f"Dataset classes: {dataset.classes}")
+                    print(f"Dataset number of classes: {len(dataset.classes)}")
+                except AttributeError:
+                    print("Dataset has no classes.")
 
-        dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
-            collate_fn=collate_fn
-        )
+        if args.dataset.startswith("wds/"):
+            dataloader = torch.utils.data.DataLoader(
+                dataset.batched(args.batch_size), batch_size=None, 
+                shuffle=False, num_workers=args.num_workers,
+            )
+        else:
+            dataloader = torch.utils.data.DataLoader(
+                dataset, batch_size=args.batch_size, 
+                shuffle=False, num_workers=args.num_workers, 
+                collate_fn=collate_fn
+            )
 
 
     if task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.cupl:
             assert (zeroshot_templates is not None), "Dataset does not support CuPL prompts"        
-        if args.verbose:
+        if not args.quiet:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
         assert (zeroshot_templates is not None and classnames is not None), "Dataset does not support classification"
@@ -215,7 +233,7 @@ def run(args):
             classnames, zeroshot_templates, 
             device=args.device, 
             amp=args.amp,
-            verbose=args.verbose,
+            verbose=not args.quiet,
             cupl=args.cupl,
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
@@ -258,7 +276,7 @@ def run(args):
             args.feature_root,
             device=args.device, 
             amp=args.amp,
-            verbose=args.verbose,
+            verbose=not args.quiet,
         )
     elif task == "mscoco_generative":
         metrics = mscoco_generative.evaluate(
@@ -281,7 +299,7 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    if args.verbose:
+    if not args.quiet:
         print(f"Dump results to: {output}")
     with open(output, "w") as f:
         json.dump(dump, f)
