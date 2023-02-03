@@ -17,7 +17,7 @@ class base_args:
     batch_size=64
     dataset_root="root"
     output="result.json"
-    verbose=True
+    quiet=False
     root="root"
     annotation_file=""
     seed=0

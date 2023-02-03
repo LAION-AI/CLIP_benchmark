@@ -37,7 +37,7 @@ def get_parser_args():
     parser_eval.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
-    parser_eval.add_argument('--verbose', default=False, action="store_true", help="verbose mode")
+    parser_eval.add_argument('--quiet', default=False, action="store_true", help="quiet mode")
     parser_eval.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser_eval.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
     parser_eval.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
@@ -116,7 +116,7 @@ def main_eval(base):
     # Get list of languages to evaluate on
     languages = _as_list(base.language)
 
-    if base.verbose:
+    if not base.quiet:
         print(f"Models: {models}")
         print(f"Datasets: {datasets}")
         print(f"Languages: {languages}")
@@ -162,10 +162,10 @@ def run(args):
         language=args.language
     )
     if os.path.exists(output) and args.skip_existing:
-        if args.verbose:
+        if not args.quiet:
             print(f"Skip {output}, exists already.")
         return
-    if args.verbose:
+    if not args.quiet:
         print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
     dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     if args.skip_load:
@@ -192,17 +192,18 @@ def run(args):
             wds_cache_dir=args.wds_cache_dir,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
-        if args.verbose:
+        if not args.quiet:
             try:
                 print(f"Dataset size: {len(dataset)}")
             except TypeError:
                 print("IterableDataset has no len()")
             print(f"Dataset split: {args.split}")
-            try:
-                print(f"Dataset classes: {dataset.classes}")
-                print(f"Dataset number of classes: {len(dataset.classes)}")
-            except AttributeError:
-                print("Dataset has no classes.")
+            if dataset.classes:
+                try:
+                    print(f"Dataset classes: {dataset.classes}")
+                    print(f"Dataset number of classes: {len(dataset.classes)}")
+                except AttributeError:
+                    print("Dataset has no classes.")
 
         if args.dataset.startswith("wds/"):
             dataloader = torch.utils.data.DataLoader(
@@ -221,7 +222,7 @@ def run(args):
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.cupl:
             assert (zeroshot_templates is not None), "Dataset does not support CuPL prompts"        
-        if args.verbose:
+        if not args.quiet:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
         assert (zeroshot_templates is not None and classnames is not None), "Dataset does not support classification"
@@ -232,7 +233,7 @@ def run(args):
             classnames, zeroshot_templates, 
             device=args.device, 
             amp=args.amp,
-            verbose=args.verbose,
+            verbose=not args.quiet,
             cupl=args.cupl,
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
@@ -275,7 +276,7 @@ def run(args):
             args.feature_root,
             device=args.device, 
             amp=args.amp,
-            verbose=args.verbose,
+            verbose=not args.quiet,
         )
     else:
         raise ValueError("Unsupported task: {}. task should `zeroshot_classification` or `zeroshot_retrieval`".format(task))
@@ -287,7 +288,7 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    if args.verbose:
+    if not args.quiet:
         print(f"Dump results to: {output}")
     with open(output, "w") as f:
         json.dump(dump, f)
