@@ -1,5 +1,5 @@
 # CLIP Benchmark
-
+[![pypi](https://img.shields.io/pypi/v/clip_benchmark.svg)](https://pypi.python.org/pypi/clip_benchmark)
 
 The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
