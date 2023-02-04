@@ -6,6 +6,7 @@ import os
 import sys
 
 from tqdm import tqdm
+import torch
 import torch.utils.data
 import webdataset
 from .datasets.builder import build_dataset
@@ -21,6 +22,7 @@ def get_parser_args():
         >>> import clip_benchmark.webdataset_builder
         >>> help(clip_benchmark.webdataset_builder.convert_dataset)
     """)
+    # Main arguments
     parser.add_argument("--dataset", "-d", required=True, type=str,
         help="CLIP_benchmark compatible dataset for conversion")
     parser.add_argument("--split", "-s", default="test", type=str,
@@ -29,8 +31,13 @@ def get_parser_args():
         help="Root directory for input data")
     parser.add_argument("--output", "-o", required=True, type=str,
         help="Root directory for output data")
-    parser.add_argument("--retrieval", action="store_true",
+    # Special dataset types
+    parser_special = parser.add_mutually_exclusive_group()
+    parser_special.add_argument("--retrieval", action="store_true",
         help="Flag to signal retrieval dataset (text captions instead of classes)")
+    parser_special.add_argument("--multilabel", action="store_true",
+        help="Flag to signal multilabel classification dataset")
+    # Additional parameters
     parser.add_argument("--image-format", default="webp", type=str,
         help="Image extension for saving: (lossless) webp, png, or jpg (Default: webp)")
     parser.add_argument("--max-count", default=10_000, type=int,
@@ -74,7 +81,8 @@ def run(args):
             transform=None,
             image_format=args.image_format,
             max_count=args.max_count,
-            max_size=args.max_size
+            max_size=args.max_size,
+            multilabel=args.multilabel,
         )
 
 
@@ -95,7 +103,9 @@ def path_to_bytes(filepath):
         return fp.read()
 
 
-def convert_dataset(dataset, split, output_folder, *, transform=None, image_format="webp", max_count=10_000, max_size=1_000_000_000, verbose=True):
+def convert_dataset(dataset, split, output_folder, *, transform=None,
+                    image_format="webp", max_count=10_000, max_size=1_000_000_000,
+                    multilabel=False, verbose=True):
     """
     Convert an iterable `dataset` of (image, label) pairs to webdataset (.tar) format, and store in `output_folder/split`.
     
@@ -108,7 +118,7 @@ def convert_dataset(dataset, split, output_folder, *, transform=None, image_form
     Copying image files directly or writing raw binary data is fastest since it allows multiprocessing;
     passing in PIL images will be slower, but should work for any format of dataset.
 
-    Labels must be zero-indexed integers.
+    Labels must be zero-indexed integers (for multilabel datasets, labels must be arrays/tensors).
     
     Classnames and zero-shot classification templates can be provided as attributes of the dataset (`.classes` and `.templates`)
     or filled in manually afterward. `dataset.classes` should be a list of strings indexed by the labels,
@@ -146,6 +156,13 @@ def convert_dataset(dataset, split, output_folder, *, transform=None, image_form
             print("Saved class names to '%s'" % templates_fname)
     elif verbose:
         print("WARNING: No zeroshot classification templates found")
+    # Save dataset type
+    if multilabel:
+        type_fname = os.path.join(output_folder, "dataset_type.txt")
+        with open(type_fname, "w") as type_file:
+            print("multilabel", end="\n", file=type_file)
+            if verbose:
+                print("Saved dataset type to '%s'" % type_fname)
     # Write to TAR files
     data_fname = os.path.join(output_folder, split, r"%d.tar")
     sink = webdataset.ShardWriter(
@@ -154,6 +171,7 @@ def convert_dataset(dataset, split, output_folder, *, transform=None, image_form
         maxsize=max_size
     )
     nsamples = 0
+    label_type = "npy" if multilabel else "cls"
     for index, (input, output) in enumerate(tqdm(dataloader, desc="Converting")):
         nsamples += 1
         if isinstance(input, str) and transform is path_to_bytes:
@@ -161,10 +179,17 @@ def convert_dataset(dataset, split, output_folder, *, transform=None, image_form
             extension = os.path.splitext(input)[1].replace(".", "").lower().replace("jpeg", "jpg") or image_format
         else:
             extension = image_format
+        # Convert label if necessary
+        if isinstance(output, torch.Tensor):
+            if multilabel:
+                output = output.detach().cpu().numpy()
+            else:
+                output = output.item()
+        # Write example
         sink.write({
             "__key__": "s%07d" % index,
             extension: transform(input) if transform else input,
-            "cls": output,
+            label_type: output,
         })
     num_shards = sink.shard
     sink.close()
