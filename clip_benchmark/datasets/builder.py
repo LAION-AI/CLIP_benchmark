@@ -39,7 +39,7 @@ def _load_classnames_and_classification_templates(dataset_name, current_folder, 
 
     return classnames, templates
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task='zeroshot_classification', cupl=False, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task='zeroshot_classification', cupl=False, wds_cache_dir=None, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -348,7 +348,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name.startswith("wds/"):
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
-        ds = build_wds_dataset(name, transform=transform, download=download, split=split, data_dir=root)
+        ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir)
         return ds
     elif dataset_name == "dummy":
         ds = Dummy()
@@ -542,8 +542,9 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     return ds
 
 
-def build_wds_dataset(dataset_name, transform, download=False, split="test", data_dir="root"):
-    """Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
+def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
+    """
+    Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
     Expected file structure is:
     ```
     data_dir/
@@ -559,7 +560,15 @@ def build_wds_dataset(dataset_name, transform, download=False, split="test", dat
             ...
         classnames.txt
         zeroshot_classification_templates.txt
+        dataset_type.txt
     ```
+    Classnames and templates are required for zeroshot classification, while dataset type
+    (equal to "retrieval") is required for zeroshot retrieval datasets.
+
+    You can use the `clip_benchmark_export_wds` or corresponding API
+    (`clip_benchmark.webdataset_builder.convert_dataset`) to convert datasets to this format.
+
+    Set `cache_dir` to a path to cache the dataset, otherwise, no caching will occur.
     """
     import webdataset as wds
 
@@ -590,28 +599,49 @@ def build_wds_dataset(dataset_name, transform, download=False, split="test", dat
     except FileNotFoundError:
         print("WARNING: nshards.txt not found, using nshards=1")
         nshards = 1
+    # Get dataset type (classification or retrieval)
+    type_fname = os.path.join(metadata_dir, "dataset_type.txt")
+    try:
+        dataset_type = read_txt(type_fname).strip().lower()
+    except FileNotFoundError:
+        # print("WARNING: dataset_type.txt not found, assuming type=classification")
+        dataset_type = "classification"
+    #
     filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
     # Load webdataset (support WEBP, PNG, and JPG for now)
+    if not cache_dir or not isinstance(cache_dir, str):
+        cache_dir = None
     dataset = (
-        wds.WebDataset(filepattern)
-        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg"]))
-        .to_tuple(["webp", "png", "jpg"], "cls")
-        .map_tuple(transform, lambda x: x)
+        wds.WebDataset(filepattern, cache_dir=cache_dir)
+        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
     )
-    # Get class names if present
-    classnames_fname = os.path.join(metadata_dir, "classnames.txt")
-    try:
-        dataset.classes = [line.strip() for line in read_txt(classnames_fname).splitlines() if line.strip()]
-    except FileNotFoundError:
-        print("WARNING: classnames.txt not found")
-        dataset.classes = None
-    # Get zeroshot classification templates if present
-    templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
-    try:
-        dataset.templates = [line.strip() for line in read_txt(templates_fname).splitlines() if line.strip()]
-    except FileNotFoundError:
-        print("WARNING: zeroshot_classification_templates.txt not found")
-        dataset.templates = None
+    # Load based on classification or retrieval task
+    if dataset_type == "retrieval":
+        dataset = (dataset
+            .to_tuple(["webp", "png", "jpg", "jpeg"], "txt")
+            .map_tuple(transform, str.splitlines)
+        )
+        dataset.classes = dataset.templates = None
+    else:
+        label_type = "npy" if dataset_type == "multilabel" else "cls" # Special case for multilabel
+        dataset = (dataset
+            .to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
+            .map_tuple(transform, None)
+        )
+        # Get class names if present
+        classnames_fname = os.path.join(metadata_dir, "classnames.txt")
+        try:
+            dataset.classes = [line.strip() for line in read_txt(classnames_fname).splitlines() if line.strip()]
+        except FileNotFoundError:
+            print("WARNING: classnames.txt not found")
+            dataset.classes = None
+        # Get zeroshot classification templates if present
+        templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
+        try:
+            dataset.templates = [line.strip() for line in read_txt(templates_fname).splitlines() if line.strip()]
+        except FileNotFoundError:
+            print("WARNING: zeroshot_classification_templates.txt not found")
+            dataset.templates = None
 
     return dataset
 
