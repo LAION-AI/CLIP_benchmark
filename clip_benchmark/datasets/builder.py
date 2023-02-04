@@ -623,8 +623,9 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         )
         dataset.classes = dataset.templates = None
     else:
+        label_type = "npy" if dataset_type == "multilabel" else "cls" # Special case for multilabel
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], "cls")
+            .to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
             .map_tuple(transform, None)
         )
         # Get class names if present

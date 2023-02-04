@@ -10,6 +10,7 @@ wds/imagenet-o
 wds/objectnet
 wds/fer2013
 wds/voc2007
+wds/voc2007_multilabel
 wds/sun397
 wds/cars
 wds/fgvc_aircraft
