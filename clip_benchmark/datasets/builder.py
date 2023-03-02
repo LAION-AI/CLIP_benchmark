@@ -61,7 +61,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         and Flickr.
     """
     current_folder = os.path.dirname(__file__)
-    if (task == 'zeroshot_classification'):  # Only load templates and classnames if we have to
+    if task in ('zeroshot_classification', 'linear_probe'):  # Only load templates and classnames if we have to
         classnames, templates = _load_classnames_and_classification_templates(dataset_name, current_folder, language)
     else:
         classnames, templates = None, None

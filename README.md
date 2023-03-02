@@ -29,7 +29,7 @@ or directly in the [notebook](benchmark/results.ipynb).
 
 To evaluate we recommend to create a models.txt like
 ```
-openai,ViT-B-32
+ViT-B-32,openai
 ```
 
 to get the list of datasets 
@@ -66,12 +66,12 @@ It is possible to use other models than openclip ones. For example japanese-clip
 Here is an example of use
 
 ```
->>> python3 clip_benchmark/cli.py \
+>>> python3 clip_benchmark/cli.py eval \
   --model_type "ja_clip" \ # flag to use japanese-clip
   --pretrained "rinna/japanese-cloob-vit-b-16" \ # now, we have `rinna/japanese-cloob-vit-b-16` or `rinna/japanese-clip-vit-b-16`. 
   --language "jp" \
   --task "zeroshot_classification"  \
-  --dataset "imagenet1k" 
+  --dataset "imagenet1k"  \
   --dataset_root {ROOT_PATH} 
 
 >>> cat result.json
