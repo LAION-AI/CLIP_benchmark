@@ -594,11 +594,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         metadata_dir = tardata_dir = data_dir
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
-    try:
-        nshards = int(read_txt(nshards_fname))
-    except FileNotFoundError:
-        print("WARNING: nshards.txt not found, using nshards=1")
-        nshards = 1
+    nshards = int(read_txt(nshards_fname)) # Do not catch FileNotFound, nshards.txt should be mandatory
     # Get dataset type (classification or retrieval)
     type_fname = os.path.join(metadata_dir, "dataset_type.txt")
     try:
