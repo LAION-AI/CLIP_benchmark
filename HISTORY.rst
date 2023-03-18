@@ -1,5 +1,12 @@
 ## History
 
+### 1.4.0
+
+* Fix silent webdataset error-handling
+* Added support for wds/voc2007_multilabel 
+* default to float32 
+* add mscoco generative benchmark
+
 ### 1.3.0
 
 * update flickr8k results, solve issue #48, thanks to @orchidmajumder

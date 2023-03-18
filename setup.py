@@ -49,7 +49,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/mehdidc/clip_benchmark',
-    version='1.3.0',
+    version='1.4.0',
     zip_safe=False,
     extra_require = {
         "vtab": ["task_adaptation==0.1", "timm>=0.5.4"],
