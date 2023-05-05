@@ -197,11 +197,11 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                 try:
                     samples_per_epoch = len(train_dataloader)
                     percent_complete = 100.0 * i / len(train_dataloader)
+                    progress_message = f"[{num_samples}/{samples_per_epoch} ({percent_complete:.0f}%)]"
                 except TypeError:
-                    samples_per_epoch = 0
-                    percent_complete = 0
+                    progress_message = f"[{num_samples} samples]"
                 print(
-                    f"Train Epoch: {epoch} [{num_samples}/{samples_per_epoch} ({percent_complete:.0f}%)]\t"
+                    f"Train Epoch: {epoch} {progress_message}\t"
                     f"Loss: {loss.item():.6f}\tData (t) {data_time:.3f}\tBatch (t) {batch_time:.3f}\t"
                     f"LR {optimizer.param_groups[0]['lr']:.5f}"
                 )
