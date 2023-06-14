@@ -288,7 +288,7 @@ def run(args):
             transform=transform
         )
     else:
-        raise ValueError("Unsupported task: {}. task should `zeroshot_classification` or `zeroshot_retrieval`".format(task))
+        raise ValueError("Unsupported task: {}. task should be `zeroshot_classification`, `zeroshot_retrieval`, `linear_probe`,  or `mscoco_generative`".format(task))
     dump = {
         "dataset": args.dataset,
         "model": args.model,
