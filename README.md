@@ -3,7 +3,7 @@
 
 The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
-retrieval.
+retrieval, and captioning.
 
 Below we show the average rank (1 is the best, lower is better) of different CLIP models, evaluated
 on different datasets.
@@ -15,7 +15,7 @@ or directly in the [notebook](benchmark/results.ipynb).
 
 ## Features
 
-* Support for zero-shot classification and zero-shot retrieval
+* Support for zero-shot classification and zero-shot retrieval, and captioning
 * Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models
 * Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
 * Support [Japanese CLIP by rinna](https://github.com/rinnakk/japanese-clip)
@@ -156,13 +156,23 @@ Example with `cifar10`:
  `clip_benchmark eval --dataset=tfds/cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
 
-### COCO captions example
+### COCO captions retrieval example
 
  Here is an example for COCO captions zero-shot retrieval:
 
  `clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64` 
  
  Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`).
+
+
+### COCO captions captioning example
+
+ Here is an example for COCO captions captioning task:
+
+ `clip_benchmark eval --dataset=mscoco_captions --task=captioning --model=coca_ViT-L-14 --output=result.json --pretrained mscoco_finetuned_laion2b_s13b_b90k --output=default.json`
+
+ Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`) and `pycocoevalcap`.
+
 
 ### Webdataset example
 
@@ -206,12 +216,22 @@ Each split should be contained in its own folder and `nshards.txt` should contai
 
 The name of the dataset follows the template `wds/<DATASET_NAME>`. Note that the dataset name currently only affects the name in the results output - classnames and templates are loaded directly from the included files. The dataset root directory can be either a local path to the `root_dir` as specified above, or an HTTP URL pointing to a Huggingface Hub dataset file tree.
 
-Example with `vtab/cifar10`:
+Example with `vtab/cifar10` (zero-shot classification):
 
-```
-$ clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root ROOT_DIR/wds_vtab-cifar10/
-$ clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root https://huggingface.co/datasets/clip-benchmark/wds_vtab-cifar10/tree/main
-```
+- local: `clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root ROOT_DIR/wds_vtab-cifar10/`
+- remote: `clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main`
+
+Example with `mscoco_captions` (retrieval):
+
+- local: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=zeroshot_retrieval`
+- remote: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=zeroshot_retrieval`
+
+
+Example with `mscoco_captions` (captioning):
+
+- local: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=captioning`
+- remote: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=captioning`
+
 
 All other arguments remain the same as in the other examples. See `https://huggingface.co/clip-benchmark` for a full list of datasets that have already been uploaded to Huggingface.
 
@@ -270,7 +290,7 @@ For instance:
 
 The template file can be either in the usual format https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/en_zeroshot_classification_templates.json or in the CuPL format https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/cupl_prompts.json to have class-specific prompts. In the case of the CuPL format, the classnames file will not be used, thus one only needs to provide the template file `--custom_template_file`.
 
-For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 for ImagetNet-1k can be used this way:
+For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 for ImagetNet-1k can be used this way    :
 
 `clip_benchmark eval --dataset "imagenet1k" --model ViT-B-32 --pretrained laion400m_e32 --custom_template_file cupl_prompts.json`
 
