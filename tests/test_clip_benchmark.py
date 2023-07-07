@@ -24,13 +24,14 @@ class base_args:
     skip_load=False
     language="en"
     model_cache_dir=None
-    cupl=False
     save_clf=None
     load_clfs=[]
     model_type="open_clip"
     wds_cache_dir=None
     which="eval"
     skip_existing=False
+    custom_template_file=None
+    custom_classname_file=None
 
 def test_base():
     run(base_args)
