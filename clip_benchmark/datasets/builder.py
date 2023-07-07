@@ -39,7 +39,7 @@ def _load_classnames_and_classification_templates(dataset_name, current_folder, 
 
     return classnames, templates
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task='zeroshot_classification', cupl=False, wds_cache_dir=None, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", cupl=False, wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -59,17 +59,50 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     annotation_file: str or None
         only for datasets with captions (used for retrieval) such as COCO
         and Flickr.
+    
+    custom_classname_file: str or None
+        Custom classname file where keys are dataset names and values are list of classnames.
+
+    custom_template_file: str or None
+        Custom template file where keys are dataset names and values are list of prompts, or dicts
+        where keys are classnames and values are class-specific prompts.
+    
     """
-    current_folder = os.path.dirname(__file__)
     if task in ('zeroshot_classification', 'linear_probe'):  # Only load templates and classnames if we have to
-        classnames, templates = _load_classnames_and_classification_templates(dataset_name, current_folder, language)
+        current_folder = os.path.dirname(__file__)
+        if custom_classname_file and not os.path.exists(custom_classname_file):
+            # look at current_folder
+            custom_classname_file_attempt = os.path.join(current_folder, custom_classname_file)
+            assert os.path.exists(custom_classname_file_attempt), f"Custom classname file '{custom_classname_file}' does not exist"
+            custom_classname_file = custom_classname_file_attempt
+        else:
+            custom_classname_file = os.path.join(current_folder, language + "_classnames.json")
+        
+        if custom_template_file and not os.path.exists(custom_template_file):
+            # look at current_folder
+            custom_template_file_attempt = os.path.join(current_folder, custom_template_file)
+            assert os.path.exists(custom_template_file_attempt), f"Custom template file '{custom_template_file}' does not exist"
+            custom_template_file = custom_template_file_attempt
+        else:
+            custom_template_file = os.path.join(current_folder, language + "_zeroshot_classification_templates.json")           
+
+        with open(custom_classname_file, "r") as f:
+            classnames = json.load(f)
+       
+        with open(custom_template_file, "r") as f:
+            templates = json.load(f)
+
+        default_template = templates["imagenet1k"] if "imagenet1k" in templates else None
+
+        if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
+            name = dataset_name.split("/")[-1]
+        else:
+            name = dataset_name
+        templates = templates.get(name, default_template)
+        assert templates is not None, f"Templates for dataset '{dataset_name}' not found in '{custom_template_file}'"
     else:
         classnames, templates = None, None
-
-    with open(os.path.join(current_folder, "cupl_prompts.json"), "r") as f:
-        cupl_prompts = json.load(f)
-    templates_cupl = None
-
+    
     train = (split == "train")
     if dataset_name == "cifar10":
         ds = CIFAR10(root=root, train=train, transform=transform, download=download, **kwargs)
@@ -84,19 +117,16 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
-        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenet1k-unverified":
         split = "train" if train else "val"
         ds =  ImageFolder(root=os.path.join(root, split), transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
-        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenetv2":
         assert split == "test", f"Only test split available for {dataset_name}"
         os.makedirs(root, exist_ok=True)
         ds = imagenetv2.ImageNetV2Dataset(variant="matched-frequency", transform=transform, location=root)
         ds.classes = classnames["imagenet1k"]
-        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenet_sketch":
         assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://drive.google.com/open?id=1Mj0i5HBthqH1p_yeXzsg22gZduvgoNeA
@@ -114,7 +144,6 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv sketch {root}", shell=True)
         ds = ImageFolder(root=root, transform=transform, **kwargs)
         ds.classes = classnames["imagenet1k"]
-        templates_cupl = cupl_prompts["imagenet1k"]
     elif dataset_name == "imagenet-a":
         assert split == "test", f"Only test split available for {dataset_name}"
         # Downloadable from https://people.eecs.berkeley.edu/~hendrycks/imagenet-a.tar
@@ -349,17 +378,11 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
         ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir)
-        return ds
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}.")
-
-    if cupl:
-        ds.templates = templates_cupl
-    else:
-        ds.templates = templates
-
+    ds.templates = templates
     return ds
 
 class Dummy():

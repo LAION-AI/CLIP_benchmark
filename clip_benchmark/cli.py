@@ -35,10 +35,11 @@ def get_parser_args():
     parser_eval.add_argument('--model_cache_dir', default=None, type=str, help="directory to where downloaded models are cached")
     parser_eval.add_argument('--feature_root', default="features", type=str, help="feature root folder where the features are stored.")
     parser_eval.add_argument('--annotation_file', default="", type=str, help="text annotation file for retrieval datasets. Only needed  for when `--task` is `zeroshot_retrieval`.")
+    parser_eval.add_argument('--custom_classname_file', default=None, type=str, help="use custom json file with classnames for each dataset, where keys are dataset names and values are list of classnames.")
+    parser_eval.add_argument('--custom_template_file', default=None, type=str, help="use custom json file with prompts for each dataset, where keys are dataset names and values are list of prompts. For instance, to use CuPL prompts, use --custom_template_file='cupl_prompts.json'")
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="result.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
     parser_eval.add_argument('--quiet', dest='verbose', action="store_false", help="suppress verbose messages")
-    parser_eval.add_argument('--cupl', default=False, action="store_true", help="Use natural language prompt from CuPL paper")
     parser_eval.add_argument('--save_clf', default=None, type=str, help="optionally save the classification layer output by the text tower")
     parser_eval.add_argument('--load_clfs', nargs='+', default=[], type=str, help="optionally load and average mutliple layers output by text towers.")
     parser_eval.add_argument('--skip_existing', default=False, action="store_true", help="whether to skip an evaluation if the output file exists.")
@@ -188,7 +189,8 @@ def run(args):
             download=True,
             language=args.language,
             task=task,
-            cupl=args.cupl,
+            custom_template_file=args.custom_template_file,
+            custom_classname_file=args.custom_classname_file,
             wds_cache_dir=args.wds_cache_dir,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
@@ -218,8 +220,6 @@ def run(args):
             )
     if task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
-        if args.cupl:
-            assert (zeroshot_templates is not None), "Dataset does not support CuPL prompts"        
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
         classnames = dataset.classes if hasattr(dataset, "classes") else None
@@ -232,7 +232,6 @@ def run(args):
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
-            cupl=args.cupl,
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
         )

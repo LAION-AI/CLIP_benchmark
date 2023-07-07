@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 
-def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True, cupl=False):
+def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
     """
     This function returns zero-shot vectors for each class in order
     to use it for zero-shot classification.
@@ -40,10 +40,14 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     with torch.no_grad(), autocast():
         zeroshot_weights = []
         for classname in tqdm(classnames):
-            if cupl:
+            if type(templates) == dict:
+                # class-specific prompts (e.g., CuPL https://arxiv.org/abs/2209.03320)
                 texts = templates[classname]
-            else:
+            elif type(templates) == list:
+                # generic prompts tht are specialized for each class by replacing {c} with the class name
                 texts = [template.format(c=classname) for template in templates]
+            else:
+                raise ValueError("templates must be a list or a dict")
             texts = tokenizer(texts).to(device)  # tokenize
             class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
@@ -159,7 +163,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, cupl=False, save_clf=None, load_clfs=[]):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, save_clf=None, load_clfs=[]):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -197,7 +201,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
             classifier = classifier + torch.load(load_clfs[i], map_location='cpu') / n
         classifier = classifier.to(device)
     else:
-        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, cupl=cupl)
+        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device)
     
     if save_clf is not None:
         torch.save(classifier, save_clf)

@@ -261,6 +261,19 @@ clip_benchmark eval --pretrained_model openai openclip_base  --dataset vtab+ ret
 See [clip_benchmark/models.py#L6](clip_benchmark/models.py#L6) and [clip_benchmark/datasets/builder.py#L634](clip_benchmark/datasets/builder.py#L634) for more information
 about the collections.
 
+### Custom templates / prompts / classnames
+
+It is also possible to use custom prompts by providing a custom template file and/or a custom classname file.
+For instance:
+
+`clip_benchmark eval --dataset "imagenet1k" --model ViT-B-32 --pretrained laion400m_e32 --custom_template_file <path> --custom_classname_file <path>`
+
+The template file can be either in the usual format https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/en_zeroshot_classification_templates.json or in the CuPL format https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/cupl_prompts.json to have class-specific prompts. In the case of the CuPL format, the classnames file will not be used, thus one only needs to provide the template file `--custom_template_file`.
+
+For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 for ImagetNet-1k can be used this way:
+
+`clip_benchmark eval --dataset "imagenet1k" --model ViT-B-32 --pretrained laion400m_e32 --custom_template_file cupl_prompts.json`
+
 ### Development 
 
 For development, you can also do this:
