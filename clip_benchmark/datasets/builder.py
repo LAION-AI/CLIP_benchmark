@@ -12,32 +12,10 @@ from torchvision.datasets import (
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
 )
 
-from . import voc2007, flickr, caltech101, imagenetv2, objectnet
+from . import voc2007, flickr, caltech101, imagenetv2, objectnet, babel_imagenet
 from torch.utils.data import default_collate
 from PIL import Image
 
-def _load_classnames_and_classification_templates(dataset_name, current_folder, language):
-    with open(os.path.join(current_folder, language + "_classnames.json"), "r") as f:
-        classnames = json.load(f)
-
-     # Zero-shot classification templates, collected from a bunch of sources
-    # - CLIP paper (https://github.com/openai/CLIP/blob/main/data/prompts.md)
-    # - Lit Paper (https://arxiv.org/pdf/2111.07991.pdf)
-    # - SLIP paper (https://github.com/facebookresearch/SLIP/blob/main/templates.json)
-    # Some are fixed mnaually
-
-    with open(os.path.join(current_folder, language + "_zeroshot_classification_templates.json"), "r") as f:
-        zeroshot_classification_templates = json.load(f)
-    # default template to use when the dataset name does not belong to `zeroshot_classification_templates`
-    DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES = zeroshot_classification_templates["imagenet1k"]
-
-    if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
-        name = dataset_name.split("/")[-1]
-    else:
-        name = dataset_name
-    templates = zeroshot_classification_templates.get(name, DEFAULT_ZEROSHOT_CLASSIFICATION_TEMPLATES)
-
-    return classnames, templates
 
 def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
     """
@@ -66,70 +44,90 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     custom_template_file: str or None
         Custom template file where keys are dataset names and values are list of prompts, or dicts
         where keys are classnames and values are class-specific prompts.
-    
+
     """
     if task in ('zeroshot_classification', 'linear_probe'):  # Only load templates and classnames if we have to
         current_folder = os.path.dirname(__file__)
-        if custom_classname_file and not os.path.exists(custom_classname_file):
-            # look at current_folder
-            custom_classname_file_attempt = os.path.join(current_folder, custom_classname_file)
-            assert os.path.exists(custom_classname_file_attempt), f"Custom classname file '{custom_classname_file}' does not exist"
-            custom_classname_file = custom_classname_file_attempt
+
+        if dataset_name == "babel_imagenet":
+            classnames = json.load(open(os.path.join(current_folder, "babel_imagenet.json")))
+            assert language.upper() in classnames, f"Language '{language}' not supported for Babel-ImageNet"
+            classnames = classnames[language.upper()]
+            templates = json.load(open(os.path.join(current_folder, "nllb_dist13b_prompts.json")))
+            templates = templates[language.upper()]
+            templates = [t.replace('{}', '{c}') for t in templates]
         else:
-            custom_classname_file = os.path.join(current_folder, language + "_classnames.json")
+            if custom_classname_file and not os.path.exists(custom_classname_file):
+                # look at current_folder
+                custom_classname_file_attempt = os.path.join(current_folder, custom_classname_file)
+                assert os.path.exists(custom_classname_file_attempt), f"Custom classname file '{custom_classname_file}' does not exist"
+                custom_classname_file = custom_classname_file_attempt
+            else:
+                custom_classname_file = os.path.join(current_folder, language + "_classnames.json")
+            
+            if custom_template_file and not os.path.exists(custom_template_file):
+                # look at current_folder
+                custom_template_file_attempt = os.path.join(current_folder, custom_template_file)
+                assert os.path.exists(custom_template_file_attempt), f"Custom template file '{custom_template_file}' does not exist"
+                custom_template_file = custom_template_file_attempt
+            else:
+                custom_template_file = os.path.join(current_folder, language + "_zeroshot_classification_templates.json")           
+
+            with open(custom_classname_file, "r") as f:
+                classnames = json.load(f)
         
-        if custom_template_file and not os.path.exists(custom_template_file):
-            # look at current_folder
-            custom_template_file_attempt = os.path.join(current_folder, custom_template_file)
-            assert os.path.exists(custom_template_file_attempt), f"Custom template file '{custom_template_file}' does not exist"
-            custom_template_file = custom_template_file_attempt
-        else:
-            custom_template_file = os.path.join(current_folder, language + "_zeroshot_classification_templates.json")           
+            with open(custom_template_file, "r") as f:
+                templates = json.load(f)
+        
+            default_template = templates["imagenet1k"] if "imagenet1k" in templates else None
 
-        with open(custom_classname_file, "r") as f:
-            classnames = json.load(f)
-       
-        with open(custom_template_file, "r") as f:
-            templates = json.load(f)
-
-        default_template = templates["imagenet1k"] if "imagenet1k" in templates else None
-
-        if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
-            name = dataset_name.split("/")[-1]
-        else:
-            name = dataset_name
-        templates = templates.get(name, default_template)
-        assert templates is not None, f"Templates for dataset '{dataset_name}' not found in '{custom_template_file}'"
+            if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
+                name = dataset_name.split("/")[-1]
+            else:
+                name = dataset_name
+            templates = templates.get(name, default_template)
+            assert templates is not None, f"Templates for dataset '{dataset_name}' not found in '{custom_template_file}'"
     else:
         classnames, templates = None, None
     
+    def download_imagenet(r):
+        os.makedirs(r, exist_ok=True)
+        call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={r}/ILSVRC2012_devkit_t12.tar.gz", shell=True)            
+        call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --output-document={r}/ILSVRC2012_img_val.tar", shell=True)            
+
     train = (split == "train")
     if dataset_name == "cifar10":
         ds = CIFAR10(root=root, train=train, transform=transform, download=download, **kwargs)
     elif dataset_name == "cifar100":
         ds = CIFAR100(root=root, train=train, transform=transform, download=download, **kwargs)
-    elif dataset_name in ("imagenet1k", "imagenet-w"):
+    elif dataset_name == "imagenet1k":
         if not os.path.exists(root):
-            os.makedirs(root, exist_ok=True)
-            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={root}/ILSVRC2012_devkit_t12.tar.gz", shell=True)            
-            call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --output-document={root}/ILSVRC2012_img_val.tar", shell=True)            
-
-        if dataset_name == "imagenet-w":
-            from imagenet_w import AddWatermark
-            from torchvision.transforms import Normalize, CenterCrop
-            index_normalize = None
-            crop_size = None
-            for i, t in enumerate(transform.transforms):
-                if isinstance(t, Normalize):
-                    index_normalize = i
-                elif isinstance(t, CenterCrop):
-                    crop_size = min(t.size)
-            assert crop_size is not None, "CenterCrop not found in transform"
-            assert index_normalize is not None, "Normalize not found in transform"
-            transform.transforms.insert(index_normalize, AddWatermark(crop_size))
-        ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
-        # use classnames from OpenAI
+            download_imagenet(root)
+        ds =  mageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         ds.classes = classnames["imagenet1k"]
+    elif dataset_name == "imagenet-w":
+        from imagenet_w import AddWatermark
+        from torchvision.transforms import Normalize, CenterCrop
+        if not os.path.exists(root):
+            download_imagenet(root)
+        index_normalize = None
+        crop_size = None
+        for i, t in enumerate(transform.transforms):
+            if isinstance(t, Normalize):
+                index_normalize = i
+            elif isinstance(t, CenterCrop):
+                crop_size = min(t.size)
+        assert crop_size is not None, "CenterCrop not found in transform"
+        assert index_normalize is not None, "Normalize not found in transform"
+        transform.transforms.insert(index_normalize, AddWatermark(crop_size))
+        ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
+        ds.classes = classnames["imagenet1k"]
+    elif dataset_name == "babel_imagenet":
+        if not os.path.exists(root):
+            download_imagenet(root)
+        idxs, classnames = classnames
+        ds = babel_imagenet.BabelImageNet(root=root, idxs=idxs, split="train" if train else "val", transform=transform, **kwargs)
+        ds.classes = classnames
     elif dataset_name == "imagenet1k-unverified":
         split = "train" if train else "val"
         ds =  ImageFolder(root=os.path.join(root, split), transform=transform, **kwargs)
