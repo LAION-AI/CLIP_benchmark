@@ -123,6 +123,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         ds.classes = classnames["imagenet1k"]
     elif dataset_name == "babel_imagenet":
+        # babel ImageNet from https://github.com/gregor-ge/Babel-ImageNet
         if not os.path.exists(root):
             download_imagenet(root)
         idxs, classnames = classnames

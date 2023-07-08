@@ -1,5 +1,9 @@
 import torchvision
 
+"""
+BabelImageNet from https://arxiv.org/pdf/2306.08658.pdf
+Adapted from https://github.com/gregor-ge/Babel-ImageNet, thanks to the authors
+"""
 class BabelImageNet(torchvision.datasets.ImageNet):
     def __init__(self, root: str, idxs, split: str = "val", download=None, **kwargs) -> None:
         super().__init__(root, split, **kwargs)
