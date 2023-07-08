@@ -39,7 +39,7 @@ def _load_classnames_and_classification_templates(dataset_name, current_folder, 
 
     return classnames, templates
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", cupl=False, wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
