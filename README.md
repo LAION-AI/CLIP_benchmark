@@ -169,10 +169,24 @@ Example with `cifar10`:
 
  Here is an example for COCO captions captioning task:
 
- `clip_benchmark eval --dataset=mscoco_captions --task=captioning --model=coca_ViT-L-14 --output=result.json --pretrained mscoco_finetuned_laion2b_s13b_b90k --output=default.json`
+ `clip_benchmark eval --dataset=mscoco_captions --task=captioning --model=coca_ViT-L-14 --output=result.json --pretrained mscoco_finetuned_laion2b_s13b_b90k`
 
  Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`) and `pycocoevalcap`.
 
+
+### Multilingual evaluation
+
+We also provide datasets for evaluating multilingual models (see e.g. https://github.com/mlfoundations/open_clip#vit-b32-xlm-roberta-base) by specifying `--language`.
+
+For ImageNet-1k (zero-shot classification):
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=imagenet1k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `zh` (chinese), `it` (italian), `jp` (japanese), `en` (english), `ar` (arabic).
+- We also support Babel ImageNet classnames and prompts (https://github.com/gregor-ge/Babel-ImageNet), which can be used as the following: `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=babel_imagenet --output=result.json --batch_size=64 --language=<LANG>`, 
+where LANG is a two letter string from the [ISO language code list](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). Supported values for language are: `'ne', 'id', 'de', 'nl', 'af', 'he', 'sq', 'uz', 'kn', 'ku', 'ta', 'lv', 'ko', 'ug', 'br', 'el', 'su', 'kk', 'sk', 'gl', 'om', 'fa', 'jv', 'cs', 'lo', 'hy', 'xh', 'hr', 'so', 'gu', 'am', 'ar', 'sa', 'ca', 'is', 'it', 'sv', 'ga', 'bg', 'vi', 'sd', 'ur', 'km', 'pl', 'hu', 'sr', 'fr', 'hi', 'fy', 'et', 'bs', 'sw', 'az', 'mk', 'es', 'mn', 'ja', 'tl', 'tr', 'gd', 'ro', 'mg', 'mr', 'sl', 'pt', 'lt', 'no', 'yi', 'uk', 'ky', 'ka', 'bn', 'or', 'my', 'en', 'ps', 'fi', 'zh', 'da', 'ml', 'be', 'eo', 'ha', 'eu', 'as', 'te', 'th', 'cy', 'si', 'ru', 'la', 'pa', 'ms'` 
+
+for COCO (zero-shot retrieval):
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=multilingual_mscoco_captions --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `es` (spanish), `it` (italian), `jp` (japanese), `ko` (korean), `pl` (polish), `ru` (russian), `tr` (Turkish), `zh` (chinese), `en` (english).
 
 ### Webdataset example
 
