@@ -103,7 +103,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "imagenet1k":
         if not os.path.exists(root):
             download_imagenet(root)
-        ds =  mageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
+        ds = ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         ds.classes = classnames["imagenet1k"]
     elif dataset_name == "imagenet-w":
         from imagenet_w import AddWatermark
