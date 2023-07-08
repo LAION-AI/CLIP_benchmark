@@ -108,12 +108,25 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = CIFAR10(root=root, train=train, transform=transform, download=download, **kwargs)
     elif dataset_name == "cifar100":
         ds = CIFAR100(root=root, train=train, transform=transform, download=download, **kwargs)
-    elif dataset_name == "imagenet1k":
+    elif dataset_name in ("imagenet1k", "imagenet-w"):
         if not os.path.exists(root):
             os.makedirs(root, exist_ok=True)
             call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={root}/ILSVRC2012_devkit_t12.tar.gz", shell=True)            
             call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar --output-document={root}/ILSVRC2012_img_val.tar", shell=True)            
 
+        if dataset_name == "imagenet-w":
+            from imagenet_w import AddWatermark
+            from torchvision.transforms import Normalize, CenterCrop
+            index_normalize = None
+            crop_size = None
+            for i, t in enumerate(transform.transforms):
+                if isinstance(t, Normalize):
+                    index_normalize = i
+                elif isinstance(t, CenterCrop):
+                    crop_size = min(t.size)
+            assert crop_size is not None, "CenterCrop not found in transform"
+            assert index_normalize is not None, "Normalize not found in transform"
+            transform.transforms.insert(index_normalize, AddWatermark(crop_size))
         ds =  ImageNet(root=root, split="train" if train else "val", transform=transform, **kwargs)
         # use classnames from OpenAI
         ds.classes = classnames["imagenet1k"]
