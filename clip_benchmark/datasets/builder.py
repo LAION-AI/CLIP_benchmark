@@ -274,16 +274,26 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             if not has_kaggle():
                 print("Kaggle is needed to download the dataset. Please install it via `pip install kaggle`")
                 sys.exit(1)
-            call("kaggle datasets download -d adityajn105/flickr30k", shell=True)
-            call(f"unzip flickr30k.zip", shell=True)
-            call(f"mv Images {root}", shell=True)
-            call(f"mv captions.txt {root}", shell=True)
+            call("kaggle datasets download -d hsankesara/flickr-image-dataset", shell=True)
+            call(f"unzip flickr-image-dataset.zip", shell=True)
+            call(f"mv flickr30k_images/flickr30k_images {root} && rm -rf flickr30k_images", shell=True)
         if not annotation_file:
-            annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
+            if language == "en":
+                annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
+            elif language == "zh":
+                annotation_file = f"{root}/flickr30k_{split}_zh.txt"
+            else:
+                raise ValueError(f"Unsupported language {language} for `{dataset_name}`")
         if not os.path.exists(annotation_file):
             # Download Flickr30K Karpathy test set
-            annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
-            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
+            if language== "en":
+                annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
+                call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
+            elif language =="zh":
+                annotation_file = f"{root}/flickr30k_{split}_zh.txt"
+                call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_{split}_zh.txt --output-document={annotation_file}", shell=True)
+            else:
+                raise ValueError(f"Unsupported language {language} for `{dataset_name}`")
         ds = flickr.Flickr(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr8k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr8k
@@ -300,11 +310,22 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv Images {root}", shell=True)
             call(f"mv captions.txt {root}", shell=True)
         if not annotation_file:
-            annotation_file = f"{root}/flickr8k_{split}_karpathy.txt"
+            if language == "en":
+                annotation_file = f"{root}/flickr8k_{split}_karpathy.txt"
+            elif language == "zh":
+                annotation_file = f"{root}/flickr8k_{split}_zh.txt"
+            else:
+                raise ValueError(f"Unsupported language {language} for `{dataset_name}`")
         if not os.path.exists(annotation_file):
             # Download Flickr8K Karpathy test set
-            annotation_file = f"{root}/flickr8k_{split}_karpathy.txt"
-            call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr8k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
+            if language == "en":
+                annotation_file = f"{root}/flickr8k_{split}_karpathy.txt"
+                call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr8k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
+            elif language == "zh":
+                annotation_file = f"{root}/flickr8k_{split}_zh.txt"
+                call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr8k_{split}_zh.txt --output-document={annotation_file}", shell=True)
+            else:
+                raise ValueError(f"Unsupported language {language} for `{dataset_name}`")
         ds = flickr.Flickr(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "food101":
         ds = Food101(root=root, split="train" if train else "test", transform=transform, download=download, **kwargs)
