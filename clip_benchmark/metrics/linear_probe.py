@@ -230,6 +230,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     logits = torch.cat(pred)
     target = torch.cat(true)
     pred = logits.argmax(axis=1)
+    torch.save((logits, target), "out.pt")
 
     # measure accuracy
     if target.max() >= 5:

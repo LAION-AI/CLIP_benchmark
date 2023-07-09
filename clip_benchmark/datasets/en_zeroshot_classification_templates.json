@@ -291,5 +291,14 @@
     ],
     "dummy": [
         "a photo of a {c}"
+    ],
+    "fairface": [
+        "a photo of {c}"
+    ],
+    "fairface_gender":[
+        "a photo of {c}"
+    ],
+    "fairface_race":[
+        "a photo of {c} person"
     ]
 }

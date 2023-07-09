@@ -12,7 +12,7 @@ from torchvision.datasets import (
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
 )
 
-from . import voc2007, flickr, caltech101, imagenetv2, objectnet, babel_imagenet
+from . import voc2007, flickr, caltech101, imagenetv2, objectnet, babel_imagenet, fairface
 from torch.utils.data import default_collate
 from PIL import Image
 
@@ -210,6 +210,18 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"mv objectnet-1.0 {root}", shell=True)
             call(f"cp {root}/objectnet-1.0/mappings/* {root}", shell=True)
         ds = objectnet.ObjectNetDataset(root=root, transform=transform)
+    elif dataset_name == "fairface":
+        split = "validation" if split == "test" else "train"
+        ds = fairface.FairFace(root=root, transform=transform, split=split)
+        ds.classes = classnames["fairface"]
+    elif dataset_name == "fairface_race":
+        split = "validation" if split == "test" else "train"
+        ds = fairface.FairFace(root=root, transform=transform, split=split, task="race")
+        ds.classes = classnames["fairface_race"]
+    elif dataset_name == "fairface_gender":
+        split = "validation" if split == "test" else "train"
+        ds = fairface.FairFace(root=root, transform=transform, split=split, task="gender")
+        ds.classes = classnames["fairface_gender"]
     elif dataset_name == "voc2007":
         ds = voc2007.PASCALVoc2007Cropped(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "voc2007_multilabel":

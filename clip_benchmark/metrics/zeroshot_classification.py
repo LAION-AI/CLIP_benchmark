@@ -209,7 +209,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
 
     logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
     is_multilabel = (len(target.shape) == 2)
-
+    torch.save((logits, target), "out.pt")
     if is_multilabel:
         if verbose:
             print("Detected a multi-label classification dataset")
