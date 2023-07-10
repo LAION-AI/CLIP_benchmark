@@ -193,6 +193,11 @@ For Flickr-30k (zero-shot retrieval)
 
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=flickr30k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `en` (english), `zh` (chinese).
 
+For Flickr-8k (zero-shot retrieval)
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=flickr8k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `en` (english), `zh` (chinese).
+
+
 ### Webdataset example
 
 Here is an example on how to run it on [webdatasets](https://github.com/webdataset/webdataset).
