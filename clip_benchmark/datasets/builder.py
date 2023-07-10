@@ -12,7 +12,7 @@ from torchvision.datasets import (
     MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
 )
 
-from . import voc2007, flickr, caltech101, imagenetv2, objectnet, babel_imagenet
+from . import voc2007, flickr, caltech101, imagenetv2, objectnet, babel_imagenet, sugar_crepe
 from torch.utils.data import default_collate
 from PIL import Image
 
@@ -214,6 +214,23 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = voc2007.PASCALVoc2007Cropped(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
     elif dataset_name == "voc2007_multilabel":
         ds = voc2007.PASCALVoc2007(root=root, set="train" if train else "test", transform=transform, download=download, **kwargs)
+    elif dataset_name.startswith("sugar_crepe"):
+        # https://github.com/RAIVNLab/sugar-crepe/tree/main
+        _, task = dataset_name.split("/")
+        assert task in ("add_att", "add_obj", "replace_att", "replace_obj", "replace_rel", "swap_att", "swap_obj"), f"Unknown task {task} for {dataset_name}"
+        assert split == "test", f"Only test split available for {dataset_name}"
+        archive_name = "val2017.zip"
+        root_split = os.path.join(root, archive_name.replace(".zip", ""))
+        if not os.path.exists(root_split):
+            print(f"Downloading coco captions {archive_name}...")
+            if not os.path.exists(os.path.join(root, archive_name)):
+                call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
+            call(f"unzip {root}/{archive_name} -d {root}", shell=True)
+        ann = f"{root}/{task}.json"
+        if not os.path.exists(ann):
+            url = f"https://raw.githubusercontent.com/RAIVNLab/sugar-crepe/main/data/{task}.json"
+            call(f"wget {url} --output-document={ann}", shell=True)
+        ds = sugar_crepe.SugarCrepe(root=os.path.join(root, "val2017"), ann_file=ann, transform=transform, **kwargs)
     elif dataset_name == "mscoco_captions":
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
         if split == "train":
@@ -428,11 +445,13 @@ class Dummy():
 def get_dataset_default_task(dataset):
     if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions"):
         return "zeroshot_retrieval"
+    elif dataset.startswith("sugar_crepe"):
+        return "image_caption_selection"
     else:
         return "zeroshot_classification"
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k"):
+    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k") or dataset_name.startswith("sugar_crepe"):
         return image_captions_collate_fn
     else:
         return default_collate
