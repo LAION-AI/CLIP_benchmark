@@ -203,9 +203,16 @@ For Flickr-8k (zero-shot retrieval)
 
 For [Sugar Crepe](https://github.com/RAIVNLab/sugar-crepe):
 
+
 `clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe/<TASK> --output=result.json`
 
 where `<TASK>` can be among  `"add_att"`, `add_obj``, `replace_att`, `replace_obj`, `replace_rel`, `swap_att`, `swap_obj`.
+To evaluate on all the tasks together, you can do:
+
+
+`clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe --output=result.json`
+
+
 
 
 ### Webdataset example
