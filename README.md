@@ -340,7 +340,7 @@ python setup.py install
 - Thanks to [PyCOCOevalcap](https://github.com/salaniz/pycocoevalcap) and [@gpucce](https://github.com/gpucce) for COCO captions image captioning evaluation.
 - Thanks to [@li-xirong](https://github.com/li-xirong/cross-lingual-cap) for chinese Flickr-30k/FLickr-8k.
 - Thanks to [Chinese CLIP](https://github.com/OFA-Sys/Chinese-CLIP) authors for chinese ImageNet-1k classnames/prompts (zero-shot classification).
-- Thanks to [@rinnakk](https://github.com/rinnakk/japanese-clip) and [@mkshing](https://github.com/mkshing)for japanese ImageNet-1k classnames/prompts (zero-shot classification) and japanese CLIP support.
+- Thanks to [@rinnakk](https://github.com/rinnakk/japanese-clip) and [@mkshing](https://github.com/mkshing) for japanese ImageNet-1k classnames/prompts (zero-shot classification) and japanese CLIP support.
 - Thanks to [@KhalidAlt](https://github.com/KhalidAlt) for arabic ImageNet-1k classnames/prompts (zero-shot classification).
 - Thanks to [@djghosh13](https://github.com/djghosh13) for WebDataset support.
 - Thanks to [@FreddeFrallan](https://github.com/FreddeFrallan) for for multilingual COCO.
