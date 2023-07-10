@@ -334,4 +334,16 @@ python setup.py install
 - Thanks to [SLIP](https://github.com/facebookresearch/SLIP) authors, some zero-shot templates and classnames are from there.
 - Thanks to [Wise-ft](https://github.com/mlfoundations/wise-ft) authors, Imagenet robustness datasets code is adapted from there
 - Thanks to [LiT](https://arxiv.org/abs/2111.07991.pdf) authors, some zero-shot templates and classnames of VTAB datasets are from there.
-- This package was created with [Cookiecutter]( https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
+- Thanks to [Babel ImageNet](https://github.com/gregor-ge/Babel-ImageNet) authors for multilingual evaluation of ImageNet-1k zero-shot classification.
+- Thanks to [ImageNet-W](https://github.com/facebookresearch/Whac-A-Mole) authors for ImageNet-W evaluation
+- Thanks to [CuPL](https://github.com/sarahpratt/CuPL) for CuPL prompts.
+- Thanks to [PyCOCOevalcap](https://github.com/salaniz/pycocoevalcap) and [@gpucce](https://github.com/gpucce) for COCO captions image captioning evaluation.
+- Thanks to [@li-xirong](https://github.com/li-xirong/cross-lingual-cap) for chinese Flickr-30k/FLickr-8k.
+- Thanks to [Chinese CLIP](https://github.com/OFA-Sys/Chinese-CLIP) authors for chinese ImageNet-1k classnames/prompts (zero-shot classification).
+- Thanks to [@rinnakk](https://github.com/rinnakk/japanese-clip) and [@mkshing](https://github.com/mkshing)for japanese ImageNet-1k classnames/prompts (zero-shot classification) and japanese CLIP support.
+- Thanks to [@KhalidAlt](https://github.com/KhalidAlt) for arabic ImageNet-1k classnames/prompts (zero-shot classification).
+- Thanks to [@djghosh13](https://github.com/djghosh13) for WebDataset support.
+- Thanks to [@FreddeFrallan](https://github.com/FreddeFrallan) for for multilingual COCO.
+- Thanks to [@mitchellnw](https://github.com/mitchellnw) for linear probing support.
+
+- This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
