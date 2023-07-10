@@ -53,7 +53,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
             start = end 
             preds.append(pred)
     pred = torch.Tensor(preds).long()
-    acc = (pred==0).float().mean().item() # 0 is the index of "positive prompt", the rest (>0) are negative prompts
+    acc = (pred==0).float().mean().item() # 0 is the index of the caption, the rest (>0) are considered negative captions
     metrics = {}
     metrics[f"acc"] = acc
     return metrics
