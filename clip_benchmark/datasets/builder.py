@@ -287,10 +287,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         if not os.path.exists(annotation_file):
             # Download Flickr30K Karpathy test set
             if language== "en":
-                annotation_file = f"{root}/flickr30k_{split}_karpathy.txt"
                 call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
             elif language =="zh":
-                annotation_file = f"{root}/flickr30k_{split}_zh.txt"
                 call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_{split}_zh.txt --output-document={annotation_file}", shell=True)
             else:
                 raise ValueError(f"Unsupported language {language} for `{dataset_name}`")
@@ -319,10 +317,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         if not os.path.exists(annotation_file):
             # Download Flickr8K Karpathy test set
             if language == "en":
-                annotation_file = f"{root}/flickr8k_{split}_karpathy.txt"
                 call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr8k_{split}_karpathy.txt --output-document={annotation_file}", shell=True)
             elif language == "zh":
-                annotation_file = f"{root}/flickr8k_{split}_zh.txt"
                 call(f"wget https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr8k_{split}_zh.txt --output-document={annotation_file}", shell=True)
             else:
                 raise ValueError(f"Unsupported language {language} for `{dataset_name}`")
