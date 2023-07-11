@@ -198,6 +198,23 @@ For Flickr-8k (zero-shot retrieval)
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=flickr8k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `en` (english), `zh` (chinese).
 
 
+### Compositionality evaluation
+
+
+For [Sugar Crepe](https://github.com/RAIVNLab/sugar-crepe):
+
+
+`clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe/<TASK> --output=result.json`
+
+where `<TASK>` can be among  `"add_att"`, `add_obj``, `replace_att`, `replace_obj`, `replace_rel`, `swap_att`, `swap_obj`.
+To evaluate on all the tasks together, you can do:
+
+
+`clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe --output=result.json`
+
+
+
+
 ### Webdataset example
 
 Here is an example on how to run it on [webdatasets](https://github.com/webdataset/webdataset).
@@ -334,6 +351,7 @@ python setup.py install
 - Thanks to [SLIP](https://github.com/facebookresearch/SLIP) authors, some zero-shot templates and classnames are from there.
 - Thanks to [Wise-ft](https://github.com/mlfoundations/wise-ft) authors, Imagenet robustness datasets code is adapted from there
 - Thanks to [LiT](https://arxiv.org/abs/2111.07991.pdf) authors, some zero-shot templates and classnames of VTAB datasets are from there.
+- Thanks to [Sugar Crepe](https://github.com/RAIVNLab/sugar-crepe) authors for compositionality tasks evaluation on COCO
 - Thanks to [Babel ImageNet](https://github.com/gregor-ge/Babel-ImageNet) authors for multilingual evaluation of ImageNet-1k zero-shot classification.
 - Thanks to [ImageNet-W](https://github.com/facebookresearch/Whac-A-Mole) authors for ImageNet-W evaluation
 - Thanks to [CuPL](https://github.com/sarahpratt/CuPL) for CuPL prompts.
