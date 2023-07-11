@@ -206,14 +206,10 @@ For [Sugar Crepe](https://github.com/RAIVNLab/sugar-crepe):
 
 `clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe/<TASK> --output=result.json`
 
-where `<TASK>` can be among  `"add_att"`, `add_obj``, `replace_att`, `replace_obj`, `replace_rel`, `swap_att`, `swap_obj`.
+where `<TASK>` can be among  `add_att`, `add_obj`, `replace_att`, `replace_obj`, `replace_rel`, `swap_att`, `swap_obj`.
 To evaluate on all the tasks together, you can do:
 
-
 `clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe --output=result.json`
-
-
-
 
 ### Webdataset example
 
@@ -227,7 +223,7 @@ First, you need to install `webdataset`.
 You can either convert an already supported CLIP_benchmark dataset to webdataset format, or manually create your own with the same file structure. For already supported datasets use the CLI command `clip_benchmark_export_wds` as in this example:
 
 ```
-$ clip_benchmark_export_wds --dataset cifar10 --split train --dataset_root DATA_DIR/ --output wds_cifar10/
+$ clip_benchmark_export_wds --dataset cifar10 --plit train --dataset_root DATA_DIR/ --output wds_cifar10/
 $ clip_benchmark_export_wds --dataset cifar10 --split test --dataset_root DATA_DIR/ --output wds_cifar10/
 ```
 
