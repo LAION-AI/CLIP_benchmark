@@ -201,7 +201,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
             classifier = classifier + torch.load(load_clfs[i], map_location='cpu') / n
         classifier = classifier.to(device)
     else:
-        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device)
+        classifier = zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=amp)
     
     if save_clf is not None:
         torch.save(classifier, save_clf)
