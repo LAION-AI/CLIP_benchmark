@@ -56,10 +56,13 @@ def get_parser_args():
     parser_build.set_defaults(which='build')
 
     args = parser.parse_args()
-    return args
+    return parser, args
 
 def main():
-    base = get_parser_args()
+    parser, base = get_parser_args()
+    if not hasattr(base, "which"):
+        parser.print_help()
+        return
     if base.which == "eval":
         main_eval(base)
     elif base.which == "build":
