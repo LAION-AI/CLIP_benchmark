@@ -1,5 +1,16 @@
 ## History
 
+### 1.5.0
+
+* Custom classnames and templates
+* support wds for captioning evaluation
+* support imagenet-w
+* support babel imagenet
+* support chinese flickr30k/8k
+* support sugar crepe (compositionality)
+* support (optional) sharding evaluation based on rank, for parallel runs
+* fix many issues
+
 ### 1.4.0
 
 * Fix silent webdataset error-handling
