@@ -32,6 +32,7 @@ class base_args:
     skip_existing=False
     custom_template_file=None
     custom_classname_file=None
+    distributed=False
 
 def test_base():
     run(base_args)
