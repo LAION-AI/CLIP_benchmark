@@ -149,9 +149,9 @@ def run(args):
         if args.distributed:
             local_rank, rank, world_size = world_info_from_env()
             device = 'cuda:%d' % local_rank
+            torch.cuda.set_device(device)
         else:
             device = "cuda"
-        torch.cuda.set_device(device)
         args.device = device
     else:
         args.device = "cpu"
