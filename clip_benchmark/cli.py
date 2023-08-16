@@ -1,6 +1,7 @@
 """Console script for clip_benchmark."""
 import argparse
 import sys
+import random
 import json
 import torch
 import csv
@@ -130,6 +131,9 @@ def main_eval(base):
     runs = product(models, datasets, languages)
     if base.distributed:
         local_rank, rank, world_size = world_info_from_env()
+        runs = list(runs)
+        # randomize runs so that runs are balanced across gpus
+        random.shuffle(runs)
         runs = [r for i, r in enumerate(runs) if i % world_size == rank]
     for (model, pretrained), (dataset), (language) in runs:
         # We iterative over all possible model/dataset/languages
