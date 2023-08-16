@@ -130,7 +130,6 @@ def main_eval(base):
         runs = [r for i, r in enumerate(runs) if i % world_size == rank]
     for (model, pretrained), (dataset), (language) in runs:
         # We iterative over all possible model/dataset/languages
-        # TODO: possibility to parallelize evaluation here
         args = copy(base)
         args.model = model
         args.pretrained = pretrained
