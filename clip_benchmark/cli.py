@@ -6,6 +6,7 @@ import torch
 import csv
 from copy import copy
 import os
+from itertools import product
 from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
 from clip_benchmark.metrics import image_caption_selection, zeroshot_classification, zeroshot_retrieval, linear_probe, captioning
 from clip_benchmark.model_collection import get_model_collection_from_file, model_collection
@@ -19,8 +20,8 @@ def get_parser_args():
     parser_eval.add_argument('--dataset', type=str, default="cifar10", nargs="+", help="Dataset(s) to use for the benchmark. Can be the name of a dataset, or a collection name ('vtab', 'vtab+', 'imagenet_robustness', 'retrieval') or path of a text file where each line is a dataset name")
     parser_eval.add_argument('--dataset_root', default="root", type=str, help="dataset root folder where the datasets are downloaded. Can be in the form of a template depending on dataset name, e.g., --dataset_root='datasets/{dataset}'. This is useful if you evaluate on multiple datasets.")
     parser_eval.add_argument('--split', type=str, default="test", help="Dataset split to use")
-    parser_eval.add_argument('--model', type=str, default="ViT-B-32-quickgelu", help="Model architecture to use from OpenCLIP")
-    parser_eval.add_argument('--pretrained', type=str, default="laion400m_e32", help="Model checkpoint name to use from OpenCLIP")
+    parser_eval.add_argument('--model', type=str, nargs="+", default=["ViT-B-32-quickgelu"], help="Model architecture to use from OpenCLIP")
+    parser_eval.add_argument('--pretrained', type=str, nargs="+", default=["laion400m_e32"], help="Model checkpoint name to use from OpenCLIP")
     parser_eval.add_argument('--pretrained_model', type=str, default="", nargs="+", help="Pre-trained model(s) to use. Can be the full model name where `model` and `pretrained` are comma separated (e.g., --pretrained_model='ViT-B-32-quickgelu,laion400m_e32'), a model collection name ('openai' or 'openclip_base' or 'openclip_multilingual' or 'openclip_all'), or path of a text file where each line is a model fullname where model and pretrained are comma separated (e.g., ViT-B-32-quickgelu,laion400m_e32). --model and --pretrained are ignored if --pretrained_model is used.")
     parser_eval.add_argument('--task', type=str, default="auto", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe", "captioning", "image_caption_selection", "auto"], help="Task to evaluate on. With --task=auto, the task is automatically inferred from the dataset.")
     parser_eval.add_argument('--no_amp', action="store_false", dest="amp", default=True, help="whether to use mixed precision")
@@ -30,6 +31,7 @@ def get_parser_args():
     parser_eval.add_argument('--fewshot_epochs', default=10, type=int, help="for linear probe, how many epochs.")
     parser_eval.add_argument('--fewshot_lr', default=0.1, type=float, help="for linear probe, what is the learning rate.")
     parser_eval.add_argument("--skip_load", action="store_true", help="for linear probes, when everything is cached, no need to load model.")
+    parser_eval.add_argument("--distributed", action="store_true", help="evaluation in parallel")
     parser_eval.add_argument('--seed', default=0, type=int, help="random seed.")
     parser_eval.add_argument('--batch_size', default=64, type=int)
     parser_eval.add_argument('--model_cache_dir', default=None, type=str, help="directory to where downloaded models are cached")
@@ -100,8 +102,8 @@ def main_eval(base):
                 model, pretrained = name.split(',')
                 models.append((model, pretrained))
     else:
-        models = [(base.model, base.pretrained)]
-    
+        models = list(product(base.model, base.pretrained))
+
     # Ge list of datasets to evaluate on
     datasets = []
     for name in _as_list(base.dataset):
@@ -122,18 +124,19 @@ def main_eval(base):
         print(f"Models: {models}")
         print(f"Datasets: {datasets}")
         print(f"Languages: {languages}")
-
-    for model, pretrained in models:
-        for dataset in datasets:
-            for language in languages:
-                # We iterative over all possible model/dataset/languages
-                # TODO: possibility to parallelize evaluation here
-                args = copy(base)
-                args.model = model
-                args.pretrained = pretrained
-                args.dataset = dataset
-                args.language = language
-                run(args)
+    runs = product(models, datasets, languages)
+    if base.distributed:
+        local_rank, rank, world_size = world_info_from_env()
+        runs = [r for i, r in enumerate(runs) if i % world_size == rank]
+    for (model, pretrained), (dataset), (language) in runs:
+        # We iterative over all possible model/dataset/languages
+        # TODO: possibility to parallelize evaluation here
+        args = copy(base)
+        args.model = model
+        args.pretrained = pretrained
+        args.dataset = dataset
+        args.language = language
+        run(args)
 
 def _as_list(l):
     if not l:
@@ -142,7 +145,9 @@ def _as_list(l):
 
 def run(args):
     """Console script for clip_benchmark."""
-    args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    local_rank, rank, world_size = world_info_from_env()
+    device = 'cuda:%d' % local_rank
+    args.device = device if torch.cuda.is_available() else "cpu"
     # set seed.
     torch.manual_seed(args.seed)
     task = args.task
@@ -310,6 +315,26 @@ def run(args):
     with open(output, "w") as f:
         json.dump(dump, f)
     return 0
+
+
+def world_info_from_env():
+    # from openclip
+    local_rank = 0
+    for v in ('LOCAL_RANK', 'MPI_LOCALRANKID', 'SLURM_LOCALID', 'OMPI_COMM_WORLD_LOCAL_RANK'):
+        if v in os.environ:
+            local_rank = int(os.environ[v])
+            break
+    global_rank = 0
+    for v in ('RANK', 'PMI_RANK', 'SLURM_PROCID', 'OMPI_COMM_WORLD_RANK'):
+        if v in os.environ:
+            global_rank = int(os.environ[v])
+            break
+    world_size = 1
+    for v in ('WORLD_SIZE', 'PMI_SIZE', 'SLURM_NTASKS', 'OMPI_COMM_WORLD_SIZE'):
+        if v in os.environ:
+            world_size = int(os.environ[v])
+            break
+    return local_rank, global_rank, world_size
 
 
 if __name__ == "__main__":
