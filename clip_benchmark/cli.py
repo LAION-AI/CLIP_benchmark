@@ -145,8 +145,11 @@ def _as_list(l):
 
 def run(args):
     """Console script for clip_benchmark."""
-    local_rank, rank, world_size = world_info_from_env()
-    device = 'cuda:%d' % local_rank
+    if args.distributed:
+        local_rank, rank, world_size = world_info_from_env()
+        device = 'cuda:%d' % local_rank
+    else:
+        device = "cuda"
     args.device = device if torch.cuda.is_available() else "cpu"
     # set seed.
     torch.manual_seed(args.seed)
