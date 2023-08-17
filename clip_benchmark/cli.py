@@ -133,6 +133,7 @@ def main_eval(base):
         local_rank, rank, world_size = world_info_from_env()
         runs = list(runs)
         # randomize runs so that runs are balanced across gpus
+        random.seed(base.seed)
         random.shuffle(runs)
         runs = [r for i, r in enumerate(runs) if i % world_size == rank]
     for (model, pretrained), (dataset), (language) in runs:
