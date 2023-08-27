@@ -305,6 +305,16 @@ clip_benchmark eval --pretrained_model  benchmark/models.txt \
 
 Examples are available in [benchmark/datasets.txt](benchmark/datasets.txt) and [benchmark/models.txt](benchmark/models.txt)
 
+### Multiple checkpoints from the same model
+
+It is also common to evaluate multiple checkpoints from the same model:
+
+```bash
+clip_benchmark eval --model ViT-B-32 --pretrained *.pt \
+--dataset benchmark/datasets.txt --dataset_root "clip_benchmark_datasets/{dataset}"  \
+ --output "{dataset}_{pretrained}_{model}_{language}_{task}.json"
+```
+
 ### Model and dataset collections
 
 We can also provide model collection names (`openai`, `openclip_base`, `openclip_multilingual`, `openclip_full` are supported) or dataset collection names (`vtab`, `vtab+`, `retrieval`, `imagenet_robustness` are supported):
