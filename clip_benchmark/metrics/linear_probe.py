@@ -33,14 +33,15 @@ def cosine_lr(optimizer, base_lrs, warmup_length, steps):
 
 
 class Featurizer(torch.nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, normalize=True):
         super().__init__()
         self.model = model
+        self.normalize = normalize
 
     def forward(self, input):
-        # note: not sure if we want to train on l2-normalized features
         image_features = self.model.encode_image(input)
-        image_features = F.normalize(image_features, dim=-1)
+        if self.normalize:
+            image_features = F.normalize(image_features, dim=-1)
         return image_features
 
 class FeatureDataset(Dataset):
@@ -55,10 +56,91 @@ class FeatureDataset(Dataset):
         return self.features[i], self.targets[i]
 
 
+def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, autocast, device, seed):
+    torch.manual_seed(seed)
+    model = torch.nn.Linear(input_shape, output_shape)
+    devices = [x for x in range(torch.cuda.device_count())]
+    model = model.cuda()
+    model = torch.nn.DataParallel(model, device_ids=devices)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=lr,
+        weight_decay=weight_decay,
+    )
+    criterion = torch.nn.CrossEntropyLoss()
+
+    len_loader = len(dataloader)
+    scheduler = cosine_lr(optimizer, lr, 0., epochs * len_loader)
+
+    for epoch in range(epochs):
+        end = time.time()
+        for i, (x, y) in enumerate(dataloader):
+            x, y = x.cuda(), y.cuda()
+            step = i + epoch * len_loader
+            data_time = time.time() - end
+            scheduler(step)
+
+            optimizer.zero_grad()
+            with autocast():
+                pred = model(x)
+                loss = criterion(pred, y)
+
+            loss.backward()
+            optimizer.step()
+
+            batch_time = time.time() - end
+            end = time.time()
+
+            if (i % 20) == 1:
+                num_samples = i * len(x)
+                try:
+                    samples_per_epoch = len(dataloader)
+                    percent_complete = 100.0 * i / len(dataloader)
+                    progress_message = f"[{num_samples}/{samples_per_epoch} ({percent_complete:.0f}%)]"
+                except TypeError:
+                    progress_message = f"[{num_samples} samples]"
+                print(
+                    f"Train Epoch: {epoch} {progress_message}\t"
+                    f"Loss: {loss.item():.6f}\tData (t) {data_time:.3f}\tBatch (t) {batch_time:.3f}\t"
+                    f"LR {optimizer.param_groups[0]['lr']:.5f}"
+                )
+    return model
+
+
+def infer(model, dataloader, autocast, device):
+    true, pred = [], []
+    with torch.no_grad():
+        for x, y in tqdm(dataloader):
+            x = x.to(device)
+            y = y.to(device)
+
+            with autocast():
+                logits = model(x)
+
+            pred.append(logits.cpu())
+            true.append(y.cpu())
+            
+    logits = torch.cat(pred)
+    target = torch.cat(true)
+    return logits, target
+
+
+def find_peak(wd_list, idxs, train_loader, val_loader, input_shape, output_shape, lr, epochs, autocast, device, verbose, seed):
+    best_wd_idx, max_acc = 0, 0
+    for idx in idxs:
+        weight_decay = wd_list[idx]
+        model = train(train_loader, input_shape, output_shape, weight_decay, lr, epochs, autocast, device, seed)
+        logits, target = infer(model, val_loader, autocast, device)
+        acc1, = accuracy(logits.float(), target.float(), topk=(1,))
+        if verbose:
+            print(f"Valid accuracy with weight_decay {weight_decay}: {acc1}")
+        if max_acc < acc1:
+            best_wd_idx, max_acc = idx, acc1
+    return best_wd_idx
+
 
 def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_workers, lr, epochs, 
-             model_id, seed, feature_root, device, amp=True, verbose=False):
-    # warning: we currently only support non-multi-label classification datasets.
+             model_id, seed, feature_root, device, val_dataloader=None, normalize=True, amp=True, verbose=False):
     assert device == 'cuda' # need to use cuda for this else too slow
     # first we need to featurize the dataset, and store the result in feature_root
     if not os.path.exists(feature_root):
@@ -66,17 +148,18 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     feature_dir = os.path.join(feature_root, model_id)
     if not os.path.exists(feature_dir):
         os.mkdir(feature_dir)
-
     
-    featurizer = Featurizer(model).cuda()
+    featurizer = Featurizer(model, normalize).cuda()
     autocast = torch.cuda.amp.autocast if amp else suppress
     if not os.path.exists(os.path.join(feature_dir, 'targets_train.pt')):
         # now we have to cache the features
         devices = [x for x in range(torch.cuda.device_count())]
         featurizer = torch.nn.DataParallel(featurizer, device_ids=devices)
 
-        for j, loader in enumerate([dataloader, train_dataloader]):
-            save_str = '_train' if j == 1 else '_val'
+        splits = ["_train", "_val", "_test"]
+        for save_str, loader in zip(splits, [train_dataloader, val_dataloader, dataloader]):
+            if loader is None:
+                continue
             features = []
             targets = []
             num_batches_tracked = 0
@@ -149,88 +232,60 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
             print('insufficient data for this eval')
             return
 
-    features = features[idxs]
-    targets = targets[idxs]
-    feature_dset = FeatureDataset(features, targets)
-
-    # now train the model
-    feature_loader = DataLoader(feature_dset, batch_size=batch_size, 
+    train_features = features[idxs]
+    train_labels = targets[idxs]
+    if val_dataloader is not None:
+        features_val = torch.load(os.path.join(feature_dir, 'features_val.pt'))
+        targets_val = torch.load(os.path.join(feature_dir, 'targets_val.pt'))
+        feature_val_dset = FeatureDataset(features_val, targets_val)
+        feature_val_loader = DataLoader(
+            feature_val_dset, batch_size=batch_size, 
+            shuffle=True, num_workers=num_workers, 
+            pin_memory=True,
+        )
+        feature_train_val_dset = FeatureDataset(np.concatenate((train_features, features_val)), np.concatenate((train_labels, targets_val)))
+        feature_train_val_loader = DataLoader(
+            feature_train_val_dset, batch_size=batch_size, 
+            shuffle=True, num_workers=num_workers, 
+            pin_memory=True,
+        )
+    feature_train_dset = FeatureDataset(train_features, train_labels)
+    feature_train_loader = DataLoader(feature_train_dset, batch_size=batch_size, 
                                     shuffle=True, num_workers=num_workers, 
                                     pin_memory=True,
                                 )
-    
-    probe = torch.nn.Linear(features[0].shape[0], targets.max().item() + 1)
-    devices = [x for x in range(torch.cuda.device_count())]
-    probe = probe.cuda()
-    probe = torch.nn.DataParallel(probe, device_ids=devices)
-    optimizer = torch.optim.AdamW(
-        probe.parameters(),
-        lr=lr,
-        weight_decay=0,
+    features_test = torch.load(os.path.join(feature_dir, 'features_test.pt'))
+    targets_test = torch.load(os.path.join(feature_dir, 'targets_test.pt'))
+    feature_test_dset = FeatureDataset(features_test, targets_test)
+    feature_test_loader = DataLoader(
+        feature_test_dset, batch_size=batch_size, 
+        shuffle=True, num_workers=num_workers, 
+        pin_memory=True,
     )
-    criterion = torch.nn.CrossEntropyLoss()
+    if val_dataloader is not None:
+        # perform openAI-like hyperparameter sweep
+        # https://arxiv.org/pdf/2103.00020.pdf A.3
+        # instead of scikit-learn LBFGS use FCNNs with AdamW
+        input_shape, output_shape = features[0].shape[0], targets.max().item() + 1
+        wd_list = np.logspace(-6, 2, num=97).tolist()
+        wd_list_init = np.logspace(-6, 2, num=7).tolist()
+        wd_init_idx = [i for i, val in enumerate(wd_list) if val in wd_list_init]
+        peak_idx = find_peak(wd_list, wd_init_idx, feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, autocast, device, verbose, seed)
+        step_span = 8
+        while step_span > 0:
+            left, right = max(peak_idx - step_span, 0), min(peak_idx + step_span, len(wd_list)-1)
+            peak_idx = find_peak(wd_list, [left, peak_idx, right], feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, autocast, device, verbose, seed)
+            step_span //= 2
+        best_wd = wd_list[peak_idx]
+        train_loader = feature_train_val_loader
+    else:
+        best_wd = 0
+        train_loader = feature_train_loader
 
-    len_loader = len(feature_loader)
-    scheduler = cosine_lr(optimizer, lr, 0., epochs * len_loader)
-
-    for epoch in range(epochs):
-        end = time.time()
-        for i, (x, y) in enumerate(feature_loader):
-            x, y = x.cuda(), y.cuda()
-            step = i + epoch * len_loader
-            scheduler(step)
-            data_time = time.time() - end
-
-            optimizer.zero_grad()
-            with autocast():
-                pred = probe(x)
-                loss = criterion(pred, y)
-
-            loss.backward()
-            optimizer.step()
-
-            batch_time = time.time() - end
-            end = time.time()
-
-            if (i % 20) == 0:
-                num_samples = i * len(x)
-                try:
-                    samples_per_epoch = len(train_dataloader)
-                    percent_complete = 100.0 * i / len(train_dataloader)
-                    progress_message = f"[{num_samples}/{samples_per_epoch} ({percent_complete:.0f}%)]"
-                except TypeError:
-                    progress_message = f"[{num_samples} samples]"
-                print(
-                    f"Train Epoch: {epoch} {progress_message}\t"
-                    f"Loss: {loss.item():.6f}\tData (t) {data_time:.3f}\tBatch (t) {batch_time:.3f}\t"
-                    f"LR {optimizer.param_groups[0]['lr']:.5f}"
-                )
-
-    # finally, evaluate.
-    features = torch.load(os.path.join(feature_dir, 'features_val.pt'))
-    targets = torch.load(os.path.join(feature_dir, 'targets_val.pt'))
-    feature_dset = FeatureDataset(features, targets)
-    feature_loader = DataLoader(feature_dset, batch_size=batch_size, 
-                                    shuffle=True, num_workers=num_workers, 
-                                    pin_memory=True,
-                                )
-    true, pred = [], []
-    with torch.no_grad():
-        for x, y in tqdm(feature_loader):
-            x = x.to(device)
-            y = y.to(device)
-
-            with autocast():
-                # predict
-                logits = probe(x)
-
-            pred.append(logits.cpu())
-            true.append(y.cpu())
-            
-    logits = torch.cat(pred)
-    target = torch.cat(true)
+    final_model = train(train_loader, input_shape, output_shape, best_wd, lr, epochs, autocast, device, seed)
+    logits, target = infer(final_model, feature_test_loader, autocast, device)       
     pred = logits.argmax(axis=1)
-
+    
     # measure accuracy
     if target.max() >= 5:
         acc1, acc5 = accuracy(logits.float(), target.float(), topk=(1, 5))
@@ -238,10 +293,15 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         acc1, = accuracy(logits.float(), target.float(), topk=(1,))
         acc5 = float("nan") 
     mean_per_class_recall = balanced_accuracy_score(target, pred)
+    fair_info = {
+        "weight_decay": best_wd,
+        "acc1": acc1,
+        "acc5": acc5,
+        "mean_per_class_recall": mean_per_class_recall,
+        "classification_report": classification_report(target, pred, digits=3)
+    }
     if verbose:
-        print(classification_report(target, pred, digits=3))
-
-    print('acc1:', acc1)
-    return {"lp_acc1": acc1, "lp_acc5": acc5, "lp_mean_per_class_recall": mean_per_class_recall, 
-            'lr': lr, 'epochs': epochs, 'seed': seed, 'fewshot_k': fewshot_k}
-
+        print(fair_info["classification_report"])
+        print(f"Test acc1: {acc1} with weight_decay: {best_wd}")
+    return {"lp_acc1": fair_info["acc1"], "lp_acc5": fair_info["acc5"], "lp_mean_per_class_recall": fair_info["mean_per_class_recall"], 
+            "weight_decay": fair_info['weight_decay'], 'epochs': epochs, 'seed': seed, 'fewshot_k': fewshot_k, 'normalized': normalize}
