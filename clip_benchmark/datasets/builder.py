@@ -46,7 +46,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         where keys are classnames and values are class-specific prompts.
 
     """
-    if task in ('zeroshot_classification', 'linear_probe'):  # Only load templates and classnames if we have to
+    use_classnames_and_templates = task in ('zeroshot_classification', 'linear_probe')
+    if use_classnames_and_templates:  # Only load templates and classnames if we have to
         current_folder = os.path.dirname(__file__)
 
         # Load <LANG>_classnames.json (default)
@@ -80,7 +81,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             custom_templates = None
 
         default_or_custom_classnames = custom_classnames if custom_classnames else default_classnames
-
+ 
     def download_imagenet(r):
         os.makedirs(r, exist_ok=True)
         call(f"wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz --output-document={r}/ILSVRC2012_devkit_t12.tar.gz", shell=True)            
@@ -459,18 +460,19 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     else:
         keys_to_lookup = [dataset_name, default_dataset_for_templates]
     
-    # Specify templates for the dataset (if needed)
-    if custom_templates:
-        # We override with custom templates ONLY if they are provided.
-        ds.templates = value_from_first_key_found(custom_templates, keys=keys_to_lookup)
-        assert ds.templates is not None, f"Templates not specified for {dataset_name}"          
-    elif not hasattr(ds, "templates"):
-        # No templates specified by the dataset itself, so we use  templates are packaged with CLIP benchmark (loaded from <LANG>_zeroshot_classification_templates.json).
-        ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup)
-        assert ds.templates is not None, f"Templates not specified for {dataset_name}"            
-    else:
-        # dataset has templates already (e.g., WDS case), so we keep it as is.
-        pass
+    if use_classnames_and_templates:
+        # Specify templates for the dataset (if needed)
+        if custom_templates:
+            # We override with custom templates ONLY if they are provided.
+            ds.templates = value_from_first_key_found(custom_templates, keys=keys_to_lookup)
+            assert ds.templates is not None, f"Templates not specified for {dataset_name}"          
+        elif not hasattr(ds, "templates"):
+            # No templates specified by the dataset itself, so we use  templates are packaged with CLIP benchmark (loaded from <LANG>_zeroshot_classification_templates.json).
+            ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup)
+            assert ds.templates is not None, f"Templates not specified for {dataset_name}"            
+        else:
+            # dataset has templates already (e.g., WDS case), so we keep it as is.
+            pass
     return ds
 
 def value_from_first_key_found(dic, keys):
