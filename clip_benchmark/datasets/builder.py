@@ -50,11 +50,11 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     if use_classnames_and_templates:  # Only load templates and classnames if we have to
         current_folder = os.path.dirname(__file__)
 
-        # Load <LANG>_classnames.json (default)
+        # Load <LANG>_classnames.json (packaged with CLIP benchmark that are used by default)
         default_classname_file = os.path.join(current_folder, language + "_classnames.json")
         with open(default_classname_file, "r") as f:
             default_classnames = json.load(f)
-        # Load <LANG>_zeroshot_classification_templates.json
+        # Load <LANG>_zeroshot_classification_templates.json  (packaged with CLIP benchmark that are used by default)
         default_template_file = os.path.join(current_folder, language + "_zeroshot_classification_templates.json")
         with open(default_template_file, "r") as f:
             default_templates = json.load(f)
@@ -80,6 +80,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         else:
             custom_templates = None
 
+        # for classnames, we override with custom classnames in case they are provided with --custom_classname_file, otherwise
+         # use the ones packages with CLIP benchmark (<LANG>_classnames.json)
         default_or_custom_classnames = custom_classnames if custom_classnames else default_classnames
  
     def download_imagenet(r):
