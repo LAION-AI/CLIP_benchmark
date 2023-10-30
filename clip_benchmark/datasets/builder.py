@@ -1,20 +1,19 @@
-import os
-import warnings
-import sys
 import json
+import os
+import sys
+import warnings
 from subprocess import call
-from collections import defaultdict
-import torch
-from torchvision.datasets import (
-    VisionDataset, ImageFolder,
-    CIFAR10, CIFAR100, ImageNet, CocoCaptions, Flickr8k, Flickr30k, Food101, SUN397,
-    StanfordCars, FGVCAircraft, DTD, OxfordIIITPet, Caltech101, Flowers102,
-    MNIST, STL10, EuroSAT, GTSRB, Kitti, Country211, PCAM, RenderedSST2
-)
 
-from . import voc2007, flickr, caltech101, imagenetv2, objectnet, babel_imagenet, sugar_crepe
+import torch
 from torch.utils.data import default_collate
-from PIL import Image
+from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
+                                  STL10, SUN397, CocoCaptions, Country211,
+                                  EuroSAT, FGVCAircraft, Flowers102, Food101,
+                                  ImageFolder, ImageNet, OxfordIIITPet,
+                                  RenderedSST2, StanfordCars)
+
+from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
+               sugar_crepe, voc2007)
 
 
 def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
@@ -111,7 +110,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "imagenet-w":
         assert split in ("train", "test"), f"Only `train` and `test` split available for {dataset_name}"
         from imagenet_w import AddWatermark
-        from torchvision.transforms import Normalize, CenterCrop
+        from torchvision.transforms import CenterCrop, Normalize
         if not os.path.exists(root):
             download_imagenet(root)
         index_normalize = None
@@ -260,32 +259,11 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds = CocoCaptions(root=root_split, annFile=annotation_file, transform=transform, **kwargs)
     elif dataset_name == 'multilingual_mscoco_captions':
         from clip_benchmark.datasets import multilingual_mscoco
-        if(language not in multilingual_mscoco.SUPPORTED_LANGUAGES):
+        if language not in multilingual_mscoco.SUPPORTED_LANGUAGES:
             raise ValueError("Unsupported language for multilingual_ms_coco:", language)
-        
-        def get_archive_name(target_split):
-            if target_split == "train":
-                return "train2014.zip"
-            elif target_split in ("val", "test"):
-                return "val2014.zip"
-            else:
-                raise ValueError(f"split should be `train` or `val` or `test` for `{dataset_name}`")
 
-        def download_mscoco_split(target_split):
-            archive_name = get_archive_name(target_split)
-            root_split = os.path.join(root, archive_name.replace(".zip", ""))
-            if not os.path.exists(root_split):
-                print(f"Downloading mscoco_captions {archive_name}...")
-                if not os.path.exists(os.path.join(root, archive_name)):
-                    call(f"wget http://images.cocodataset.org/zips/{archive_name} --output-document={root}/{archive_name}", shell=True)
-                call(f"unzip {root}/{archive_name} -d {root}", shell=True)
-
-                # The multilingual MS-COCO uses images from various splits
-        for target_split in ['train', 'val', 'test']:
-            download_mscoco_split(target_split)
-
-        annotation_file = os.path.join(root, multilingual_mscoco.CAPTIONS_FILE_NAME.format(language))
-        if (os.path.exists(annotation_file) == False):
+        annotation_file = os.path.join(root, multilingual_mscoco.OUTPUT_FILENAME_TEMPLATE.format(language))
+        if not os.path.exists(annotation_file):
             multilingual_mscoco.create_annotation_file(root, language)
 
         ds = multilingual_mscoco.Multilingual_MSCOCO(root=root, ann_file=annotation_file, transform=transform, **kwargs)
@@ -488,7 +466,8 @@ def has_kaggle():
 
 def build_vtab_dataset(dataset_name, transform, download=True, split="test", data_dir="root", classnames=[]):
     # Using VTAB splits instead of default TFDS splits
-    from .tfds import VTABIterableDataset, disable_gpus_on_tensorflow, download_tfds_dataset
+    from .tfds import (VTABIterableDataset, disable_gpus_on_tensorflow,
+                       download_tfds_dataset)
 
     # avoid Tensorflow owning GPUs to not clash with PyTorch
     disable_gpus_on_tensorflow()
@@ -601,6 +580,7 @@ def build_vtab_dataset(dataset_name, transform, download=True, split="test", dat
         classes = tfds_dataset._dataset_builder.info.features[task].names
     elif dataset_name == "sun397":
         from task_adaptation.data.sun397 import Sun397Data
+
         #FIXME There is a problem in `sun397`, when TFDS tries download it
         # there is an image that cannot be decoded. For the time being
         # we will use torchvision's SUN397 instead.
