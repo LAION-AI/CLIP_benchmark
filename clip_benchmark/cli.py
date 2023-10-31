@@ -1,17 +1,26 @@
 """Console script for clip_benchmark."""
 import argparse
-import sys
-import random
-import json
-import torch
 import csv
-from copy import copy
+import json
 import os
+import random
+import sys
+from copy import copy
 from itertools import product
-from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
-from clip_benchmark.metrics import image_caption_selection, zeroshot_classification, zeroshot_retrieval, linear_probe, captioning
-from clip_benchmark.model_collection import get_model_collection_from_file, model_collection
-from clip_benchmark.models import load_clip, MODEL_TYPES
+
+import torch
+
+from clip_benchmark.datasets.builder import (build_dataset, dataset_collection,
+                                             get_dataset_collate_fn,
+                                             get_dataset_collection_from_file,
+                                             get_dataset_default_task)
+from clip_benchmark.metrics import (captioning, image_caption_selection,
+                                    linear_probe, zeroshot_classification,
+                                    zeroshot_retrieval)
+from clip_benchmark.model_collection import (get_model_collection_from_file,
+                                             model_collection)
+from clip_benchmark.models import MODEL_TYPES, load_clip
+
 
 def get_parser_args():
     parser = argparse.ArgumentParser()
@@ -201,6 +210,11 @@ def run(args):
             device=args.device
         )
         model.eval()
+        if args.model_type.count("nllb-clip") > 0:
+            # for NLLB-CLIP models, we need to set the language prior to running the tests
+            from clip_benchmark.models.nllb_clip import set_language
+
+            set_language(tokenizer, args.language)
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=dataset_root, 
