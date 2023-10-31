@@ -267,6 +267,16 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             multilingual_mscoco.create_annotation_file(root, language)
 
         ds = multilingual_mscoco.Multilingual_MSCOCO(root=root, ann_file=annotation_file, transform=transform, **kwargs)
+    elif dataset_name == 'crossmodal3600':
+        from clip_benchmark.datasets import crossmodal3600
+        if language not in crossmodal3600.SUPPORTED_LANGUAGES:
+            raise ValueError("Unsupported language for Crossmodal-3600:", language)
+
+        annotation_file = os.path.join(root, crossmodal3600.OUTPUT_FILENAME_TEMPLATE.format(language))
+        if not os.path.exists(annotation_file):
+            crossmodal3600.create_annotation_file(root, language)
+
+        ds = crossmodal3600.Crossmodal3600(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
