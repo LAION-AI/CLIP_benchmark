@@ -287,6 +287,16 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             xtd200.create_annotation_file(root, language)
 
         ds = xtd200.XTD200(root=root, ann_file=annotation_file, transform=transform, **kwargs)
+    elif dataset_name == 'flickr30k-200':
+        from clip_benchmark.datasets import flickr30k_200
+        if language not in flickr30k_200.SUPPORTED_LANGUAGES:
+            raise ValueError("Unsupported language for flickr30k-200:", language)
+
+        annotation_file = os.path.join(root, flickr30k_200.OUTPUT_FILENAME_TEMPLATE.format(language))
+        if not os.path.exists(annotation_file):
+            flickr30k_200.create_annotation_file(root, language)
+
+        ds = flickr30k_200.Flickr30k_200(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == "flickr30k":
         # downloadable from https://www.kaggle.com/datasets/adityajn105/flickr30k
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
