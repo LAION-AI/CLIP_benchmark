@@ -67,7 +67,7 @@ class Crossmodal3600(VisionDataset):
         img, captions = self.data[index]
 
         # Image
-        img = Image.open(os.path.join(self.root, img)).convert("RGB")
+        img = Image.open(img).convert("RGB")
         if self.transform is not None:
             img = self.transform(img)
 
