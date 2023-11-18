@@ -1,5 +1,7 @@
 def set_language(tokenizer, lang_code):
-    tokenizer.set_src_lang_special_tokens(lang_map[lang_code])
+    lang = lang_map[lang_code]
+    print(f"Setting language for NLLB-CLIP: {lang}")
+    tokenizer.tokenizer.set_src_lang_special_tokens(lang)
 
 
 lang_map = {

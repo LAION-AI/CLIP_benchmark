@@ -210,7 +210,7 @@ def run(args):
             device=args.device
         )
         model.eval()
-        if args.model_type.count("nllb-clip") > 0:
+        if args.model.count("nllb-clip") > 0:
             # for NLLB-CLIP models, we need to set the language prior to running the tests
             from clip_benchmark.models.nllb_clip import set_language
 
@@ -269,7 +269,7 @@ def run(args):
             verbose=args.verbose,
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
-        )
+        ) 
     elif task == "zeroshot_retrieval":
         metrics = zeroshot_retrieval.evaluate(
             model, 

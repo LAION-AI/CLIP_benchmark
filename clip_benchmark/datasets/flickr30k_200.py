@@ -1,6 +1,7 @@
 import codecs
 import json
 import os
+from subprocess import call
 
 import requests
 from datasets import load_dataset
@@ -14,8 +15,12 @@ GITHUB_DATA_PATH = (
 )
 SUPPORTED_LANGUAGES = flores_languages
 
+IMAGE_INDEX_FILENAME = "filenames.txt"
+
 CAPTIONS_FILENAME_TEMPLATE = "{}.txt"
 OUTPUT_FILENAME_TEMPLATE = "flickr30k_200-{}.json"
+
+IMAGES_DOWNLOAD_URL = "https://nllb-data.com/test/flickr30k/images.tar.gz"
 
 
 class Flickr30k_200(VisionDataset):
@@ -33,7 +38,7 @@ class Flickr30k_200(VisionDataset):
         img, captions = self.data[index]
 
         # Image
-        img = Image.open(os.path.join(self.root, img)).convert("RGB")
+        img = Image.open(img).convert("RGB")
         if self.transform is not None:
             img = self.transform(img)
 
@@ -55,26 +60,25 @@ def _get_lines(url):
     return response.text.splitlines()
 
 
+def _download_images(out_path):
+    os.makedirs(out_path, exist_ok=True)
+    print("Downloading images")
+    call(f"wget {IMAGES_DOWNLOAD_URL} -O images.tar.gz", shell=True)
+    call(f"tar -xzf images.tar.gz -C {out_path}", shell=True)
+    call("rm images.tar.gz", shell=True)
+
 def create_annotation_file(root, lang_code):
     if lang_code not in SUPPORTED_LANGUAGES:
         raise ValueError(
             f"Language code {lang_code} not supported. Supported languages are {SUPPORTED_LANGUAGES}"
         )
+    data_dir = os.path.join(root, "flickr30k-200")
+    if not os.path.exists(data_dir):
+        _download_images(data_dir)
     images_dir = os.path.join(root, "flickr30k-200", "images")
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir, exist_ok=True)
-        dataset = load_dataset("nlphuji/flickr30k")
-        for item in dataset["test"]:
-            if item["split"] != "test":
-                continue
-            image=item["image"]
-            filename = item["filename"]
-            image.save(os.path.join(images_dir, filename))
-    
-    target_images = []
-    image_files = os.listdir(images_dir)
-    for item in image_files:
-        target_images.append(item)
+    print("Downloading flickr30k-200 index file")
+    download_path = os.path.join(GITHUB_DATA_PATH, IMAGE_INDEX_FILENAME)
+    target_images = _get_lines(download_path)
 
     print("Downloading flickr30k-200 captions:", lang_code)
     captions_path = GITHUB_DATA_PATH
