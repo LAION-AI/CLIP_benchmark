@@ -82,7 +82,7 @@ def main_build(base):
     # Build a benchmark single CSV file from a set of evaluations (JSON files)
     rows = []
     fieldnames = set()
-    for path in base.files:
+    def process_file(path: str):
         data = json.load(open(path))
         row = {}
         row.update(data["metrics"])
@@ -92,6 +92,13 @@ def main_build(base):
         for field in row.keys():
             fieldnames.add(field)
         rows.append(row)
+    for path in base.files:
+        if os.path.isdir(path):
+            files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(".json")]
+            for file in files:
+                process_file(file)
+        else:
+            process_file(path)
     with open(base.output, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
