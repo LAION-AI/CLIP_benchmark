@@ -4,7 +4,6 @@ import os
 from subprocess import call
 
 import requests
-from datasets import load_dataset
 from PIL import Image
 from torchvision.datasets import VisionDataset
 
