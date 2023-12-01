@@ -461,6 +461,9 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     if dataset_name.startswith("tfds/") or dataset_name.startswith("vtab/") or dataset_name.startswith("wds/"):
         prefix, *rest = dataset_name.split("/")
         short_name = "/".join(rest)
+        # if it's a vtab/tfds/wds/ dataset, we look for e.g. vtab/<name>  
+        # as well as <name> in the custom template file/classname file,
+        # whichever is found.
         keys_to_lookup = [dataset_name, short_name]
     else:
         keys_to_lookup = [dataset_name]
@@ -468,11 +471,16 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     if use_classnames_and_templates:
         # Specify templates for the dataset (if needed)
         if custom_templates:
-            # We override with custom templates ONLY if they are provided.
-            ds.templates = value_from_first_key_found(custom_templates, keys=keys_to_lookup + [default_dataset_for_templates])
+            # We override with custom templates ONLY if they are provided,
+            # which is the case when `custom_templates` is loaded.
+            ds.templates = value_from_first_key_found(
+                custom_templates, keys=keys_to_lookup + [default_dataset_for_templates]
+            )
             assert ds.templates is not None, f"Templates not specified for {dataset_name}"          
         elif not hasattr(ds, "templates"):
-            # No templates specified by the dataset itself, so we use  templates are packaged with CLIP benchmark (loaded from <LANG>_zeroshot_classification_templates.json).
+            # No templates specified by the dataset itself, 
+            # so we use  templates are packaged with CLIP benchmark 
+            # (loaded from <LANG>_zeroshot_classification_templates.json).
             ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup + [default_dataset_for_templates])
             assert ds.templates is not None, f"Templates not specified for {dataset_name}"            
         else:
