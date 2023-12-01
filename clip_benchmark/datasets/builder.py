@@ -451,7 +451,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
         ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir)
-        # WDS specify classnames and templates on this own.
+        # WDS specify classnames and templates on its own.
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
