@@ -331,19 +331,23 @@ def run(args):
                 annotation_file=args.annotation_file,
                 download=True,
             )
-        else:
+        elif args.val_proportion is not None:
             train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [1 - args.val_proportion, args.val_proportion])
-            
+        else:
+            val_dataset = None
         train_dataloader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.batch_size, 
             shuffle=False, num_workers=args.num_workers, 
             collate_fn=collate_fn, pin_memory=True,
         )
-        val_dataloader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=args.batch_size, 
-            shuffle=False, num_workers=args.num_workers, 
-            collate_fn=collate_fn, pin_memory=True,
-        )
+        if val_dataset is not None:
+            val_dataloader = torch.utils.data.DataLoader(
+                val_dataset, batch_size=args.batch_size, 
+                shuffle=False, num_workers=args.num_workers, 
+                collate_fn=collate_fn, pin_memory=True,
+            )
+        else:
+            val_dataloader = None
         metrics = linear_probe.evaluate(
             model,
             train_dataloader,

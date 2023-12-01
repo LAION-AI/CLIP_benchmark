@@ -262,11 +262,11 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         shuffle=True, num_workers=num_workers, 
         pin_memory=True,
     )
+    input_shape, output_shape = features[0].shape[0], targets.max().item() + 1
     if val_dataloader is not None:
         # perform openAI-like hyperparameter sweep
         # https://arxiv.org/pdf/2103.00020.pdf A.3
         # instead of scikit-learn LBFGS use FCNNs with AdamW
-        input_shape, output_shape = features[0].shape[0], targets.max().item() + 1
         wd_list = np.logspace(-6, 2, num=97).tolist()
         wd_list_init = np.logspace(-6, 2, num=7).tolist()
         wd_init_idx = [i for i, val in enumerate(wd_list) if val in wd_list_init]
