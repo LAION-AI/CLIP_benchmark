@@ -33,6 +33,8 @@ class base_args:
     custom_template_file=None
     custom_classname_file=None
     distributed=False
+    dump_classnames=False
+    dump_templates=False
 
 def test_base():
     run(base_args)
