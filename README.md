@@ -173,10 +173,28 @@ Example with `cifar10`:
 
  Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`) and `pycocoevalcap`.
 
+### Linear probing example
+
+Full linear probing on train split, evaluate on test split:
+
+`clip_benchmark eval --dataset=cifar10 --task=linear_probe --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64 --fewshot_lr 0.1 --fewshot_epochs 20 --batch_size 512 --train_split train --test_split test`
+
+
+few-shot (k=5) linear probing on train split, evaluate on test split:
+
+`clip_benchmark eval --dataset=cifar10 --task=linear_probe --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64 --fewshot_k 5 --fewshot_lr 0.1 --fewshot_epochs 20 --batch_size 512 --train_split train --test_split test`
+
+Split train into train (90%), val (10%), do linear probing on train split, tune on val split, evaluate on test split:
+
+`clip_benchmark eval --dataset=cifar10 --task=linear_probe --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64 --fewshot_lr 0.1 --fewshot_epochs 20 --batch_size 512 --train_split train --val_proportion 0.1 --test_split test`
+
+For other datasets that have an official val split, one can also specify the val split:
+
+`clip_benchmark eval --dataset=fgvc_aircraft --task=linear_probe --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64 --fewshot_lr 0.1 --fewshot_epochs 20 --batch_size 512 --train_split train --val_split val --test_split test`
 
 ### Multilingual evaluation
 
-We also provide datasets for evaluating multilingual models (see e.g. https://github.com/mlfoundations/open_clip#vit-b32-xlm-roberta-base) by specifying `--language`.
+We also provide datasets for evaluating multilingual models (see e.g. https://github.com/mlfoundations/open_clip#vit-b32-xlm-roberta-base, and https://github.com/mlfoundations/open_clip/blob/main/docs/openclip_multilingual_retrieval_results.csv) by specifying `--language`.
 
 For ImageNet-1k (zero-shot classification):
 
@@ -186,8 +204,7 @@ where `<LANG>` is a two letter string from the [ISO language code list](https://
 
 for COCO (zero-shot retrieval):
 
-- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=multilingual_mscoco_captions --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `es` (spanish), `it` (italian), `jp` (japanese), `ko` (korean), `pl` (polish), `ru` (russian), `tr` (Turkish), `zh` (chinese), `en` (english).
-
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=multilingual_mscoco_captions --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `es` (spanish), `it` (italian), `jp` (japanese), `ko` (korean), `pl` (polish), `ru` (russian), `tr` (Turkish), `zh` (chinese), `en` (english), `fr` (french), `de` (german).
 
 For Flickr-30k (zero-shot retrieval)
 
@@ -196,6 +213,18 @@ For Flickr-30k (zero-shot retrieval)
 For Flickr-8k (zero-shot retrieval)
 
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=flickr8k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `en` (english), `zh` (chinese).
+
+For [Crossmodal-3600](https://google.github.io/crossmodal-3600/) (zero-shot retrieval)
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=crossmodal3600 --output=result.json --batch_size=64 --language=<LANG>`, see supported languages [here](https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/crossmodal3600.py#L9).
+
+For Flickr30k-200 dataset, which has 1000 captions from Flickr30k dataset translated to 200 languages using [NLLB-3.3B model](https://huggingface.co/facebook/nllb-200-3.3B) (zero-shot retrieval)
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=flickr30k-200 --output=result.json --batch_size=64 --language=<LANG>`, see supported languages [here](https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/flickr30k_200.py#L15).
+
+For XTD200 dataset, which has captions from [XTD10](https://github.com/adobe-research/Cross-lingual-Test-Dataset-XTD10) dataset translated to 200 languages using [NLLB-3.3B model](https://huggingface.co/facebook/nllb-200-3.3B) (zero-shot retrieval)
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=xtd200 --output=result.json --batch_size=64 --language=<LANG>`, see supported languages [here](https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/xtd200.py#L15).
 
 
 ### Compositionality evaluation
@@ -369,5 +398,6 @@ python setup.py install
 - Thanks to [@djghosh13](https://github.com/djghosh13) for WebDataset support.
 - Thanks to [@FreddeFrallan](https://github.com/FreddeFrallan) for for multilingual COCO.
 - Thanks to [@mitchellnw](https://github.com/mitchellnw) for linear probing support.
-
+- Thanks to [@teasgen](https://github.com/teasgen) for support of validation set and tuning linear probing similar to OpenAI.
+- Thanks to [@visheratin](https://github.com/visheratin) for multilingual retrieval datasets support from <https://arxiv.org/abs/2309.01859>.
 - This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
