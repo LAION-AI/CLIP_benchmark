@@ -15,15 +15,15 @@ or directly in the [notebook](benchmark/results.ipynb).
 
 ## Features
 
-* Support for zero-shot classification and zero-shot retrieval, and captioning
-* Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models
+* Support for zero-shot classification and zero-shot retrieval, linear probing, and captioning.
+* Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models, [Japanese CLIP](https://github.com/rinnakk/japanese-clip), and [NLLB CLIP](https://arxiv.org/abs/2309.01859) for general multilingual abilities.
 * Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
-* Support [Japanese CLIP by rinna](https://github.com/rinnakk/japanese-clip)
+* Support for various multilingual datasets for classification and retrieval
+* Support for compositionality tasks
 
 ## How to install?
 
 `pip install clip-benchmark`
-
 
 ## How to use?
 
