@@ -3,24 +3,56 @@ import json
 import os
 from subprocess import call
 
-import requests
 from PIL import Image
 from torchvision.datasets import VisionDataset
 
-GITHUB_DATA_PATH = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/XTD10/"
-GITHUB_DATA_PATH_DE_FR = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/MIC/"
-GITHUB_DATA_PATH_JP = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/STAIR/"
-SUPPORTED_LANGUAGES = ["es", "it", "ko", "pl", "ru", "tr", "zh", "en", "de", "fr", "jp"]
+SUPPORTED_LANGUAGES = [
+    "ar",
+    "bn",
+    "cs",
+    "da",
+    "de",
+    "el",
+    "en",
+    "es",
+    "fa",
+    "fi",
+    "fil",
+    "fr",
+    "he",
+    "hi",
+    "hr",
+    "hu",
+    "id",
+    "it",
+    "ja",
+    "ko",
+    "mi",
+    "nl",
+    "no",
+    "pl",
+    "pt",
+    "quz",
+    "ro",
+    "ru",
+    "sv",
+    "sw",
+    "te",
+    "th",
+    "tr",
+    "uk",
+    "vi",
+    "zh",
+]
 
-IMAGE_INDEX_FILENAME = "test_image_names.txt"
+CAPTIONS_DOWNLOAD_URL = "https://google.github.io/crossmodal-3600/web-data/captions.zip"
+IMAGES_DOWNLOAD_URL = (
+    "https://open-images-dataset.s3.amazonaws.com/crossmodal-3600/images.tgz"
+)
+OUTPUT_FILENAME_TEMPLATE = "crossmodal3600_captions-{}.json"
 
-CAPTIONS_FILENAME_TEMPLATE = "test_1kcaptions_{}.txt"
-OUTPUT_FILENAME_TEMPLATE = "multilingual_mscoco_captions-{}.json"
 
-IMAGES_DOWNLOAD_URL = "https://nllb-data.com/test/xtd10/images.tar.gz"
-
-
-class Multilingual_MSCOCO(VisionDataset):
+class Crossmodal3600(VisionDataset):
     def __init__(self, root, ann_file, transform=None, target_transform=None):
         super().__init__(root, transform=transform, target_transform=target_transform)
         self.ann_file = os.path.expanduser(ann_file)
@@ -52,17 +84,20 @@ class Multilingual_MSCOCO(VisionDataset):
         return len(self.data)
 
 
-def _get_lines(url):
-    response = requests.get(url, timeout=30)
-    return response.text.splitlines()
+def _download_captions(out_path):
+    os.makedirs(out_path, exist_ok=True)
+    print("Downloading captions")
+    call(f"wget {CAPTIONS_DOWNLOAD_URL} -O captions.zip", shell=True)
+    call(f"unzip captions.zip -d {out_path}", shell=True)
+    call("rm captions.zip", shell=True)
 
 
 def _download_images(out_path):
     os.makedirs(out_path, exist_ok=True)
     print("Downloading images")
-    call(f"wget {IMAGES_DOWNLOAD_URL} -O images.tar.gz", shell=True)
-    call(f"tar -xzf images.tar.gz -C {out_path}", shell=True)
-    call("rm images.tar.gz", shell=True)
+    call(f"wget {IMAGES_DOWNLOAD_URL} -O images.tgz", shell=True)
+    call(f"tar -xzf images.tgz -C {out_path}", shell=True)
+    call("rm images.tgz", shell=True)
 
 
 def create_annotation_file(root, lang_code):
@@ -70,33 +105,29 @@ def create_annotation_file(root, lang_code):
         raise ValueError(
             f"Language code {lang_code} not supported. Supported languages are {SUPPORTED_LANGUAGES}"
         )
-    data_dir = os.path.join(root, "multilingual_mscoco")
-    if not os.path.exists(data_dir):
-        _download_images(data_dir)
+    data_dir = os.path.join(root, "xm3600")
     images_dir = os.path.join(data_dir, "images")
-    print("Downloading multilingual_ms_coco index file")
-    download_path = os.path.join(GITHUB_DATA_PATH, IMAGE_INDEX_FILENAME)
-    target_images = _get_lines(download_path)
-
-    print("Downloading multilingual_ms_coco captions:", lang_code)
-    captions_path = GITHUB_DATA_PATH
-    if lang_code in ["de", "fr"]:
-        captions_path = GITHUB_DATA_PATH_DE_FR
-    elif lang_code == "jp":
-        captions_path = GITHUB_DATA_PATH_JP
-    download_path = os.path.join(
-        captions_path, CAPTIONS_FILENAME_TEMPLATE.format(lang_code)
-    )
-    target_captions = _get_lines(download_path)
+    if not os.path.exists(images_dir):
+        _download_images(images_dir)
+    captions_path = os.path.join(data_dir, "captions.jsonl")
+    if not os.path.exists(captions_path):
+        _download_captions(data_dir)
+    with open(captions_path, "r", encoding="utf-8") as f:
+        data = f.readlines()
+    data = [json.loads(line) for line in data]
 
     number_of_missing_images = 0
     valid_images, valid_annotations, valid_indicies = [], [], []
-    for i, (img, txt) in enumerate(zip(target_images, target_captions)):
-        image_path = os.path.join(images_dir, img)
+    for i, data_item in enumerate(data):
+        image_id = data_item["image/key"]
+        image_name = f"{image_id}.jpg"
+        image_path = os.path.join(images_dir, image_name)
         if not os.path.exists(image_path):
-            print("Missing image file", img)
+            print("Missing image file", image_name)
             number_of_missing_images += 1
             continue
+        captions = data_item[lang_code]["caption"]
+        txt = captions[0]
 
         valid_images.append(image_path)
         valid_annotations.append(txt)
@@ -106,7 +137,9 @@ def create_annotation_file(root, lang_code):
         print(f"*** WARNING *** missing {number_of_missing_images} files.")
 
     with codecs.open(
-        os.path.join(root, OUTPUT_FILENAME_TEMPLATE.format(lang_code)), "w", encoding="utf-8"
+        os.path.join(root, OUTPUT_FILENAME_TEMPLATE.format(lang_code)),
+        "w",
+        encoding="utf-8",
     ) as fp:
         json.dump(
             {
