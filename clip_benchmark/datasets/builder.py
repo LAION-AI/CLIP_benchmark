@@ -768,14 +768,14 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         # Get class names if present
         classnames_fname = os.path.join(metadata_dir, "classnames.txt")
         try:
-            dataset.classes = [line.strip() for line in read_txt(classnames_fname).splitlines() if line.strip()]
+            dataset.classes = [line.strip() for line in read_txt(classnames_fname).splitlines()]
         except FileNotFoundError:
             print("WARNING: classnames.txt not found")
             dataset.classes = None
         # Get zeroshot classification templates if present
         templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
         try:
-            dataset.templates = [line.strip() for line in read_txt(templates_fname).splitlines() if line.strip()]
+            dataset.templates = [line.strip() for line in read_txt(templates_fname).splitlines()]
         except FileNotFoundError:
             print("WARNING: zeroshot_classification_templates.txt not found")
             dataset.templates = None
