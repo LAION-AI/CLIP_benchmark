@@ -1,17 +1,26 @@
 """Console script for clip_benchmark."""
 import argparse
-import sys
-import random
-import json
-import torch
 import csv
-from copy import copy
+import json
 import os
+import random
+import sys
+from copy import copy
 from itertools import product
-from clip_benchmark.datasets.builder import build_dataset, get_dataset_collate_fn, get_dataset_default_task, dataset_collection, get_dataset_collection_from_file
-from clip_benchmark.metrics import image_caption_selection, zeroshot_classification, zeroshot_retrieval, linear_probe, captioning
-from clip_benchmark.model_collection import get_model_collection_from_file, model_collection
-from clip_benchmark.models import load_clip, MODEL_TYPES
+
+import torch
+
+from clip_benchmark.datasets.builder import (build_dataset, dataset_collection,
+                                             get_dataset_collate_fn,
+                                             get_dataset_collection_from_file,
+                                             get_dataset_default_task)
+from clip_benchmark.metrics import (captioning, image_caption_selection,
+                                    linear_probe, zeroshot_classification,
+                                    zeroshot_retrieval)
+from clip_benchmark.model_collection import (get_model_collection_from_file,
+                                             model_collection)
+from clip_benchmark.models import MODEL_TYPES, load_clip
+
 
 def get_parser_args():
     parser = argparse.ArgumentParser()
@@ -81,7 +90,7 @@ def main_build(base):
     # Build a benchmark single CSV file from a set of evaluations (JSON files)
     rows = []
     fieldnames = set()
-    for path in base.files:
+    def process_file(path: str):
         data = json.load(open(path))
         row = {}
         row.update(data["metrics"])
@@ -91,6 +100,13 @@ def main_build(base):
         for field in row.keys():
             fieldnames.add(field)
         rows.append(row)
+    for path in base.files:
+        if os.path.isdir(path):
+            files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(".json")]
+            for file in files:
+                process_file(file)
+        else:
+            process_file(path)
     with open(base.output, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -241,6 +257,11 @@ def run(args):
             device=args.device
         )
         model.eval()
+        if args.model.count("nllb-clip") > 0:
+            # for NLLB-CLIP models, we need to set the language prior to running the tests
+            from clip_benchmark.models.nllb_clip import set_language
+
+            set_language(tokenizer, args.language)
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=dataset_root, 
@@ -295,7 +316,7 @@ def run(args):
             verbose=args.verbose,
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
-        )
+        ) 
     elif task == "zeroshot_retrieval":
         metrics = zeroshot_retrieval.evaluate(
             model, 

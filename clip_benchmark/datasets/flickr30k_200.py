@@ -7,20 +7,22 @@ import requests
 from PIL import Image
 from torchvision.datasets import VisionDataset
 
-GITHUB_DATA_PATH = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/XTD10/"
-GITHUB_DATA_PATH_DE_FR = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/MIC/"
-GITHUB_DATA_PATH_JP = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/STAIR/"
-SUPPORTED_LANGUAGES = ["es", "it", "ko", "pl", "ru", "tr", "zh", "en", "de", "fr", "jp"]
+from .flores_langs import flores_languages
 
-IMAGE_INDEX_FILENAME = "test_image_names.txt"
+GITHUB_DATA_PATH = (
+    "https://raw.githubusercontent.com/visheratin/nllb-clip/main/data/flickr30k-200/"
+)
+SUPPORTED_LANGUAGES = flores_languages
 
-CAPTIONS_FILENAME_TEMPLATE = "test_1kcaptions_{}.txt"
-OUTPUT_FILENAME_TEMPLATE = "multilingual_mscoco_captions-{}.json"
+IMAGE_INDEX_FILENAME = "filenames.txt"
 
-IMAGES_DOWNLOAD_URL = "https://nllb-data.com/test/xtd10/images.tar.gz"
+CAPTIONS_FILENAME_TEMPLATE = "{}.txt"
+OUTPUT_FILENAME_TEMPLATE = "flickr30k_200-{}.json"
+
+IMAGES_DOWNLOAD_URL = "https://nllb-data.com/test/flickr30k/images.tar.gz"
 
 
-class Multilingual_MSCOCO(VisionDataset):
+class Flickr30k_200(VisionDataset):
     def __init__(self, root, ann_file, transform=None, target_transform=None):
         super().__init__(root, transform=transform, target_transform=target_transform)
         self.ann_file = os.path.expanduser(ann_file)
@@ -64,26 +66,21 @@ def _download_images(out_path):
     call(f"tar -xzf images.tar.gz -C {out_path}", shell=True)
     call("rm images.tar.gz", shell=True)
 
-
 def create_annotation_file(root, lang_code):
     if lang_code not in SUPPORTED_LANGUAGES:
         raise ValueError(
             f"Language code {lang_code} not supported. Supported languages are {SUPPORTED_LANGUAGES}"
         )
-    data_dir = os.path.join(root, "multilingual_mscoco")
+    data_dir = os.path.join(root, "flickr30k-200")
     if not os.path.exists(data_dir):
         _download_images(data_dir)
-    images_dir = os.path.join(data_dir, "images")
-    print("Downloading multilingual_ms_coco index file")
+    images_dir = os.path.join(root, "flickr30k-200", "images")
+    print("Downloading flickr30k-200 index file")
     download_path = os.path.join(GITHUB_DATA_PATH, IMAGE_INDEX_FILENAME)
     target_images = _get_lines(download_path)
 
-    print("Downloading multilingual_ms_coco captions:", lang_code)
+    print("Downloading flickr30k-200 captions:", lang_code)
     captions_path = GITHUB_DATA_PATH
-    if lang_code in ["de", "fr"]:
-        captions_path = GITHUB_DATA_PATH_DE_FR
-    elif lang_code == "jp":
-        captions_path = GITHUB_DATA_PATH_JP
     download_path = os.path.join(
         captions_path, CAPTIONS_FILENAME_TEMPLATE.format(lang_code)
     )
@@ -106,7 +103,9 @@ def create_annotation_file(root, lang_code):
         print(f"*** WARNING *** missing {number_of_missing_images} files.")
 
     with codecs.open(
-        os.path.join(root, OUTPUT_FILENAME_TEMPLATE.format(lang_code)), "w", encoding="utf-8"
+        os.path.join(root, OUTPUT_FILENAME_TEMPLATE.format(lang_code)),
+        "w",
+        encoding="utf-8",
     ) as fp:
         json.dump(
             {
