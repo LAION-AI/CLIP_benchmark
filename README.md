@@ -398,6 +398,6 @@ python setup.py install
 - Thanks to [@djghosh13](https://github.com/djghosh13) for WebDataset support.
 - Thanks to [@FreddeFrallan](https://github.com/FreddeFrallan) for for multilingual COCO.
 - Thanks to [@mitchellnw](https://github.com/mitchellnw) for linear probing support.
-- Thanks to [@teasgen](https://github.com/teasgen) for support of validation set and tuning linear probing similar to OpenAI.
+- Thanks to [@teasgen](https://github.com/teasgen) for support of validation set and tuning linear probing similar to OpenAI's CLIP.
 - Thanks to [@visheratin](https://github.com/visheratin) for multilingual retrieval datasets support from <https://arxiv.org/abs/2309.01859>.
 - This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
