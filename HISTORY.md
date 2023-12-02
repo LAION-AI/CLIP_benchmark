@@ -1,5 +1,12 @@
 ## History
 
+### 1.6.0
+
+
+* Fix overwritten zeroshot templates issue (https://github.com/LAION-AI/CLIP_benchmark/issues/109)
+* Support new multilingual retrieval datasets:  Crossmodal-3600, XTD10, Flickr30k-200, and XTD200
+* Support tuning linear probing on validation set
+
 ### 1.5.0
 
 * Custom classnames and templates
