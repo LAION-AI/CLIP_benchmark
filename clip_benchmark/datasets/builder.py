@@ -759,7 +759,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     if not cache_dir or not isinstance(cache_dir, str):
         cache_dir = None
     dataset = (
-        wds.WebDataset(filepattern, cache_dir=cache_dir)
+        wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
         .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
     )
     # Load based on classification or retrieval task
