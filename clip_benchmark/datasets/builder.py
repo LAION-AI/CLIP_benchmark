@@ -531,7 +531,7 @@ def get_dataset_default_task(dataset):
         return "zeroshot_classification"
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200") or dataset_name.startswith("sugar_crepe") or dataset_name == "winoground":
+    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200", "winoground") or dataset_name.startswith("sugar_crepe"):
         return image_captions_collate_fn
     else:
         return default_collate
