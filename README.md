@@ -240,6 +240,12 @@ To evaluate on all the tasks together, you can do:
 
 `clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe --output=result.json`
 
+For [winoground](https://huggingface.co/datasets/facebook/winoground/):
+
+`clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=winoground --output=result.json`
+
+NB: `pip install datasets` is required for winoground.
+
 ### Webdataset example
 
 Here is an example on how to run it on [webdatasets](https://github.com/webdataset/webdataset).

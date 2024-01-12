@@ -13,7 +13,7 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   RenderedSST2, StanfordCars)
 
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
-               sugar_crepe, voc2007)
+               sugar_crepe, voc2007, winoground)
 
 
 def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
@@ -242,6 +242,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             url = f"https://raw.githubusercontent.com/RAIVNLab/sugar-crepe/main/data/{task}.json"
             call(f"wget {url} --output-document={ann}", shell=True)
         ds = sugar_crepe.SugarCrepe(root=os.path.join(root, "val2017"), ann_file=ann, transform=transform, **kwargs)
+    elif dataset_name == "winoground":
+        ds = winoground.WinoGround(root=root, transform=transform)
     elif dataset_name == "mscoco_captions":
         # https://github.com/mehdidc/retrieval_annotations/releases/tag/1.0.0(annotations)
         if split == "train":
@@ -523,13 +525,13 @@ class Dummy():
 def get_dataset_default_task(dataset):
     if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd200"):
         return "zeroshot_retrieval"
-    elif dataset.startswith("sugar_crepe"):
+    elif dataset.startswith("sugar_crepe") or dataset == "winoground":
         return "image_caption_selection"
     else:
         return "zeroshot_classification"
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200") or dataset_name.startswith("sugar_crepe"):
+    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200", "winoground") or dataset_name.startswith("sugar_crepe"):
         return image_captions_collate_fn
     else:
         return default_collate
