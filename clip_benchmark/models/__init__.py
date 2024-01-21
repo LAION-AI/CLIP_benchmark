@@ -1,14 +1,9 @@
 from typing import Union
 import torch
-from .open_clip import load_open_clip
-from .japanese_clip import load_japanese_clip
+import all_clip
 
-# loading function must return (model, transform, tokenizer)
-TYPE2FUNC = {
-    "open_clip": load_open_clip,
-    "ja_clip": load_japanese_clip
-}
-MODEL_TYPES = list(TYPE2FUNC.keys())
+ # see https://github.com/rom1504/all-clip?tab=readme-ov-file#supported-models
+MODEL_TYPES = ["openai_clip", "open_clip", "ja_clip", "hf_clip", "nm"]
 
 
 def load_clip(
@@ -19,5 +14,10 @@ def load_clip(
         device: Union[str, torch.device] = "cuda"
 ):
     assert model_type in MODEL_TYPES, f"model_type={model_type} is invalid!"
-    load_func = TYPE2FUNC[model_type]
-    return load_func(model_name=model_name, pretrained=pretrained, cache_dir=cache_dir, device=device)
+    return all_clip.load_clip(
+        clip_model=model_type+":"+model_name+"/"+pretrained,
+        use_jit=True,
+        warmup_batch_size=1,
+        clip_cache_path=cache_dir,
+        device=device,
+    )

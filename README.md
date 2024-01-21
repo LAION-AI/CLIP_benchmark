@@ -80,16 +80,8 @@ Here is an example of use
 
 ### How to add other CLIP models
 
-Please follow these steps:
-1. Add a identity file to load model in `clip_benchmark/models`
-2. Define a loading function, that returns a tuple (model, transform, tokenizer). Please see `clip_benchmark/models/open_clip.py` as an example. 
-3. Add the function into `TYPE2FUNC` in `clip_benchmark/models/__init__.py`
-
-Remarks:
-- The new tokenizer/model must enable to do the following things as https://github.com/openai/CLIP#usage
-  - `tokenizer(texts).to(device)`  ... `texts` is a list of string
-  - `model.encode_text(tokenized_texts)` ... `tokenized_texts` is a output from `tokenizer(texts).to(device)`
-  - `model.encode_image(images)` ... `images` is a image tensor by the `transform`
+Please add your model into [all-clip](https://github.com/data2ml/all-clip) and it will be supported into CLIP-benchmark (and in clip-retrieval).
+See [How to add a model type](https://github.com/data2ml/all-clip?tab=readme-ov-file#how-to-add-a-model-type)
 
 
 ### CIFAR-10 example
