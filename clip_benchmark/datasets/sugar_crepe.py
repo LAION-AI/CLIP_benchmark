@@ -8,9 +8,11 @@ class SugarCrepe(Dataset):
         self.root = root
         self.ann = json.load(open(ann_file))
         self.transform = transform
+        self.idx_strings = list(self.ann.keys()) # NOTE : indices may be non-contiguous
 
     def __getitem__(self, idx):
-        data = self.ann[str(idx)]
+        idx_str = self.idx_strings[idx]
+        data = self.ann[idx_str]
         img = Image.open(os.path.join(self.root, data['filename']))
         if self.transform is not None:
             img = self.transform(img)
