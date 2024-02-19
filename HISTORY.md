@@ -1,5 +1,9 @@
 ## History
 
+### 1.6.1
+
+* Fix missing sugar crepe example #119 thanks to @samarth4149
+
 ### 1.6.0
 
 
