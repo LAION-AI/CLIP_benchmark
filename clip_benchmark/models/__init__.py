@@ -11,6 +11,7 @@ TYPE2FUNC = {
     "ja_clip": load_japanese_clip,
     "synthclip": load_synthclip,
     "scaling": load_model,
+    "auto": None,
 }
 MODEL_TYPES = list(TYPE2FUNC.keys())
 
@@ -23,5 +24,14 @@ def load_clip(
         device: Union[str, torch.device] = "cuda"
 ):
     assert model_type in MODEL_TYPES, f"model_type={model_type} is invalid!"
-    load_func = TYPE2FUNC[model_type]
+    if model_type != "auto":
+        load_func = TYPE2FUNC[model_type]
+    else:
+        # It's a hack, but it works! you have a better way? push a PR 😃. EOM - Victor
+        if "synthclip" in pretrained:
+            load_func = TYPE2FUNC["synthclip"]
+        elif "scaling" in pretrained:
+            load_func = TYPE2FUNC["scaling"]
+        else:
+            raise ValueError(f"auto {pretrained=} unsupported!")
     return load_func(model_name=model_name, pretrained=pretrained, cache_dir=cache_dir, device=device)
