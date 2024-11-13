@@ -32,6 +32,10 @@ def load_clip(
             load_func = TYPE2FUNC["synthclip"]
         elif "scaling" in pretrained:
             load_func = TYPE2FUNC["scaling"]
+        elif pretrained in TYPE2FUNC:
+            load_func = TYPE2FUNC[pretrained]
         else:
-            raise ValueError(f"auto {pretrained=} unsupported!")
+            print(f"{model_type} and {pretrained=} unsupported defaulting to "
+                  "open_clip. The Lord be with you 🙏")
+            load_func = TYPE2FUNC["open_clip"]
     return load_func(model_name=model_name, pretrained=pretrained, cache_dir=cache_dir, device=device)
