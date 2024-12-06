@@ -6,6 +6,7 @@
 
 # Modified from github.com/openai/CLIP
 from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
 import timm
@@ -185,9 +186,10 @@ def get_metric_names():
     return ["loss", "clip_loss", "clip_acc"]
 
 
-def CLIP_VITB16(pretrained: str = None, cache_dir: str = None, **kwargs):
+def CLIP_VITB16(checkpoint_path: str = None, cache_dir: str = None, **kwargs):
     vision_model = timm.create_model("vit_base_patch16_224", num_classes=0,
-                                     pretrained=pretrained, cache_dir=cache_dir)
+                                     checkpoint_path=checkpoint_path,
+                                     cache_dir=cache_dir)
     model = CLIP(
         embed_dim=512,
         vision_width=768,
@@ -203,11 +205,29 @@ def CLIP_VITB16(pretrained: str = None, cache_dir: str = None, **kwargs):
     return model
 
 
-def load_synthclip(
-        model: str = "ViT-B-16",
-        pretrained: str = "./checkpoints/synthclip-30m/checkpoint_best.pt",
-        device="cpu", **kwargs):
-    model = CLIP_VITB16()
+def load_synthclip(model_name, pretrained, device):
+    if model_name == "ViT-B-16":
+        model = CLIP_VITB16()
+        tokenizer = open_clip.get_tokenizer(model_name)
+
+    if pretrained:
+        pretrained = Path(pretrained)
+        pretrained = pretrained / "checkpoint_best.pt" if pretrained.is_dir() else pretrained
+        state_dict = torch.load(pretrained)["state_dict"]
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k.replace("module.", "")
+            new_state_dict[name] = v
+
+        load_status = model.load_state_dict(new_state_dict)
+        print(f'{__name__}:{load_synthclip.__name__}, {model_name=}, {pretrained=}, {device=}, {load_status=}')
+
+    model.to(device)
+    val_transform = transform_pipeline()
+    return model, val_transform, tokenizer
+
+
+def transform_pipeline():
     # Taken from
     # https://github.com/hammoudhasan/SynthCLIP/blob/02ef69764d8dc921650bcac4a98bd0f477790787/Training/main.py#L240
     normalize = transforms.Normalize(
@@ -215,13 +235,11 @@ def load_synthclip(
     )
     transform = transforms.Compose(
         [
+            transforms.Lambda(lambda img: img.convert('RGB')),
             transforms.Resize((224, 224)),
             transforms.ColorJitter(0.4, 0.4, 0.4),
             transforms.ToTensor(),
-            lambda x: x.repeat(3, 1, 1) if x.shape[0] == 1 else x,  # force RGB
             normalize,
         ]
     )
-    model = model.to(device)
-    tokenizer = open_clip.get_tokenizer("ViT-B-16")
-    return model, transform, tokenizer
+    return transform
