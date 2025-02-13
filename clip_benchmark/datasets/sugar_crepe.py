@@ -1,6 +1,7 @@
 import os
 from torch.utils.data import Dataset
 from PIL import Image
+import torch
 import json
 class SugarCrepe(Dataset):
 
@@ -18,7 +19,8 @@ class SugarCrepe(Dataset):
             img = self.transform(img)
         caption = data['caption']
         negative_caption = data['negative_caption']
-        return img, [caption, negative_caption]
+        match = torch.BoolTensor([[True, False]])
+        return img, [caption, negative_caption], match
 
     def __len__(self):
         return len(self.ann)

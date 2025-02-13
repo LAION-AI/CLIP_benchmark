@@ -13,7 +13,7 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   RenderedSST2, StanfordCars)
 
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
-               sugar_crepe, voc2007, winoground, colorswap)
+               sugar_crepe, voc2007, winoground, colorswap, bla)
 
 
 def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
@@ -450,6 +450,15 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "colorswap":
         assert split == "test"
         ds = colorswap.Colorswap(root=root, transform=transform)
+    elif dataset_name.startswith("bla"):
+        _, task = dataset_name.split("/")
+        assert task in ("active_passive_captions", "coordination_captions", "relative_clause_captions")
+        url = "https://www.dropbox.com/scl/fi/kocjr2gk3hf667r53p10a/BLA_benchmark.zip?rlkey=dxi37fvx3bxhgrgr5ps9pp851&dl=1" 
+        if not os.path.exists(root):
+            os.makedirs(root)
+            call(f"wget '{url}' --output-document={root}/BLA_benchmark.zip", shell=True)
+            call(f"unzip {root}/BLA_benchmark.zip -d {root}", shell=True)
+        ds = bla.BLADataset(task=task, root=root, transform=transform)
     elif dataset_name.startswith("tfds/"):
         # TFDS datasets support using `timm` and `tensorflow_datasets`
         prefix, *name_list = dataset_name.split("/")
@@ -528,14 +537,16 @@ class Dummy():
 def get_dataset_default_task(dataset):
     if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd200"):
         return "zeroshot_retrieval"
-    elif dataset.startswith("sugar_crepe") or dataset in ("winoground", "colorswap"):
+    elif dataset.startswith("sugar_crepe") or dataset.startswith("bla") or dataset in ("winoground", "colorswap"):
         return "image_caption_selection"
     else:
         return "zeroshot_classification"
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200", "winoground", "colorswap") or dataset_name.startswith("sugar_crepe"):
+    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200"):
         return image_captions_collate_fn
+    elif dataset_name in ("winoground", "colorswap") or dataset_name.startswith("sugar_crepe"):
+        return image_captions_match_collate_fn
     else:
         return default_collate
 
@@ -810,6 +821,14 @@ def image_captions_collate_fn(batch):
     texts = transposed[1]
     return imgs, texts
 
+def image_captions_match_collate_fn(batch):
+    transposed = list(zip(*batch))
+    imgs = default_collate(transposed[0])
+    texts = transposed[1]
+    match = default_collate(transposed[2])
+    return imgs, texts, match
+
+
 def get_dataset_collection_from_file(path):
     return [l.strip() for l in open(path).readlines()]
 
@@ -893,6 +912,11 @@ dataset_collection = {
         "sugar_crepe/replace_rel",
         "sugar_crepe/swap_att",
         "sugar_crepe/swap_obj",
+    ],
+    "bla": [
+        "bla/active_passive_captions",
+        "bla/coordination_captions",
+        "bla/relative_clause_captions",
     ]
 }
 # use by imagenet robustness datasets

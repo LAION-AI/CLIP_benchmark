@@ -38,7 +38,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True):
     image_score = []
     text_score = []
     score = []
-    for batch_images, batch_texts in tqdm(dataloader):
+    for batch_images, batch_texts, batch_match in tqdm(dataloader):
         if len(batch_images.shape) == 4:
             B, C, H, W = batch_images.shape
             batch_images = batch_images.view(B, 1, C, H, W)
@@ -55,24 +55,31 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True):
         with torch.no_grad(), autocast():
             batch_images_emb = F.normalize(model.encode_image(batch_images_), dim=-1).view(B, nim, -1)
             batch_texts_emb = F.normalize(model.encode_text(batch_texts_tok_), dim=-1).view(B, nt, -1)
-        gt = torch.arange(min(nim, nt)).to(device)
         for i in range(B):
             # iteratve over instances
 
             # compute similarities between each image and each text
             images_emb = batch_images_emb[i]
             texts_emb = batch_texts_emb[i]
+            match = batch_match[i]
             scores = images_emb @ texts_emb.t()
+            nim, ntext = scores.shape
+            pred_image_text_match = torch.zeros(nim, dtype=torch.bool)
+            pred_text_image_match = torch.zeros(ntext, dtype=torch.bool)
+            
+            for i in range(nim):
+                pos_scores = scores[i, match[i]]
+                neg_scores = scores[i, ~match[i]]
+                pred_image_text_match[i] = pos_scores.min() > neg_scores.max()
+                
+            for j in range(ntext):
+                pos_scores = scores[match[:, j], j]
+                neg_scores = scores[~match[:, j], j]
+                pred_text_image_match[j] = pos_scores.min() > neg_scores.max()
 
-            # i-th image should be matched to the i-th text
-            image_closest_text = scores.argmax(dim=1)[:len(gt)]
-            text_closest_image = scores.argmax(dim=0)[:len(gt)]
-            pred_text_is_correct = (image_closest_text==gt).all().item()
-            pred_image_is_correct = (text_closest_image==gt).all().item()
-            all_correct = pred_text_is_correct and pred_image_is_correct
-            image_score.append(pred_image_is_correct)
-            text_score.append(pred_text_is_correct)
-            score.append(all_correct)
+            image_score.append(torch.all(pred_text_image_match))
+            text_score.append(torch.all(pred_image_text_match))
+            score.append(torch.all(pred_text_image_match) and torch.all(pred_image_text_match))
     metrics = {}
     metrics["image_acc"] = torch.Tensor(image_score).float().mean().item()
     metrics["text_acc"] = torch.Tensor(text_score).float().mean().item()

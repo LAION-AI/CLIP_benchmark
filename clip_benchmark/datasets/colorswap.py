@@ -24,7 +24,11 @@ class Colorswap(Dataset):
         else:
             imgs = [img0, img1]
         caps = [cap0, cap1]
-        return imgs, caps
+        match = torch.BoolTensor([
+            [True, False],
+            [False, True]
+        ])
+        return imgs, caps, match
 
     def __len__(self):
         return len(self.ds)
