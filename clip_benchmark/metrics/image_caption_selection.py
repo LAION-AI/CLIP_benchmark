@@ -64,18 +64,21 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True):
             match = batch_match[i]
             scores = images_emb @ texts_emb.t()
             nim, ntext = scores.shape
-            pred_image_text_match = torch.zeros(nim, dtype=torch.bool)
-            pred_text_image_match = torch.zeros(ntext, dtype=torch.bool)
+            pred_image_text_match = torch.zeros(nim, dtype=torch.bool).fill_(True)
+            pred_text_image_match = torch.zeros(ntext, dtype=torch.bool).fill_(True)
             
             for i in range(nim):
                 pos_scores = scores[i, match[i]]
                 neg_scores = scores[i, ~match[i]]
-                pred_image_text_match[i] = pos_scores.min() > neg_scores.max()
-                
+                if len(pos_scores) and len(neg_scores):
+                    pred_image_text_match[i] = pos_scores.min() > neg_scores.max()
+                        
             for j in range(ntext):
                 pos_scores = scores[match[:, j], j]
                 neg_scores = scores[~match[:, j], j]
-                pred_text_image_match[j] = pos_scores.min() > neg_scores.max()
+
+                if len(pos_scores) and len(neg_scores):
+                    pred_text_image_match[j] = pos_scores.min() > neg_scores.max()
 
             image_score.append(torch.all(pred_text_image_match))
             text_score.append(torch.all(pred_image_text_match))
