@@ -24,7 +24,6 @@ def load_transformers_clip(model_name, pretrained, cache_dir, device):
     processor = AutoProcessor.from_pretrained(ckpt)
     transforms = partial(processor.image_processor.preprocess, return_tensors="pt")
     tokenizer = partial(
-        processor.tokenizer, return_tensors="pt", padding="max_length",
-        max_length=64 # very specific to SG2
-        )
+        processor.tokenizer, return_tensors="pt", padding="max_length", max_length=64
+    )
     return model, transforms, tokenizer
