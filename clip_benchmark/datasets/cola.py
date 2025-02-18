@@ -11,9 +11,9 @@ class COLA(Dataset):
     def __init__(self, root=".", transform=None, download=True):        
         self.transform = transform        
         self.root = root
+        self.ann =  json.load(open(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")))
         if download:
             self.download()
-        self.ann =  json.load(open(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")))
     
     def download(self):
         root = self.root
