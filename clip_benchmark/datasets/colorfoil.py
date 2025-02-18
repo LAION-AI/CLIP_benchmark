@@ -1,6 +1,5 @@
 # Thanks to https://github.com/samin9796/ColorFoil/blob/main/zero_shot_evaluation.ipynb
 import json
-import webcolors
 import random
 import os
 import os
@@ -17,6 +16,8 @@ class ColorFoil(Dataset):
         self.data = self.prepare_data(image_folder, ann)
     
     def prepare_data(self, image_folder, ann):
+        import webcolors
+
         img_list = [] # list of image urls
         cap_list = [] # list of captions
         foil_list = [] # list of foiled captions
@@ -61,6 +62,7 @@ class ColorFoil(Dataset):
 
 
 def create_foil(caption):
+  import webcolors
   # most commonly used colors
   colors = ["blue", "black", "red", "pink", "yellow", "grey", "orange", "white", "green", "brown"]
   lst = caption.split(' ')
