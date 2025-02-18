@@ -13,10 +13,10 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   RenderedSST2, StanfordCars)
 
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
-               sugar_crepe, voc2007, winoground, colorswap, bla)
+               sugar_crepe, voc2007, winoground, colorswap, bla, aro, colorfoil, valse, cola)
 
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task=None, wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -45,6 +45,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         where keys are classnames and values are class-specific prompts.
 
     """
+    if task is None:
+        task = get_dataset_default_task(dataset_name)
     use_classnames_and_templates = task in ('zeroshot_classification', 'linear_probe')
     if use_classnames_and_templates:  # Only load templates and classnames if we have to
         current_folder = os.path.dirname(__file__)
@@ -450,6 +452,27 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name == "colorswap":
         assert split == "test"
         ds = colorswap.Colorswap(root=root, transform=transform)
+    elif dataset_name == "colorfoil":        
+        os.makedirs(root, exist_ok=True)
+        assert split == "test"
+        images_archive_name = "val2017.zip"
+        anns_archive_name = "annotations_trainval2017.zip"
+        
+        image_path = os.path.join(root, "val2017")
+        ann_path = os.path.join(root, "annotations", "captions_val2017.json")  
+        
+        if not os.path.exists(image_path):
+            print(f"Downloading coco captions {images_archive_name}...")
+            if not os.path.exists(os.path.join(root, images_archive_name)):
+                call(f"wget http://images.cocodataset.org/zips/{images_archive_name} --output-document={root}/{images_archive_name}", shell=True)
+            call(f"unzip {root}/{images_archive_name} -d {root}", shell=True)
+            
+        if not os.path.exists(ann_path):
+            if not os.path.exists(os.path.join(root, anns_archive_name)):
+                call(f"wget http://images.cocodataset.org/annotations/{anns_archive_name} --output-document={root}/{anns_archive_name}", shell=True)
+            call(f"unzip {root}/{anns_archive_name} -d {root}", shell=True)
+
+        ds = colorfoil.ColorFoil(image_folder=image_path, ann=ann_path, transform=transform)    
     elif dataset_name.startswith("bla"):
         _, task = dataset_name.split("/")
         assert task in ("active_passive_captions", "coordination_captions", "relative_clause_captions")
@@ -459,6 +482,78 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             call(f"wget '{url}' --output-document={root}/BLA_benchmark.zip", shell=True)
             call(f"unzip {root}/BLA_benchmark.zip -d {root}", shell=True)
         ds = bla.BLADataset(task=task, root=root, transform=transform)
+    elif dataset_name.startswith("aro"):
+        assert split == "test"
+        _, datasource, task = dataset_name.split("/")
+        if datasource == "visual_genome":
+            assert task in ("relation", "attribution"), f"Unknown task {task} for {datasource}"
+            if task == "relation":
+                ds = aro.VG_Relation(image_preprocess=transform, root_dir=root, download=True)
+            elif task == "attribution":
+                ds = aro.VG_Attribution(image_preprocess=transform, root_dir=root, download=True)
+            else:
+                raise ValueError(f"Unknown task {task} for {datasource}")
+        elif datasource == "flickr":
+            assert task == "order", f"Only `order` task available for {datasource}"
+            ds = aro.Flickr30k_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=True)
+        elif datasource == "coco":
+            assert task == "order", f"Only `order` task available for {datasource}"
+            ds = aro.COCO_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=True)
+        else:
+            raise ValueError(f"Unknown datasource {datasource} for {dataset_name}")
+    elif dataset_name.startswith("valse"):        
+        _, task = dataset_name.split("/")
+        tasks = [
+            "actant_swap",
+            "coreference_hard",
+            "counting_adversarial",
+            "counting_small_quant",
+            "foil_it",
+            "relations",
+            "action_replacement",
+            "coreference_standard",
+            "counting_hard",
+            "existence",
+            "plurals"
+        ]
+        assert task in tasks
+        task_path = task.replace("_", "-") + ".json"
+
+        url = f"https://raw.githubusercontent.com/Heidelberg-NLP/VALSE/refs/heads/main/data/{task_path}"
+        
+        os.makedirs(root, exist_ok=True)
+        if not os.path.exists(os.path.join(root, task_path)):
+            call(f"wget '{url}' --output-document={root}/{task_path}", shell=True)
+        if not os.path.exists(os.path.join(root, "visual7w")):
+            url = "http://vision.stanford.edu/yukezhu/visual7w_images.zip"
+            call(f"wget '{url}' --output-document={root}/visual7w.zip", shell=True)
+            call(f"unzip {root}/visual7w.zip -d {root}", shell=True)
+            call(f"mv {root}/images {root}/visual7w", shell=True)
+        if not os.path.exists(os.path.join(root, "SWiG")):
+            url = "https://swig-data-weights.s3.us-east-2.amazonaws.com/images_512.zip"
+            call(f"wget '{url}' --output-document={root}/swig.zip", shell=True)
+            call(f"unzip {root}/swig.zip -d {root}", shell=True)
+            call(f"mv {root}/images_512 {root}/SWiG", shell=True)
+        if not os.path.exists(os.path.join(root, "VisDial_v1.0")):
+            url = "https://www.dropbox.com/s/twmtutniktom7tu/VisualDialog_val2018.zip?dl=1"
+            call(f"wget '{url}' --output-document={root}/visdial.zip", shell=True)
+            call(f"unzip {root}/visdial.zip -d {root}", shell=True)
+            call(f"mv {root}/VisualDialog_val2018 {root}/VisDial_v1.0", shell=True)
+        if not os.path.exists(os.path.join(root, "FOIL dataset")):
+            call(f"wget http://images.cocodataset.org/zips/val2014.zip --output-document={root}/coco.zip", shell=True)
+            call(f"unzip {root}/coco.zip -d {root}", shell=True)
+            call(f"mv {root}/val2014 '{root}/FOIL dataset'", shell=True)
+        if not os.path.exists(os.path.join(root, "coco_2017")):
+            call(f"wget http://images.cocodataset.org/zips/val2017.zip --output-document={root}/coco2017.zip", shell=True)
+            call(f"unzip {root}/coco2017.zip -d {root}", shell=True)
+            call(f"mv {root}/val2017 '{root}/coco_2017'", shell=True)        
+        ds = valse.VALSE(task=task, root=root, transform=transform)
+    elif dataset_name == "cola":
+        os.makedirs(root, exist_ok=True)
+        url = "https://raw.githubusercontent.com/arijitray1993/COLA/refs/heads/main/data/COLA_multiobjects_matching_benchmark.json"
+        if not os.path.exists(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")):
+            call(f"wget '{url}' --output-document={root}/COLA_multiobjects_matching_benchmark.json", shell=True)
+        ds = cola.COLA(ann=f"{root}/COLA_multiobjects_matching_benchmark.json", root=root, transform=transform)
     elif dataset_name.startswith("tfds/"):
         # TFDS datasets support using `timm` and `tensorflow_datasets`
         prefix, *name_list = dataset_name.split("/")
@@ -513,8 +608,9 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         if custom_classnames:
             ds.classes = value_from_first_key_found(custom_classnames, keys=keys_to_lookup)
         
-        assert ds.classes is not None, f"Classes not specified for {dataset_name}"
-        assert ds.templates is not None, f"Templates not specified for {dataset_name}"
+        if task == "zeroshot_classification":
+            assert ds.classes is not None, f"Classes not specified for {dataset_name}"
+            assert ds.templates is not None, f"Templates not specified for {dataset_name}"
     return ds
 
 def value_from_first_key_found(dic, keys):
@@ -537,18 +633,21 @@ class Dummy():
 def get_dataset_default_task(dataset):
     if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd200"):
         return "zeroshot_retrieval"
-    elif dataset.startswith("sugar_crepe") or dataset.startswith("bla") or dataset in ("winoground", "colorswap"):
+    elif (dataset.startswith("sugar_crepe") or dataset.startswith("bla") or 
+          dataset in ("winoground", "colorswap", "colorfoil") or dataset.startswith("aro") or dataset.startswith("valse") or dataset=="cola"):  
         return "image_caption_selection"
     else:
         return "zeroshot_classification"
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200"):
+    task = get_dataset_default_task(dataset_name)
+    if task == "zeroshot_retrieval":
         return image_captions_collate_fn
-    elif dataset_name in ("winoground", "colorswap") or dataset_name.startswith("sugar_crepe"):
+    elif task == "image_caption_selection":
         return image_captions_match_collate_fn
     else:
         return default_collate
+
 
 def has_gdown():
     return call("which gdown", shell=True) == 0
