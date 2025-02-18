@@ -13,7 +13,7 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   RenderedSST2, StanfordCars)
 
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
-               sugar_crepe, voc2007, winoground, colorswap, bla, aro, colorfoil, valse, cola, whatsup)
+               sugar_crepe, voc2007, winoground, colorswap, bla, aro, colorfoil, valse, cola, whatsup, eqben)
 
 
 def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task=None, wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
@@ -501,6 +501,18 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             ds = aro.COCO_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=True)
         else:
             raise ValueError(f"Unknown datasource {datasource} for {dataset_name}")
+    elif dataset_name == "eqben":
+        # we use the Sub-Test Set of EQ-Ben dataset (https://github.com/Wangt-CN/EqBen?tab=readme-ov-file#1-data-download)
+        assert split in ("test",)
+        if split == "test":
+            images_gdrive_id = "13Iuirsvx34-9F_1Mjhs4Dqn59yokyUjy"
+            ann_gdrive_id = "18BSRf1SnBtGiEc42mzRLirXaBLzYE5Tt"
+        if not os.path.exists(root):
+            os.makedirs(root)
+            call(f"gdown --id {images_gdrive_id} -O {root}/images.tgz", shell=True)
+            call(f"tar xvf {root}/images.tgz -C {root}", shell=True)
+            call(f"gdown --id {ann_gdrive_id} -O {root}/eqben.json", shell=True)
+        ds = eqben.EQBen(root=root, transform=transform)
     elif dataset_name.startswith("valse"):        
         _, task = dataset_name.split("/")
         tasks = [
@@ -648,7 +660,7 @@ def get_dataset_default_task(dataset):
     if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd200"):
         return "zeroshot_retrieval"
     elif (dataset.startswith("sugar_crepe") or dataset.startswith("bla") or 
-          dataset in ("winoground", "colorswap", "colorfoil") or dataset.startswith("aro") or dataset.startswith("valse") or dataset=="cola" or
+          dataset in ("winoground", "colorswap", "colorfoil", "eqben") or dataset.startswith("aro") or dataset.startswith("valse") or dataset=="cola" or
           dataset.startswith("whatsup")
           ):  
         return "image_caption_selection"
