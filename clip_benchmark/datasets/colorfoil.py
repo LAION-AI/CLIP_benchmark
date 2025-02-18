@@ -56,6 +56,9 @@ class ColorFoil(Dataset):
         match = torch.BoolTensor([[True, False]])
         return img, [caption, foil], match
 
+    def __len__(self):
+        return len(self.data)
+
 
 def create_foil(caption):
   # most commonly used colors
