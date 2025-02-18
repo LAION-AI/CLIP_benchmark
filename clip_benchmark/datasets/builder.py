@@ -451,133 +451,50 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         ds.classes = default_classnames["fer2013"]
     elif dataset_name == "colorswap":
         assert split == "test"
-        ds = colorswap.Colorswap(root=root, transform=transform)
+        ds = colorswap.Colorswap(root=root, transform=transform, download=download)
     elif dataset_name == "colorfoil":        
-        os.makedirs(root, exist_ok=True)
-        assert split == "test"
-        images_archive_name = "val2017.zip"
-        anns_archive_name = "annotations_trainval2017.zip"
-        
-        image_path = os.path.join(root, "val2017")
-        ann_path = os.path.join(root, "annotations", "captions_val2017.json")  
-        
-        if not os.path.exists(image_path):
-            print(f"Downloading coco captions {images_archive_name}...")
-            if not os.path.exists(os.path.join(root, images_archive_name)):
-                call(f"wget http://images.cocodataset.org/zips/{images_archive_name} --output-document={root}/{images_archive_name}", shell=True)
-            call(f"unzip {root}/{images_archive_name} -d {root}", shell=True)
-            
-        if not os.path.exists(ann_path):
-            if not os.path.exists(os.path.join(root, anns_archive_name)):
-                call(f"wget http://images.cocodataset.org/annotations/{anns_archive_name} --output-document={root}/{anns_archive_name}", shell=True)
-            call(f"unzip {root}/{anns_archive_name} -d {root}", shell=True)
-
-        ds = colorfoil.ColorFoil(image_folder=image_path, ann=ann_path, transform=transform)    
+        ds = colorfoil.ColorFoil(root=root, transform=transform, download=download)    
     elif dataset_name.startswith("bla"):
         _, task = dataset_name.split("/")
-        assert task in ("active_passive_captions", "coordination_captions", "relative_clause_captions")
-        url = "https://www.dropbox.com/scl/fi/kocjr2gk3hf667r53p10a/BLA_benchmark.zip?rlkey=dxi37fvx3bxhgrgr5ps9pp851&dl=1" 
-        if not os.path.exists(root):
-            os.makedirs(root)
-            call(f"wget '{url}' --output-document={root}/BLA_benchmark.zip", shell=True)
-            call(f"unzip {root}/BLA_benchmark.zip -d {root}", shell=True)
-        ds = bla.BLADataset(task=task, root=root, transform=transform)
+        ds = bla.BLADataset(task=task, root=root, transform=transform, download=download)
     elif dataset_name.startswith("aro"):
         assert split == "test"
         _, datasource, task = dataset_name.split("/")
         if datasource == "visual_genome":
             assert task in ("relation", "attribution"), f"Unknown task {task} for {datasource}"
             if task == "relation":
-                ds = aro.VG_Relation(image_preprocess=transform, root_dir=root, download=True)
+                ds = aro.VG_Relation(image_preprocess=transform, root_dir=root, download=download)
             elif task == "attribution":
-                ds = aro.VG_Attribution(image_preprocess=transform, root_dir=root, download=True)
+                ds = aro.VG_Attribution(image_preprocess=transform, root_dir=root, download=download)
             else:
                 raise ValueError(f"Unknown task {task} for {datasource}")
         elif datasource == "flickr":
             assert task == "order", f"Only `order` task available for {datasource}"
-            ds = aro.Flickr30k_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=True)
+            ds = aro.Flickr30k_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=download)
         elif datasource == "coco":
             assert task == "order", f"Only `order` task available for {datasource}"
-            ds = aro.COCO_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=True)
+            ds = aro.COCO_Order(image_preprocess=transform, split="test", root_dir=root, max_words=30, download=download)
         else:
             raise ValueError(f"Unknown datasource {datasource} for {dataset_name}")
     elif dataset_name == "eqben":
         # we use the Sub-Test Set of EQ-Ben dataset (https://github.com/Wangt-CN/EqBen?tab=readme-ov-file#1-data-download)
-        assert split in ("test",)
-        if split == "test":
-            images_gdrive_id = "13Iuirsvx34-9F_1Mjhs4Dqn59yokyUjy"
-            ann_gdrive_id = "18BSRf1SnBtGiEc42mzRLirXaBLzYE5Tt"
-        if not os.path.exists(root):
-            os.makedirs(root)
-            call(f"gdown --id {images_gdrive_id} -O {root}/images.tgz", shell=True)
-            call(f"tar xvf {root}/images.tgz -C {root}", shell=True)
-            call(f"gdown --id {ann_gdrive_id} -O {root}/eqben.json", shell=True)
         ds = eqben.EQBen(root=root, transform=transform)
-    elif dataset_name.startswith("valse"):        
-        _, task = dataset_name.split("/")
-        tasks = [
-            "actant_swap",
-            "coreference_hard",
-            "counting_adversarial",
-            "counting_small_quant",
-            "foil_it",
-            "relations",
-            "action_replacement",
-            "coreference_standard",
-            "counting_hard",
-            "existence",
-            "plurals"
-        ]
-        assert task in tasks
-        task_path = task.replace("_", "-") + ".json"
-
-        url = f"https://raw.githubusercontent.com/Heidelberg-NLP/VALSE/refs/heads/main/data/{task_path}"
-        
-        os.makedirs(root, exist_ok=True)
-        if not os.path.exists(os.path.join(root, task_path)):
-            call(f"wget '{url}' --output-document={root}/{task_path}", shell=True)
-        if not os.path.exists(os.path.join(root, "visual7w")):
-            url = "http://vision.stanford.edu/yukezhu/visual7w_images.zip"
-            call(f"wget '{url}' --output-document={root}/visual7w.zip", shell=True)
-            call(f"unzip {root}/visual7w.zip -d {root}", shell=True)
-            call(f"mv {root}/images {root}/visual7w", shell=True)
-        if not os.path.exists(os.path.join(root, "SWiG")):
-            url = "https://swig-data-weights.s3.us-east-2.amazonaws.com/images_512.zip"
-            call(f"wget '{url}' --output-document={root}/swig.zip", shell=True)
-            call(f"unzip {root}/swig.zip -d {root}", shell=True)
-            call(f"mv {root}/images_512 {root}/SWiG", shell=True)
-        if not os.path.exists(os.path.join(root, "VisDial_v1.0")):
-            url = "https://www.dropbox.com/s/twmtutniktom7tu/VisualDialog_val2018.zip?dl=1"
-            call(f"wget '{url}' --output-document={root}/visdial.zip", shell=True)
-            call(f"unzip {root}/visdial.zip -d {root}", shell=True)
-            call(f"mv {root}/VisualDialog_val2018 {root}/VisDial_v1.0", shell=True)
-        if not os.path.exists(os.path.join(root, "FOIL dataset")):
-            call(f"wget http://images.cocodataset.org/zips/val2014.zip --output-document={root}/coco.zip", shell=True)
-            call(f"unzip {root}/coco.zip -d {root}", shell=True)
-            call(f"mv {root}/val2014 '{root}/FOIL dataset'", shell=True)
-        if not os.path.exists(os.path.join(root, "coco_2017")):
-            call(f"wget http://images.cocodataset.org/zips/val2017.zip --output-document={root}/coco2017.zip", shell=True)
-            call(f"unzip {root}/coco2017.zip -d {root}", shell=True)
-            call(f"mv {root}/val2017 '{root}/coco_2017'", shell=True)        
+    elif dataset_name.startswith("valse"):                
         ds = valse.VALSE(task=task, root=root, transform=transform)
     elif dataset_name == "cola":
-        os.makedirs(root, exist_ok=True)
-        url = "https://raw.githubusercontent.com/arijitray1993/COLA/refs/heads/main/data/COLA_multiobjects_matching_benchmark.json"
-        if not os.path.exists(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")):
-            call(f"wget '{url}' --output-document={root}/COLA_multiobjects_matching_benchmark.json", shell=True)
-        ds = cola.COLA(ann=f"{root}/COLA_multiobjects_matching_benchmark.json", root=root, transform=transform)
+        ds = cola.COLA(root=root, transform=transform, download=download)
     elif dataset_name.startswith("whatsup"):
         _, task, subset = dataset_name.split("/")
         assert task in ("coco_qa", "vg_qa", "controlled")
         if task == "coco_qa":
             assert subset in ("one", "two")
-            ds = whatsup.COCO_QA(subset=subset, root_dir=root, image_preprocess=transform, download=True)
+            ds = whatsup.COCO_QA(subset=subset, root_dir=root, image_preprocess=transform, download=download)
         elif task == "vg_qa":
             assert subset in ("one", "two")
-            ds = whatsup.VG_QA(subset=subset, root_dir=root, image_preprocess=transform, download=True)
+            ds = whatsup.VG_QA(subset=subset, root_dir=root, image_preprocess=transform, download=download)
         elif task == "controlled":
             assert subset in ("A", "B")
-            ds = whatsup.Controlled_Images(subset=subset, root_dir=root, image_preprocess=transform, download=True)
+            ds = whatsup.Controlled_Images(subset=subset, root_dir=root, image_preprocess=transform, download=download)
         else:
             raise ValueError(f"Unknown task {task} for {dataset_name}")
     elif dataset_name.startswith("tfds/"):

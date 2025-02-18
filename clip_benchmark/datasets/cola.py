@@ -4,16 +4,23 @@ from PIL import Image
 import torch
 import json
 import requests
+from subprocess import call
 
 class COLA(Dataset):
 
-    def __init__(self, ann="COLA_multiobjects_matching_benchmark.json", root=".", transform=None):        
+    def __init__(self, root=".", transform=None, download=True):        
         self.transform = transform        
         self.root = root
-        self.ann =  json.load(open(ann))
-        self.download()
+        if download:
+            self.download()
+        self.ann =  json.load(open(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")))
     
     def download(self):
+        root = self.root
+        os.makedirs(root, exist_ok=True)
+        url = "https://raw.githubusercontent.com/arijitray1993/COLA/refs/heads/main/data/COLA_multiobjects_matching_benchmark.json"
+        if not os.path.exists(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")):
+            call(f"wget '{url}' --output-document={root}/COLA_multiobjects_matching_benchmark.json", shell=True)
         for im1, c2, im2, c2 in self.ann:
             for im in [im1, im2]:
                 path = os.path.join(self.root, os.path.basename(im))

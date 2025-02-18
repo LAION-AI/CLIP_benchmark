@@ -5,12 +5,15 @@ from PIL import Image
 import torch
 import json
 import requests
+from subprocess import call
 
 class EQBen(Dataset):
 
-    def __init__(self, root=".", transform=None):        
+    def __init__(self, root=".", transform=None, download=True):        
         self.transform = transform        
         self.root = root
+        if download:
+            self.download()
         self.ann =  json.load(open(os.path.join(root, "eqben.json")))
         self.image_folder = os.path.join(root, "image_subset")
         self.ann = [
@@ -23,6 +26,19 @@ class EQBen(Dataset):
             
         ]
         
+    
+    def download(self):
+        root = self.root
+        images_gdrive_id = "13Iuirsvx34-9F_1Mjhs4Dqn59yokyUjy"
+        ann_gdrive_id = "18BSRf1SnBtGiEc42mzRLirXaBLzYE5Tt"
+        os.makedirs(root, exist_ok=True)
+        if not os.path.exists(os.path.join(root, "eqben.json")):
+            call(f"gdown --id {ann_gdrive_id} -O {root}/eqben.json", shell=True)
+        if not os.path.exists(os.path.join(root, "image_subset")):
+            call(f"gdown --id {images_gdrive_id} -O {root}/images.tgz", shell=True)
+            call(f"tar xvf {root}/images.tgz -C {root}", shell=True)
+        
+    
     def __getitem__(self, idx):
         ann = self.ann[idx]
         img1, c1, img2, c2 = ann["image0"], ann["caption0"], ann["image1"], ann["caption1"]

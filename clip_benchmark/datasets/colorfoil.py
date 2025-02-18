@@ -7,13 +7,37 @@ from torch.utils.data import Dataset
 from PIL import Image
 import torch
 import json
+from subprocess import call
 
 class ColorFoil(Dataset):
     
-    def __init__(self, image_folder=".", ann="captions_val2017.json", transform=None):
-        self.image_folder = image_folder
+    def __init__(self, root=".", transform=None, download=True):
+        self.root = root
+        self.image_folder =  os.path.join(root, "val2017")
+        self.ann_path = os.path.join(root, "annotations", "captions_val2017.json")
+        if download:
+            self.download()
         self.transform = transform
-        self.data = self.prepare_data(image_folder, ann)
+        self.data = self.prepare_data(self.image_folder, self.ann_path)
+    
+    def download(self):
+        root = self.root
+        os.makedirs(root, exist_ok=True)
+        images_archive_name = "val2017.zip"
+        anns_archive_name = "annotations_trainval2017.zip"
+        
+        image_path = self.image_folder
+        ann_path = self.ann_path
+        if not os.path.exists(image_path):
+            print(f"Downloading coco captions {images_archive_name}...")
+            if not os.path.exists(os.path.join(root, images_archive_name)):
+                call(f"wget http://images.cocodataset.org/zips/{images_archive_name} --output-document={root}/{images_archive_name}", shell=True)
+            call(f"unzip {root}/{images_archive_name} -d {root}", shell=True)
+            
+        if not os.path.exists(ann_path):
+            if not os.path.exists(os.path.join(root, anns_archive_name)):
+                call(f"wget http://images.cocodataset.org/annotations/{anns_archive_name} --output-document={root}/{anns_archive_name}", shell=True)
+            call(f"unzip {root}/{anns_archive_name} -d {root}", shell=True)
     
     def prepare_data(self, image_folder, ann):
         import webcolors

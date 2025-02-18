@@ -6,7 +6,7 @@ import json
 
 class Colorswap(Dataset):
 
-    def __init__(self, root=".", transform=None):
+    def __init__(self, root=".", transform=None, download=True):
         from datasets import load_dataset
         self.ds = load_dataset("stanfordnlp/colorswap", cache_dir=root)["test"]
         self.transform = transform
