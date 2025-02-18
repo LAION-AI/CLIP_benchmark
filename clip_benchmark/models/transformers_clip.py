@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from transformers import AutoModel, AutoProcessor
-from functools import partial
 
 class TransformerWrapper(nn.Module):
     def __init__(self, model):
@@ -22,8 +21,6 @@ def load_transformers_clip(model_name, pretrained, cache_dir, device):
     model = TransformerWrapper(model)
     
     processor = AutoProcessor.from_pretrained(ckpt)
-    transforms = partial(processor.image_processor.preprocess, return_tensors="pt")
-    tokenizer = partial(
-        processor.tokenizer, return_tensors="pt", padding="max_length", max_length=64
-    )
+    transforms = lambda image: processor(images=image, return_tensors="pt")
+    tokenizer = lambda text: processor(text=text, padding="max_length", max_length=64, return_tensors="pt")
     return model, transforms, tokenizer
