@@ -13,7 +13,7 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   RenderedSST2, StanfordCars)
 
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
-               sugar_crepe, voc2007, winoground, colorswap, bla, aro, colorfoil, valse, cola)
+               sugar_crepe, voc2007, winoground, colorswap, bla, aro, colorfoil, valse, cola, whatsup)
 
 
 def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task=None, wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
@@ -554,6 +554,20 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         if not os.path.exists(os.path.join(root, "COLA_multiobjects_matching_benchmark.json")):
             call(f"wget '{url}' --output-document={root}/COLA_multiobjects_matching_benchmark.json", shell=True)
         ds = cola.COLA(ann=f"{root}/COLA_multiobjects_matching_benchmark.json", root=root, transform=transform)
+    elif dataset_name.startswith("whatsup"):
+        _, task, subset = dataset_name.split("/")
+        assert task in ("coco_qa", "vg_qa", "controlled")
+        if task == "coco_qa":
+            assert subset in ("one", "two")
+            ds = whatsup.COCO_QA(subset=subset, root_dir=root, image_preprocess=transform, download=True)
+        elif task == "vg_qa":
+            assert subset in ("one", "two")
+            ds = whatsup.VG_QA(subset=subset, root_dir=root, image_preprocess=transform, download=True)
+        elif task == "controlled":
+            assert subset in ("A", "B")
+            ds = whatsup.Controlled_Images(subset=subset, root_dir=root, image_preprocess=transform, download=True)
+        else:
+            raise ValueError(f"Unknown task {task} for {dataset_name}")
     elif dataset_name.startswith("tfds/"):
         # TFDS datasets support using `timm` and `tensorflow_datasets`
         prefix, *name_list = dataset_name.split("/")
@@ -634,13 +648,15 @@ def get_dataset_default_task(dataset):
     if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd200"):
         return "zeroshot_retrieval"
     elif (dataset.startswith("sugar_crepe") or dataset.startswith("bla") or 
-          dataset in ("winoground", "colorswap", "colorfoil") or dataset.startswith("aro") or dataset.startswith("valse") or dataset=="cola"):  
+          dataset in ("winoground", "colorswap", "colorfoil") or dataset.startswith("aro") or dataset.startswith("valse") or dataset=="cola" or
+          dataset.startswith("whatsup")
+          ):  
         return "image_caption_selection"
     else:
         return "zeroshot_classification"
 
-def get_dataset_collate_fn(dataset_name):
-    task = get_dataset_default_task(dataset_name)
+def get_dataset_collate_fn(dataset):
+    task = get_dataset_default_task(dataset)
     if task == "zeroshot_retrieval":
         return image_captions_collate_fn
     elif task == "image_caption_selection":
@@ -1016,6 +1032,12 @@ dataset_collection = {
         "bla/active_passive_captions",
         "bla/coordination_captions",
         "bla/relative_clause_captions",
+    ],
+    "aro": [
+        "aro/visual_genome/relation",
+        "aro/visual_genome/attribution",
+        "aro/flickr/order",
+        "aro/coco/order",
     ]
 }
 # use by imagenet robustness datasets
