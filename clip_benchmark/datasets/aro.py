@@ -432,8 +432,10 @@ class VG_Relation(Dataset):
         # Each test case has a correct and incorrect caption.
         true_caption = test_case["true_caption"]
         false_caption = test_case["false_caption"]
-        item = edict({"image_options": [image], "caption_options": [false_caption, true_caption]})
-        return item
+        #item = edict({"image_options": [image], "caption_options": [false_caption, true_caption]})
+        #return item
+        return image, [true_caption, false_caption], torch.BoolTensor([[True, False]])
+        
     
     def download(self):
         os.makedirs(self.root_dir, exist_ok=True)
@@ -523,9 +525,10 @@ class VG_Attribution(Dataset):
         # Each test case has a correct and incorrect caption.
         true_caption = test_case["true_caption"]
         false_caption = test_case["false_caption"]
-        item = edict({"image_options": [image], "caption_options": [false_caption, true_caption]})
-        return item
-    
+        #item = edict({"image_options": [image], "caption_options": [false_caption, true_caption]})
+        #return item
+        return image, [true_caption, false_caption], torch.BoolTensor([[True, False]])
+
     def download(self):
         os.makedirs(self.root_dir, exist_ok=True)
         image_zip_file = os.path.join(self.root_dir, "vgr_vga_images.zip")
@@ -623,7 +626,7 @@ class COCO_Order(Dataset):
         
         #item = edict({"image_options": [image], "caption_options": test_case["caption_options"]})
         #return item
-        return image, test_case["caption_options"], torch.BoolTensor([[True] + [False] * len(test_case["caption_options"][1:])])
+        return image, test_case["caption_options"], torch.BoolTensor([[True] + [False] * (len(test_case["caption_options"]) - 1)  ])
     
     def download(self):
         import subprocess
@@ -705,7 +708,7 @@ class Flickr30k_Order(Dataset):
             
         #item = edict({"image_options": [image], "caption_options": test_case["caption_options"]})
         #return item
-        return image, test_case["caption_options"], torch.BoolTensor([[True] + [False] * len(test_case["caption_options"][1:])])
+        return image, test_case["caption_options"], torch.BoolTensor([[True] + [False] * (len(test_case["caption_options"]) - 1)  ])
     
     def evaluate_scores(self, scores):
         if isinstance(scores, tuple):
