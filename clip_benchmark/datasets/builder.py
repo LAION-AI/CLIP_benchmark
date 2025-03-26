@@ -283,6 +283,16 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             crossmodal3600.create_annotation_file(root, language)
 
         ds = crossmodal3600.Crossmodal3600(root=root, ann_file=annotation_file, transform=transform, **kwargs)
+    elif dataset_name == 'xtd10':
+        from clip_benchmark.datasets import xtd10
+        if language not in xtd10.SUPPORTED_LANGUAGES:
+            raise ValueError("Unsupported language for xtd200:", language)
+
+        annotation_file = os.path.join(root, xtd10.OUTPUT_FILENAME_TEMPLATE.format(language))
+        if not os.path.exists(annotation_file):
+            xtd10.create_annotation_file(root, language)
+
+        ds = xtd10.XTD200(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == 'xtd200':
         from clip_benchmark.datasets import xtd200
         if language not in xtd200.SUPPORTED_LANGUAGES:
