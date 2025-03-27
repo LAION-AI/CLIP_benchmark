@@ -9,10 +9,15 @@ from torchvision.datasets import VisionDataset
 
 
 GITHUB_DATA_PATH = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/XTD10"
+GITHUB_MIC_DATA_PATH = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/MIC"
+GITHUB_STAIR_DATA_PATH = "https://raw.githubusercontent.com/adobe-research/Cross-lingual-Test-Dataset-XTD10/main/STAIR"
 SUPPORTED_LANGUAGES = [
+    "de",
     "en",
+    "fr",
     "es",
     "it",
+    "jp",
     "ko",
     "pl",
     "ru",
@@ -83,7 +88,13 @@ def create_annotation_file(root, lang_code):
         _download_images(data_dir)
     images_dir = os.path.join(data_dir, "images")
     print("Downloading xtd10 index file")
-    download_path = os.path.join(GITHUB_DATA_PATH, IMAGE_INDEX_FILENAME)
+    match lang_code:
+        case "de", "fr":
+            download_path = os.path.join(GITHUB_MIC_DATA_PATH, IMAGE_INDEX_FILENAME)
+        case "jp":
+            download_path = os.path.join(GITHUB_STAIR_DATA_PATH, IMAGE_INDEX_FILENAME)
+        case _:
+            download_path = os.path.join(GITHUB_DATA_PATH, IMAGE_INDEX_FILENAME)
     target_images = _get_lines(download_path)
 
     print("Downloading xtd10 captions:", lang_code)
