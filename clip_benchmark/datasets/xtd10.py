@@ -14,8 +14,8 @@ GITHUB_STAIR_DATA_PATH = "https://raw.githubusercontent.com/adobe-research/Cross
 SUPPORTED_LANGUAGES = [
     "de",
     "en",
-    "fr",
     "es",
+    "fr",
     "it",
     "jp",
     "ko",
