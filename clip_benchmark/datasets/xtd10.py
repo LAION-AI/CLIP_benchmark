@@ -28,7 +28,7 @@ OUTPUT_FILENAME_TEMPLATE = "xtd10-{}.json"
 IMAGES_DOWNLOAD_URL = "https://nllb-data.com/test/xtd10/images.tar.gz"
 
 
-class XTD200(VisionDataset):
+class XTD10(VisionDataset):
     def __init__(self, root, ann_file, transform=None, target_transform=None):
         super().__init__(root, transform=transform, target_transform=target_transform)
         self.ann_file = os.path.expanduser(ann_file)
