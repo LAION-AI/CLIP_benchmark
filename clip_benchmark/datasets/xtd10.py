@@ -94,7 +94,7 @@ def create_annotation_file(root, lang_code):
     print("Downloading xtd10 captions:", lang_code)
     captions_path = GITHUB_DATA_PATH
     match lang_code:
-        case "de", "fr":
+        case "de" | "fr":
             captions_path = GITHUB_MIC_DATA_PATH
         case "jp":
             captions_path = GITHUB_STAIR_DATA_PATH
@@ -103,7 +103,6 @@ def create_annotation_file(root, lang_code):
     download_path = os.path.join(
         captions_path, CAPTIONS_FILENAME_TEMPLATE.format(lang_code)
     )
-    print(f"Downloading captions from {download_path}")
     target_captions = _get_lines(download_path)
 
     number_of_missing_images = 0
