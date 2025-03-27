@@ -78,7 +78,7 @@ def create_annotation_file(root, lang_code):
         raise ValueError(
             f"Language code {lang_code} not supported. Supported languages are {SUPPORTED_LANGUAGES}"
         )
-    data_dir = os.path.join(root, "xtd200")
+    data_dir = os.path.join(root, "xtd10")
     if not os.path.exists(data_dir):
         _download_images(data_dir)
     images_dir = os.path.join(data_dir, "images")
