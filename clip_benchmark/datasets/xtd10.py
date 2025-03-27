@@ -103,6 +103,7 @@ def create_annotation_file(root, lang_code):
     download_path = os.path.join(
         captions_path, CAPTIONS_FILENAME_TEMPLATE.format(lang_code)
     )
+    print(f"Downloading captions from {download_path}")
     target_captions = _get_lines(download_path)
 
     number_of_missing_images = 0
