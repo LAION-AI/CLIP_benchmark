@@ -214,6 +214,10 @@ For Flickr-8k (zero-shot retrieval)
 
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=flickr8k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `en` (english), `zh` (chinese).
 
+For XTD-10 (zero-shot retrieval)
+
+- `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=xtd10 --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `es` (spanish), `it` (italian), `jp` (japanese), `ko` (korean), `pl` (polish), `ru` (russian), `tr` (Turkish), `zh` (chinese), `en` (english), `fr` (french), `de` (german).
+
 For [Crossmodal-3600](https://google.github.io/crossmodal-3600/) (zero-shot retrieval)
 
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=crossmodal3600 --output=result.json --batch_size=64 --language=<LANG>`, see supported languages [here](https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/crossmodal3600.py#L9).

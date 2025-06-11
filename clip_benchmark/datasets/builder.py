@@ -283,6 +283,16 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             crossmodal3600.create_annotation_file(root, language)
 
         ds = crossmodal3600.Crossmodal3600(root=root, ann_file=annotation_file, transform=transform, **kwargs)
+    elif dataset_name == 'xtd10':
+        from clip_benchmark.datasets import xtd10
+        if language not in xtd10.SUPPORTED_LANGUAGES:
+            raise ValueError("Unsupported language for xtd10:", language)
+
+        annotation_file = os.path.join(root, xtd10.OUTPUT_FILENAME_TEMPLATE.format(language))
+        if not os.path.exists(annotation_file):
+            xtd10.create_annotation_file(root, language)
+
+        ds = xtd10.XTD10(root=root, ann_file=annotation_file, transform=transform, **kwargs)
     elif dataset_name == 'xtd200':
         from clip_benchmark.datasets import xtd200
         if language not in xtd200.SUPPORTED_LANGUAGES:
@@ -523,7 +533,7 @@ class Dummy():
         return 1
 
 def get_dataset_default_task(dataset):
-    if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd200"):
+    if dataset in ("flickr30k", "flickr8k", "mscoco_captions", "multilingual_mscoco_captions", "flickr30k-200", "crossmodal3600", "xtd10", "xtd200"):
         return "zeroshot_retrieval"
     elif dataset.startswith("sugar_crepe") or dataset == "winoground":
         return "image_caption_selection"
@@ -531,7 +541,7 @@ def get_dataset_default_task(dataset):
         return "zeroshot_classification"
 
 def get_dataset_collate_fn(dataset_name):
-    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd200", "winoground") or dataset_name.startswith("sugar_crepe"):
+    if dataset_name in ("mscoco_captions", "multilingual_mscoco_captions", "flickr30k", "flickr8k", "flickr30k-200", "crossmodal3600", "xtd10", "xtd200", "winoground") or dataset_name.startswith("sugar_crepe"):
         return image_captions_collate_fn
     else:
         return default_collate
