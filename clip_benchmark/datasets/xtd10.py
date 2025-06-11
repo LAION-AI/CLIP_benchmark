@@ -106,7 +106,7 @@ def create_annotation_file(root, lang_code):
     target_captions = _get_lines(download_path)
 
     number_of_missing_images = 0
-    valid_images, valid_annotations, valid_indicies = [], [], []
+    valid_images, valid_annotations, valid_indices = [], [], []
     for i, (img, txt) in enumerate(zip(target_images, target_captions)):
         image_path = os.path.join(images_dir, img)
         if not os.path.exists(image_path):
@@ -116,7 +116,7 @@ def create_annotation_file(root, lang_code):
 
         valid_images.append(image_path)
         valid_annotations.append(txt)
-        valid_indicies.append(i)
+        valid_indices.append(i)
 
     if number_of_missing_images > 0:
         print(f"*** WARNING *** missing {number_of_missing_images} files.")
@@ -130,7 +130,7 @@ def create_annotation_file(root, lang_code):
             {
                 "image_paths": valid_images,
                 "annotations": valid_annotations,
-                "indicies": valid_indicies,
+                "indices": valid_indices,
             },
             fp,
             ensure_ascii=False,
