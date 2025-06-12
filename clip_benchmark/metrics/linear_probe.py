@@ -81,7 +81,7 @@ def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, autoc
             scheduler(step)
 
             optimizer.zero_grad()
-            with autocast():
+            with autocast:
                 pred = model(x)
                 loss = criterion(pred, y)
 
@@ -114,7 +114,7 @@ def infer(model, dataloader, autocast, device):
             x = x.to(device)
             y = y.to(device)
 
-            with autocast():
+            with autocast:
                 logits = model(x)
 
             pred.append(logits.cpu())
@@ -150,7 +150,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         os.mkdir(feature_dir)
     
     featurizer = Featurizer(model, normalize).cuda()
-    autocast = torch.cuda.amp.autocast if amp else suppress
+    autocast = torch.amp.autocast('cuda') if amp else suppress()
     if not os.path.exists(os.path.join(feature_dir, 'targets_train.pt')):
         # now we have to cache the features
         devices = [x for x in range(torch.cuda.device_count())]
@@ -168,7 +168,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                 for images, target in tqdm(loader):
                     images = images.to(device)
 
-                    with autocast():
+                    with autocast:
                         feature = featurizer(images)
                     
                     features.append(feature.cpu())
