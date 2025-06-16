@@ -424,7 +424,7 @@ python setup.py install
                    ;origin=https://doi.org/10.5281/zenodo.15403102;vi
                    sit=swh:1:snp:dd153b26f702d614346bf814f723d59fef3d
                    77a2;anchor=swh:1:rel:cff2aeb98f42583b44fdab5374e9
-                   fa71793f2cff;path=CLIP\\_benchmark-main
+                   fa71793f2cff;path=CLIP\_benchmark-main
                   },
 }
 ```
