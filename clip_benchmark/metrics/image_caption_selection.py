@@ -34,7 +34,6 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True):
     
     dict of accuracy metrics
     """
-    autocast = torch.cuda.amp.autocast if amp else suppress
     image_score = []
     text_score = []
     score = []
@@ -52,7 +51,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True):
         # tokenize all texts in the batch
         batch_texts_tok_ = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
         # compute the embedding of images and texts
-        with torch.no_grad(), autocast():
+        with torch.no_grad(), torch.autocast(device, enabled=amp):
             batch_images_emb = F.normalize(model.encode_image(batch_images_), dim=-1).view(B, nim, -1)
             batch_texts_emb = F.normalize(model.encode_text(batch_texts_tok_), dim=-1).view(B, nt, -1)
         gt = torch.arange(min(nim, nt)).to(device)

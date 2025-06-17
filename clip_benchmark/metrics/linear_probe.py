@@ -56,7 +56,7 @@ class FeatureDataset(Dataset):
         return self.features[i], self.targets[i]
 
 
-def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, autocast, device, seed):
+def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, amp, device, seed):
     torch.manual_seed(seed)
     model = torch.nn.Linear(input_shape, output_shape)
     devices = [x for x in range(torch.cuda.device_count())]
@@ -81,7 +81,7 @@ def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, autoc
             scheduler(step)
 
             optimizer.zero_grad()
-            with autocast():
+            with torch.autocast(device, enabled=amp):
                 pred = model(x)
                 loss = criterion(pred, y)
 
@@ -107,14 +107,14 @@ def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, autoc
     return model
 
 
-def infer(model, dataloader, autocast, device):
+def infer(model, dataloader, amp, device):
     true, pred = [], []
     with torch.no_grad():
         for x, y in tqdm(dataloader):
             x = x.to(device)
             y = y.to(device)
 
-            with autocast():
+            with torch.autocast(device, enabled=amp):
                 logits = model(x)
 
             pred.append(logits.cpu())
@@ -125,12 +125,12 @@ def infer(model, dataloader, autocast, device):
     return logits, target
 
 
-def find_peak(wd_list, idxs, train_loader, val_loader, input_shape, output_shape, lr, epochs, autocast, device, verbose, seed):
+def find_peak(wd_list, idxs, train_loader, val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed):
     best_wd_idx, max_acc = 0, 0
     for idx in idxs:
         weight_decay = wd_list[idx]
-        model = train(train_loader, input_shape, output_shape, weight_decay, lr, epochs, autocast, device, seed)
-        logits, target = infer(model, val_loader, autocast, device)
+        model = train(train_loader, input_shape, output_shape, weight_decay, lr, epochs, amp, device, seed)
+        logits, target = infer(model, val_loader, amp, device)
         acc1, = accuracy(logits.float(), target.float(), topk=(1,))
         if verbose:
             print(f"Valid accuracy with weight_decay {weight_decay}: {acc1}")
@@ -150,7 +150,6 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         os.mkdir(feature_dir)
     
     featurizer = Featurizer(model, normalize).cuda()
-    autocast = torch.cuda.amp.autocast if amp else suppress
     if not os.path.exists(os.path.join(feature_dir, 'targets_train.pt')):
         # now we have to cache the features
         devices = [x for x in range(torch.cuda.device_count())]
@@ -168,7 +167,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                 for images, target in tqdm(loader):
                     images = images.to(device)
 
-                    with autocast():
+                    with torch.autocast(device, enabled=amp):
                         feature = featurizer(images)
                     
                     features.append(feature.cpu())
@@ -270,11 +269,11 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         wd_list = np.logspace(-6, 2, num=97).tolist()
         wd_list_init = np.logspace(-6, 2, num=7).tolist()
         wd_init_idx = [i for i, val in enumerate(wd_list) if val in wd_list_init]
-        peak_idx = find_peak(wd_list, wd_init_idx, feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, autocast, device, verbose, seed)
+        peak_idx = find_peak(wd_list, wd_init_idx, feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed)
         step_span = 8
         while step_span > 0:
             left, right = max(peak_idx - step_span, 0), min(peak_idx + step_span, len(wd_list)-1)
-            peak_idx = find_peak(wd_list, [left, peak_idx, right], feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, autocast, device, verbose, seed)
+            peak_idx = find_peak(wd_list, [left, peak_idx, right], feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed)
             step_span //= 2
         best_wd = wd_list[peak_idx]
         if fewshot_k < 0:
@@ -288,8 +287,8 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         best_wd = 0
         train_loader = feature_train_loader
 
-    final_model = train(train_loader, input_shape, output_shape, best_wd, lr, epochs, autocast, device, seed)
-    logits, target = infer(final_model, feature_test_loader, autocast, device)       
+    final_model = train(train_loader, input_shape, output_shape, best_wd, lr, epochs, amp, device, seed)
+    logits, target = infer(final_model, feature_test_loader, amp, device)       
     pred = logits.argmax(axis=1)
     
     # measure accuracy

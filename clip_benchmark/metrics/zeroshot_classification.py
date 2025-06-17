@@ -12,6 +12,7 @@ from tqdm import tqdm
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
 
+
 def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
     """
     This function returns zero-shot vectors for each class in order
@@ -36,8 +37,7 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     torch.Tensor of shape (N,C) where N is the number
     of templates, and C is the number of classes.
     """
-    autocast = torch.cuda.amp.autocast if amp else suppress
-    with torch.no_grad(), autocast():
+    with torch.no_grad(), torch.autocast(device, enabled=amp):
         zeroshot_weights = []
         for classname in tqdm(classnames):
             if type(templates) == dict:
@@ -100,7 +100,6 @@ def run_classification(model, classifier, dataloader, device, amp=True):
         - pred (N, C) are the logits
         - true (N,) are the actual classes
     """
-    autocast = torch.cuda.amp.autocast if amp else suppress
     pred = []
     true = []
     nb = 0
@@ -109,7 +108,7 @@ def run_classification(model, classifier, dataloader, device, amp=True):
             images = images.to(device)
             target = target.to(device)
 
-            with autocast():
+            with torch.autocast(device, enabled=amp):
                 # predict
                 image_features = model.encode_image(images)
                 image_features = F.normalize(image_features, dim=-1)
