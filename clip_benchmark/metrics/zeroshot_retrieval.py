@@ -39,8 +39,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
     batch_texts_emb_list = []
     # for each text, we collect the corresponding image index, as each image can have multiple corresponding texts
     texts_image_index = []
-    dataloader = dataloader_with_indices(dataloader)
-    autocast = torch.amp.autocast('cuda') if amp else suppress()
+    dataloader = dataloader_with_indices(dataloader)    
     for batch_images, batch_texts, inds in tqdm(dataloader):
         batch_images = batch_images.to(device)
         # tokenize all texts in the batch
@@ -49,7 +48,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
         batch_texts_image_index = [ind for ind, texts in zip(inds, batch_texts) for text in texts]
 
         # compute the embedding of images and texts
-        with torch.no_grad(), autocast:
+        with torch.no_grad(), torch.autocast(device, enabled=amp):
             batch_images_emb = F.normalize(model.encode_image(batch_images), dim=-1)
             batch_texts_emb = F.normalize(model.encode_text(batch_texts_tok), dim=-1)
 
