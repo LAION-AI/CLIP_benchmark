@@ -5,13 +5,9 @@ The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
 retrieval, and captioning.
 
-Below we show the average rank (1 is the best, lower is better) of different CLIP models, evaluated
-on different datasets.
-
-![benchmark.png](benchmark.png)
-
-The current detailed results of the benchmark can be seen [here](benchmark/README.md)
-or directly in the [notebook](benchmark/results.ipynb).
+- Results of OpenCLIP models on 38 datasets can be seen here: <https://github.com/mlfoundations/open_clip/blob/main/docs/openclip_results.csv>.
+- Results from "Reproducible scaling laws for contrastive language-image learning" [[arXiv]](https://arxiv.org/abs/2212.07143) can be seen here: <https://github.com/LAION-AI/scaling-laws-openclip>
+- Additional results are available in <https://github.com/LAION-AI/CLIP_benchmark_results>.
 
 ## Features
 
@@ -34,7 +30,7 @@ ViT-B-32,openai
 
 to get the list of datasets 
 ```
-wget https://raw.githubusercontent.com/LAION-AI/CLIP_benchmark/main/benchmark/webdatasets.txt
+wget https://raw.githubusercontent.com/LAION-AI/CLIP_benchmark/main/clip_benchmark/datasets/webdatasets.txt
 ```
 
 Then to run
@@ -411,3 +407,24 @@ python setup.py install
 - Thanks to [@teasgen](https://github.com/teasgen) for support of validation set and tuning linear probing similar to OpenAI's CLIP.
 - Thanks to [@visheratin](https://github.com/visheratin) for multilingual retrieval datasets support from <https://arxiv.org/abs/2309.01859>.
 - This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
+
+## Citation
+
+```
+@software{cherti_2025_15403103,
+  author       = {Cherti, Mehdi and
+                  Beaumont, Romain},
+  title        = {CLIP benchmark},
+  month        = may,
+  year         = 2025,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.15403103},
+  url          = {https://doi.org/10.5281/zenodo.15403103},
+  swhid        = {swh:1:dir:8cf49a5dd06f59224844a1e767337a1d14ee56c2
+                   ;origin=https://doi.org/10.5281/zenodo.15403102;vi
+                   sit=swh:1:snp:dd153b26f702d614346bf814f723d59fef3d
+                   77a2;anchor=swh:1:rel:cff2aeb98f42583b44fdab5374e9
+                   fa71793f2cff;path=CLIP\_benchmark-main
+                  },
+}
+```
