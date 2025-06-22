@@ -6,6 +6,7 @@ import os
 from clip_benchmark.cli import run
 import logging
 import torch
+import pytest
 
 class base_args:
     dataset="dummy"
@@ -109,10 +110,27 @@ class linear_probe_args:
     custom_classname_file=None
     distributed=False
 
-def test_base():
+
+def test_linear_probe():
     if torch.cuda.is_available():
         run(linear_probe_args)
     else:
         logging.warning("GPU acceleration is required for linear evaluation to ensure optimal performance and efficiency.")
+
+
+@pytest.mark.parametrize(
+    "full_model_name",
+    [
+        "openai_clip:ViT-B/32",
+        "open_clip:ViT-B-32/laion2b_s34b_b79k",
+        "hf_clip:patrickjohncyh/fashion-clip",
+    ],
+)
+def test_base(full_model_name):
+    model_type, model_name = full_model_name.split(":")
+    model, pretrained = model_name.split("/")
+    base_args.model_type = model_type
+    base_args.model = model
+    base_args.pretrained = pretrained
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     run(base_args)
