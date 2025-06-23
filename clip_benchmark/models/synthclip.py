@@ -205,7 +205,7 @@ def CLIP_VITB16(checkpoint_path: str = None, cache_dir: str = None, **kwargs):
     return model
 
 
-def load_synthclip(model_name, pretrained, device):
+def load_synthclip(model_name, pretrained, cache_dir, device):
     if model_name == "ViT-B-16":
         model = CLIP_VITB16()
         tokenizer = open_clip.get_tokenizer(model_name)
