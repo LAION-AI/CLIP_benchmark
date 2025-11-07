@@ -3,7 +3,7 @@ import os
 import sys
 import warnings
 from subprocess import call
-
+from torch.nn import functional as F
 import torch
 from torch.utils.data import default_collate
 from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
@@ -704,6 +704,34 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     ds.classes = builder.info.features['label'].names if classes is None else classes
     return ds
 
+def decode_video(
+    key, data
+):
+    import re, io, decord
+    extension = re.sub(r".*[.]", "", key)
+    if extension not in [
+        "mp4",
+        "ogv",
+        "mjpeg",
+        "avi",
+        "mov",
+        "h264",
+        "mpg",
+        "webm",
+        "wmv",
+    ]:
+        return None
+    num_frames = 8
+    reader = decord.VideoReader(io.BytesIO(data), num_threads=8)
+    end_frame = len(reader)
+    indices = torch.linspace(0, end_frame - 1, steps=num_frames).tolist()
+    frames = reader.get_batch(indices)
+    frames = frames.asnumpy()
+    frames = torch.from_numpy(frames)
+    frames = frames.permute(3, 0, 1, 2)  # Change to [C, num_frames, H, W]
+    frames = F.interpolate(frames, size=(224, 224), mode='bilinear', align_corners=False)    
+    frames = (frames / 255.0 - 0.5) / 0.5  # Assuming the input is in [0, 255] range
+    return frames
 
 def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
     """
@@ -758,6 +786,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
     nshards = int(read_txt(nshards_fname)) # Do not catch FileNotFound, nshards.txt should be mandatory
+    
     # Get dataset type (classification or retrieval)
     type_fname = os.path.join(metadata_dir, "dataset_type.txt")
     try:
@@ -765,15 +794,21 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     except FileNotFoundError:
         # print("WARNING: dataset_type.txt not found, assuming type=classification")
         dataset_type = "classification"
-    #
+    
+    assert dataset_type in ("classification", "multilabel", "retrieval", "video_classification"), f"Unsupported dataset_type: {dataset_type}"
+    
     filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
     # Load webdataset (support WEBP, PNG, and JPG for now)
     if not cache_dir or not isinstance(cache_dir, str):
         cache_dir = None
-    dataset = (
-        wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
-        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
-    )
+    
+    dataset = wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
+    if dataset_type == "video_classification":
+        dataset = dataset.decode(decode_video, handler=warn_and_continue)
+        transform = lambda x:x  # No-op transform since decoding already done
+    else:
+        dataset = dataset.decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
+    
     # Load based on classification or retrieval task
     if dataset_type == "retrieval":
         dataset = (dataset
@@ -783,10 +818,15 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         dataset.classes = dataset.templates = None
     else:
         label_type = "npy" if dataset_type == "multilabel" else "cls" # Special case for multilabel
-        dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
-            .map_tuple(transform, None)
-        )
+        if dataset_type in ("classification", "multilabel"):
+            dataset = dataset.to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
+        elif dataset_type == "video_classification":
+            dataset = dataset.to_tuple(["mp4"], label_type)
+        else:
+            raise ValueError(f"Unsupported dataset_type: {dataset_type}")
+        
+        dataset = dataset.map_tuple(transform, None)
+        
         # Get class names if present
         classnames_fname = os.path.join(metadata_dir, "classnames.txt")
         try:
@@ -804,6 +844,10 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
 
     return dataset
 
+
+def warn_and_continue(exn):
+    warnings.warn(f"WebDataset decoding error: {exn}. Skipping sample.")
+    return True
 
 def _extract_task(dataset_name):
     prefix, *task_name_list = dataset_name.split("_")
