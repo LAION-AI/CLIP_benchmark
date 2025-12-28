@@ -11,7 +11,7 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   EuroSAT, FGVCAircraft, Flowers102, Food101,
                                   ImageFolder, ImageNet, OxfordIIITPet,
                                   RenderedSST2, StanfordCars)
-
+from .esc50 import ESC50
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
                sugar_crepe, voc2007, winoground)
 
@@ -472,6 +472,32 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         name = dataset_name.split("/", 1)[1]
         ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir)
         # WDS specify classnames and templates on its own.
+
+    # AUDIO DATASETS
+    elif dataset_name == "gtzan":
+        from .gtzan import GTZAN
+        assert split in GTZAN.available_splits(), f"Only splits {GTZAN.available_splits()} are available for {dataset_name}"
+
+        ds = GTZAN(root=root, split=split, transform=transform)
+        #ds.classes = default_classnames["gtzan"]
+    elif dataset_name == "esc50":
+        from .esc50 import ESC50
+        assert split in ESC50.available_splits(), f"Only splits {ESC50.available_splits()} are available for {dataset_name}"
+        ds = ESC50(root=root, split=split, transform=transform)
+        ds.classes = default_classnames["esc50"]
+    elif dataset_name == "urbansound8k" or dataset_name == "us8k":
+        from .us8k import US8K
+        assert split in US8K.available_splits(), f"Only splits {US8K.available_splits()} are available for {dataset_name}"
+        ds = US8K(root=root, split=split, transform=transform)
+        ds.classes = default_classnames["us8k"]
+    elif dataset_name == "fsd50k":
+        from .fsd50k import FSD50K
+        assert split in FSD50K.available_splits(), f"Only splits {FSD50K.available_splits()} are available for {dataset_name}"
+        ds = FSD50K(root=root, split=split, transform=transform)
+    elif dataset_name == "vggsounder":
+        from .vggsounder import VGGSounder
+        assert split in VGGSounder.available_splits(), f"Only splits {VGGSounder.available_splits()} are available for {dataset_name}"
+        ds = VGGSounder(root=root, split=split, transform=transform)
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
@@ -507,7 +533,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             # dataset has templates already (e.g., WDS case), so we keep it as is.
             pass
 
-         # We override with custom classnames ONLY if they are provided.
+        # We override with custom classnames ONLY if they are provided.
         if custom_classnames:
             ds.classes = value_from_first_key_found(custom_classnames, keys=keys_to_lookup)
         
@@ -745,6 +771,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
             with open(fname, "r") as file:
                 value = file.read()
         return value
+
     # Special handling for Huggingface datasets
     # Git LFS files have a different file path to access the raw data than other files
     if data_dir.startswith("https://huggingface.co/datasets"):
@@ -755,9 +782,11 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         tardata_dir = "/".join([url_head, "resolve", url_path])
     else:
         metadata_dir = tardata_dir = data_dir
+
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
     nshards = int(read_txt(nshards_fname)) # Do not catch FileNotFound, nshards.txt should be mandatory
+
     # Get dataset type (classification or retrieval)
     type_fname = os.path.join(metadata_dir, "dataset_type.txt")
     try:
@@ -765,8 +794,10 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     except FileNotFoundError:
         # print("WARNING: dataset_type.txt not found, assuming type=classification")
         dataset_type = "classification"
+
     #
     filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
+    
     # Load webdataset (support WEBP, PNG, and JPG for now)
     if not cache_dir or not isinstance(cache_dir, str):
         cache_dir = None
@@ -774,6 +805,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
         .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
     )
+
     # Load based on classification or retrieval task
     if dataset_type == "retrieval":
         dataset = (dataset
@@ -787,6 +819,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
             .to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
             .map_tuple(transform, None)
         )
+
         # Get class names if present
         classnames_fname = os.path.join(metadata_dir, "classnames.txt")
         try:
@@ -794,6 +827,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         except FileNotFoundError:
             print("WARNING: classnames.txt not found")
             dataset.classes = None
+
         # Get zeroshot classification templates if present
         templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
         try:

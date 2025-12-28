@@ -48,7 +48,11 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
                 texts = [template.format(c=classname) for template in templates]
             else:
                 raise ValueError("templates must be a list or a dict")
-            texts = tokenizer(texts).to(device)  # tokenize
+            
+            # some models do not require tokenization or device trasfer (e.g. CLAP)
+            if tokenizer is not None:
+                texts = tokenizer(texts).to(device)  # tokenize
+            
             class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
             class_embedding /= class_embedding.norm()
@@ -78,21 +82,22 @@ def accuracy(output, target, topk=(1,)):
     """
     pred = output.topk(max(topk), 1, True, True)[1].t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    n = len(target)
-    return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) / n for k in topk]
+    return [float(correct[:k].reshape(-1).float().sum().item()) / len(target) for k in topk]
 
 
-def run_classification(model, classifier, dataloader, device, amp=True):
+def run_classification(model, classifier, dataloader, device, amp=True, modality="image"):
     """
-    Run zero-shot classifcation
+    Run zero-shot classification
 
     model: torch.nn.Module
-        CLIP-like model with `encode_image` and `encode_text`
+        CLIP-like model with `encode_image`/'encode_audio' and `encode_text`
     
     classifier: torch.Tensor
         obtained from the function `zero_shot_classifier`
     
     dataloader: torch.utils.data.Dataloader 
+    
+    modality: "image" or "audio"
     
     Returns
     -------
@@ -104,15 +109,21 @@ def run_classification(model, classifier, dataloader, device, amp=True):
     true = []
     nb = 0
     with torch.no_grad():
-        for images, target in tqdm(dataloader):
-            images = images.to(device)
+        for data, target in tqdm(dataloader):
+            data = data.to(device)
             target = target.to(device)
 
             with torch.autocast(device, enabled=amp):
                 # predict
-                image_features = model.encode_image(images)
-                image_features = F.normalize(image_features, dim=-1)
-                logits = 100. * image_features @ classifier
+                if modality == "image":
+                    data_features = model.encode_image(data)
+                elif modality == "audio":
+                    data_features = model.encode_audio(data)
+                else:
+                    raise ValueError("modality must be 'image' or 'audio'")
+                
+                data_features = F.normalize(data_features, dim=-1)
+                logits = 100. * data_features @ classifier
             
             true.append(target.cpu())
             pred.append(logits.float().cpu())
@@ -162,7 +173,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, save_clf=None, load_clfs=[]):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, modality, amp=True, verbose=False, save_clf=None, load_clfs=[]):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -206,7 +217,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
         torch.save(classifier, save_clf)
         # exit() - not sure if we want to exit here or not.
 
-    logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
+    logits, target = run_classification(model, classifier, dataloader, device, amp=amp, modality=modality)
     is_multilabel = (len(target.shape) == 2)
 
     if is_multilabel:

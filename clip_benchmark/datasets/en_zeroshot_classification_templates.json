@@ -289,6 +289,24 @@
     "diabetic_retinopathy": [
         "a retinal image with {c}"
     ],
+    "esc50": [
+        "This is a sound of {c}."
+    ],
+    "us8k": [
+        "This is a sound of {c}."
+    ],
+    "vggsound": [
+        "This is a sound of {c}."
+    ],
+    "fsd50k": [
+        "This is a sound of {c}."
+    ],
+    "vggsounder": [
+        "This is a sound of {c}."
+    ],
+    "gtzan": [
+        "This audio is a {c} song."
+    ],
     "dummy": [
         "a photo of a {c}"
     ]

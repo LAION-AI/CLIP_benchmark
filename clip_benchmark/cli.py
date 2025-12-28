@@ -57,6 +57,7 @@ def get_parser_args():
     parser_eval.add_argument('--custom_template_file', default=None, type=str, help="use custom json file with prompts for each dataset, where keys are dataset names and values are list of prompts. For instance, to use CuPL prompts, use --custom_template_file='cupl_prompts.json'")
     parser_eval.add_argument('--dump_classnames', default=False, action="store_true", help="dump classnames to the results json file.")
     parser_eval.add_argument('--dump_templates', default=False, action="store_true", help="dump templates to the results json file.")
+    parser_eval.add_argument('--modality', default="auto", type=str, choices=["image", "audio", "auto"], help="modality of the dataset. 'auto' will try to infer the modality from the available model functions.")
 
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="{dataset}_{pretrained}_{model}_{language}_{task}.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
@@ -300,6 +301,20 @@ def run(args):
                 shuffle=False, num_workers=args.num_workers, 
                 collate_fn=collate_fn
             )
+
+    # selects the modality automatically if not specified
+    if args.modality == "auto":
+        has_encode_image = hasattr(model, "encode_image")
+        has_encode_audio = hasattr(model, "encode_audio")
+        assert has_encode_image ^ has_encode_audio, "Model has both encode_image and encode_audio methods, please specify modality with --modality flag.."
+
+        if has_encode_image:
+            modality = "image"
+        else:
+            modality = "audio"
+    else:
+        modality = args.modality
+
     if task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.verbose:
@@ -310,7 +325,9 @@ def run(args):
             model, 
             dataloader, 
             tokenizer, 
-            classnames, zeroshot_templates, 
+            classnames, 
+            zeroshot_templates, 
+            modality=modality,
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
