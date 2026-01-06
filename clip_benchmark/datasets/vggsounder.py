@@ -4,34 +4,39 @@ import numpy as np
 import librosa
 from torch.utils.data import Dataset
 import vggsounder
+from typing import Optional, Callable, Tuple, List
 
 class VGGSounder(Dataset):
-    def __init__(self, root, split="test", transform=None):
-        """
-        VGGSounder dataset loader.
-        
-        Args:
-            root (str): Path to the directory containing video files.
-            split (str): only 'test' is supported in vggsounder. Argument is kept for consistency with other datasets.
-            transform: Audio transform.
-        """
-        self.TARGET_LENGTH = 384000
+    """
+    VGGSounder Dataset wrapper.
+
+    VGG-Sound is a large-scale audio-visual dataset containing ~200k video clips 
+    with audio events from 309 classes.
+
+    Args:
+        root (str): Path to the directory containing audio files.
+        split (str): only 'test' is supported in vggsounder. Argument is kept for consistency with other datasets.
+        transform (Optional[Callable]): A function/transform that takes in a raw audio tensor
+                                        and returns a transformed version.
+        target_len (int): Target length of the audio in samples. Default is 384000 (8s at 48kHz).
+    """
+    def __init__(self, root: str, split: str = "test", transform: Optional[Callable] = None, target_len: int = 384000) -> None:
+        self.TARGET_LENGTH = target_len
         self.root = root
         self.transform = transform
         
         # Initialize the annotation object
         self.vgg = vggsounder.VGGSounder()
         self.vgg.set_modality("A")
-        
 
         # Get all labels
         self.classes = self.vgg.get_all_labels()
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.vgg) 
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         # Access by stored valid index
         video = self.vgg[idx]
         video_id = video.video_id
@@ -59,10 +64,12 @@ class VGGSounder(Dataset):
         else:
             audio_data = audio_data[:self.TARGET_LENGTH]
 
+        audio_tensor = torch.from_numpy(audio_data).float()
+
         if self.transform:
-            audio_data = self.transform(audio_data)
+            audio_tensor = self.transform(audio_tensor)
             
-        return torch.from_numpy(audio_data).float(), target
+        return audio_tensor, target
 
     @staticmethod
     def available_splits() -> List[str]:
