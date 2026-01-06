@@ -228,7 +228,9 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, modali
         if verbose:
             for class_name, ap in zip(dataloader.dataset.classes, ap_per_class.tolist()):
                 print(f"Class: {class_name}, AveragePrecision: {ap}")
-        return {"mean_average_precision": ap_per_class.mean().item()}
+        mean_ap = ap_per_class.mean().item()
+        print(f"Mean Average Precision: {mean_ap}")
+        return {"mean_average_precision": mean_ap}
     else:
         # Single label per image, multiple classes on the dataset
         # just compute accuracy and mean_per_class_recall
