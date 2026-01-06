@@ -405,6 +405,7 @@ def run(args):
             normalize=args.normalize,
             amp=args.amp,
             verbose=args.verbose,
+            modality=modality,
         )
     elif task == "captioning":
         metrics = captioning.evaluate(
