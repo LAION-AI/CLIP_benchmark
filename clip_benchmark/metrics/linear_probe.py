@@ -33,16 +33,20 @@ def cosine_lr(optimizer, base_lrs, warmup_length, steps):
 
 
 class Featurizer(torch.nn.Module):
-    def __init__(self, model, normalize=True):
+    def __init__(self, model, normalize=True, modality="image"):
         super().__init__()
         self.model = model
         self.normalize = normalize
+        self.modality = modality
 
     def forward(self, input):
-        image_features = self.model.encode_image(input)
+        if self.modality == "audio":
+            features = self.model.encode_audio(input)
+        else:
+            features = self.model.encode_image(input)
         if self.normalize:
-            image_features = F.normalize(image_features, dim=-1)
-        return image_features
+            features = F.normalize(features, dim=-1)
+        return features
 
 class FeatureDataset(Dataset):
     def __init__(self, features, targets):
@@ -140,7 +144,7 @@ def find_peak(wd_list, idxs, train_loader, val_loader, input_shape, output_shape
 
 
 def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_workers, lr, epochs, 
-             model_id, seed, feature_root, device, val_dataloader=None, normalize=True, amp=True, verbose=False):
+             model_id, seed, feature_root, device, val_dataloader=None, normalize=True, amp=True, verbose=False, modality="image"):
     assert device == 'cuda' # need to use cuda for this else too slow
     # first we need to featurize the dataset, and store the result in feature_root
     if not os.path.exists(feature_root):
@@ -149,7 +153,7 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     if not os.path.exists(feature_dir):
         os.mkdir(feature_dir)
     
-    featurizer = Featurizer(model, normalize).cuda()
+    featurizer = Featurizer(model, normalize, modality=modality).cuda()
     if not os.path.exists(os.path.join(feature_dir, 'targets_train.pt')):
         # now we have to cache the features
         devices = [x for x in range(torch.cuda.device_count())]
