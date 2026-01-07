@@ -22,12 +22,12 @@ Evaluates how well the model classifies audio using only text descriptions of cl
 python3 -m clip_benchmark.cli eval \
     --model_type clap \
     --model "HTSAT-tiny" \
-    --pretrained "path/to/630k-audioset-best.pt" \
+    --pretrained /path/to/630k-audioset-best.pt \
     --dataset esc50 \
-    --dataset_root ./data/esc50 \
+    --dataset_root /path/to/esc50 \
     --task zeroshot_classification \
     --output result_esc50.json \
-    --split train
+    --split all
 ```
 
 ### Linear Probe
@@ -38,9 +38,9 @@ Trains a linear classifier on frozen audio embeddings.
 python3 -m clip_benchmark.cli eval \
     --model_type clap \
     --model "HTSAT-tiny" \
-    --pretrained "path/to/630k-audioset-best.pt" \
+    --pretrained /path/to/630k-audioset-best.pt \
     --dataset us8k \
-    --dataset_root ./data/UrbanSound8K \
+    --dataset_root /path/to/UrbanSound8K \
     --task linear_probe \
     --train_split train \
     --test_split test \
