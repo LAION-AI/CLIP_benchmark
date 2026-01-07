@@ -11,7 +11,6 @@ from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   EuroSAT, FGVCAircraft, Flowers102, Food101,
                                   ImageFolder, ImageNet, OxfordIIITPet,
                                   RenderedSST2, StanfordCars)
-from .esc50 import ESC50
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
                sugar_crepe, voc2007, winoground)
 
@@ -475,27 +474,27 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
 
     # AUDIO DATASETS
     elif dataset_name == "gtzan":
-        from .gtzan import GTZAN
+        from .audio.gtzan import GTZAN
         assert split in GTZAN.available_splits(), f"Only splits {GTZAN.available_splits()} are available for {dataset_name}"
 
         ds = GTZAN(root=root, split=split, transform=transform)
         #ds.classes = default_classnames["gtzan"]
     elif dataset_name == "esc50":
-        from .esc50 import ESC50
+        from .audio.esc50 import ESC50
         assert split in ESC50.available_splits(), f"Only splits {ESC50.available_splits()} are available for {dataset_name}"
         ds = ESC50(root=root, split=split, transform=transform)
         ds.classes = default_classnames["esc50"]
     elif dataset_name == "urbansound8k" or dataset_name == "us8k":
-        from .us8k import US8K
+        from .audio.us8k import US8K
         assert split in US8K.available_splits(), f"Only splits {US8K.available_splits()} are available for {dataset_name}"
         ds = US8K(root=root, split=split, transform=transform)
         ds.classes = default_classnames["us8k"]
     elif dataset_name == "fsd50k":
-        from .fsd50k import FSD50K
+        from .audio.fsd50k import FSD50K
         assert split in FSD50K.available_splits(), f"Only splits {FSD50K.available_splits()} are available for {dataset_name}"
         ds = FSD50K(root=root, split=split, transform=transform)
     elif dataset_name == "vggsounder":
-        from .vggsounder import VGGSounder
+        from .audio.vggsounder import VGGSounder
         assert split in VGGSounder.available_splits(), f"Only splits {VGGSounder.available_splits()} are available for {dataset_name}"
         ds = VGGSounder(root=root, split=split, transform=transform)
     elif dataset_name == "dummy":

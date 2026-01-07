@@ -75,11 +75,7 @@ class US8K(Dataset):
             audio_data = np.zeros(self.TARGET_LENGTH)
 
         # Pad/Crop to target_len
-        if len(audio_data) < self.TARGET_LENGTH:
-            padding = self.TARGET_LENGTH - len(audio_data)
-            audio_data = np.pad(audio_data, (0, padding), 'constant')
-        else:
-            audio_data = audio_data[:self.TARGET_LENGTH]
+        audio_data = utils.pad_or_crop(audio_data, self.TARGET_LENGTH)
         
         audio_tensor = torch.from_numpy(audio_data).float()
         

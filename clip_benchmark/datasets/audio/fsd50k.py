@@ -89,11 +89,7 @@ class FSD50K(Dataset):
             audio_data = np.zeros(self.TARGET_LEN)
 
         # Pad/Crop to target length
-        if len(audio_data) < self.TARGET_LEN:
-            padding = self.TARGET_LEN - len(audio_data)
-            audio_data = np.pad(audio_data, (0, padding), 'constant')
-        else:
-            audio_data = audio_data[:self.TARGET_LEN]
+        audio_data = utils.pad_or_crop(audio_data, self.TARGET_LEN)
         
         audio_tensor = torch.from_numpy(audio_data).float()
 

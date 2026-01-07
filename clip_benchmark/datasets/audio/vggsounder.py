@@ -58,11 +58,7 @@ class VGGSounder(Dataset):
             print(f"Warning: Failed to load {audio_path}, returning silence. Error: {e}")
             audio_data = np.zeros(self.TARGET_LENGTH) # 4s silence fallback
             
-        if len(audio_data) < self.TARGET_LENGTH:
-            padding = self.TARGET_LENGTH - len(audio_data)
-            audio_data = np.pad(audio_data, (0, padding), 'constant')
-        else:
-            audio_data = audio_data[:self.TARGET_LENGTH]
+        audio_data = utils.pad_or_crop(audio_data, self.TARGET_LENGTH)
 
         audio_tensor = torch.from_numpy(audio_data).float()
 
