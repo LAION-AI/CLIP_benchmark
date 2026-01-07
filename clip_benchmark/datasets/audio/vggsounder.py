@@ -5,6 +5,7 @@ import librosa
 from torch.utils.data import Dataset
 import vggsounder
 from typing import Optional, Callable, Tuple, List
+from .utils import pad_or_crop
 
 class VGGSounder(Dataset):
     """
@@ -58,7 +59,7 @@ class VGGSounder(Dataset):
             print(f"Warning: Failed to load {audio_path}, returning silence. Error: {e}")
             audio_data = np.zeros(self.TARGET_LENGTH) # 4s silence fallback
             
-        audio_data = utils.pad_or_crop(audio_data, self.TARGET_LENGTH)
+        audio_data = pad_or_crop(audio_data, self.TARGET_LENGTH)
 
         audio_tensor = torch.from_numpy(audio_data).float()
 

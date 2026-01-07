@@ -17,8 +17,9 @@ class ESC50(torch.utils.data.Dataset):
         transform (Optional[Callable]): A function/transform that takes in a raw audio tensor
                                         and returns a transformed version.
     """
-    def __init__(self, root: str, split: str = "all", transform: Optional[Callable] = None) -> None:
+    def __init__(self, root: str, split: str = "test", transform: Optional[Callable] = None) -> None:
         # 'ashraq/esc50' on HF only has a 'train' split which contains all data. We keep the split argument for consistency with other datasets and to make sure the user is not mistaken..
+        split = "train" if split == "test" else split
         self.dataset = load_dataset("ashraq/esc50", split=split, cache_dir=root)
         self.dataset = self.dataset.cast_column("audio", Audio(sampling_rate=48000, num_channels=1))
         self.transform = transform
@@ -48,4 +49,4 @@ class ESC50(torch.utils.data.Dataset):
 
     @staticmethod
     def available_splits() -> List[str]:
-        return ["all"]
+        return ["test"]

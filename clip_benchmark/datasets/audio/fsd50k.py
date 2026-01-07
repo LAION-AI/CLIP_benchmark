@@ -5,6 +5,7 @@ import librosa
 import numpy as np
 from torch.utils.data import Dataset
 from typing import Optional, Callable, Tuple, List
+from .utils import pad_or_crop
 
 class FSD50K(Dataset):
     """
@@ -89,7 +90,7 @@ class FSD50K(Dataset):
             audio_data = np.zeros(self.TARGET_LEN)
 
         # Pad/Crop to target length
-        audio_data = utils.pad_or_crop(audio_data, self.TARGET_LEN)
+        audio_data = pad_or_crop(audio_data, self.TARGET_LEN)
         
         audio_tensor = torch.from_numpy(audio_data).float()
 
@@ -100,4 +101,4 @@ class FSD50K(Dataset):
 
     @staticmethod
     def available_splits() -> List[str]:
-        return ["train", "eval"]
+        return ["train", "test"]

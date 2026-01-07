@@ -7,6 +7,7 @@ import sys
 from subprocess import call
 from torch.utils.data import Dataset
 from typing import Optional, Callable, Tuple, List
+from .utils import pad_or_crop
 
 class GTZAN(Dataset):
     """
@@ -23,7 +24,7 @@ class GTZAN(Dataset):
         target_len (int): Target length of the audio in samples (default 144000 = 3s @ 48kHz).
         transform (Optional[Callable]): Optional transform to be applied on a audio sample.
     """
-    def __init__(self, root: str, split: str = "all", target_sr: int = 48000, target_len: int = 144000, transform: Optional[Callable] = None) -> None:
+    def __init__(self, root: str, split: str = "test", target_sr: int = 48000, target_len: int = 144000, transform: Optional[Callable] = None) -> None:
         self.root = root
         
         # Determine the correct root directory structure
@@ -86,7 +87,7 @@ class GTZAN(Dataset):
             print(f"Warning: Failed to load {file_path}, returning silence.")
         
         # Pad/Crop
-        audio_data = utils.pad_or_crop(audio_data, self.target_len)
+        audio_data = pad_or_crop(audio_data, self.target_len)
         
         # Convert to PyTorch Tensor
         audio_tensor = torch.from_numpy(audio_data).float()
@@ -102,7 +103,7 @@ class GTZAN(Dataset):
     
     @staticmethod
     def available_splits() -> List[str]:
-        return ["all"]
+        return ["test"]
 
     @staticmethod
     def download(root: str) -> None:

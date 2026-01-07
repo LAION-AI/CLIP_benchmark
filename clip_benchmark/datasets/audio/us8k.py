@@ -5,6 +5,7 @@ import librosa
 import numpy as np
 from torch.utils.data import Dataset
 from typing import Optional, Callable, Tuple, List
+from .utils import pad_or_crop
 
 class US8K(Dataset):
     """
@@ -75,7 +76,7 @@ class US8K(Dataset):
             audio_data = np.zeros(self.TARGET_LENGTH)
 
         # Pad/Crop to target_len
-        audio_data = utils.pad_or_crop(audio_data, self.TARGET_LENGTH)
+        audio_data = pad_or_crop(audio_data, self.TARGET_LENGTH)
         
         audio_tensor = torch.from_numpy(audio_data).float()
         

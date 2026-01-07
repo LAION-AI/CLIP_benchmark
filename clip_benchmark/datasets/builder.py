@@ -484,7 +484,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         assert split in ESC50.available_splits(), f"Only splits {ESC50.available_splits()} are available for {dataset_name}"
         ds = ESC50(root=root, split=split, transform=transform)
         ds.classes = default_classnames["esc50"]
-    elif dataset_name == "urbansound8k" or dataset_name == "us8k":
+    elif dataset_name == "UrbanSound8K":
         from .audio.us8k import US8K
         assert split in US8K.available_splits(), f"Only splits {US8K.available_splits()} are available for {dataset_name}"
         ds = US8K(root=root, split=split, transform=transform)
@@ -493,7 +493,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         from .audio.fsd50k import FSD50K
         assert split in FSD50K.available_splits(), f"Only splits {FSD50K.available_splits()} are available for {dataset_name}"
         ds = FSD50K(root=root, split=split, transform=transform)
-    elif dataset_name == "vggsounder":
+    elif dataset_name.lower() == "vggsounder" or dataset_name.lower() == "vggsound":
         from .audio.vggsounder import VGGSounder
         assert split in VGGSounder.available_splits(), f"Only splits {VGGSounder.available_splits()} are available for {dataset_name}"
         ds = VGGSounder(root=root, split=split, transform=transform)
