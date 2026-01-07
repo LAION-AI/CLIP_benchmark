@@ -1,4 +1,4 @@
-# Audio Benchmarks for CLIP Benchmark (PS: automatically generated and will be updated soon)
+# Audio Benchmarks for CLIP Benchmark
 
 This document describes the audio modality support in CLIP Benchmark, enabling evaluation of audio-language models like CLAP.
 
@@ -6,11 +6,11 @@ This document describes the audio modality support in CLIP Benchmark, enabling e
 
 | Dataset          | Description                            | Classes | Samples | Available Splits                             |
 | ---------------- | -------------------------------------- | ------- | ------- | -------------------------------------------- |
-| **ESC-50**       | Environmental sound classification     | 50      | 2,000   | `train` (all data)                           |
+| **ESC-50**       | Environmental sound classification     | 50      | 2,000   | `all`                                        |
 | **UrbanSound8K** | Urban sound classification             | 10      | 8,732   | `train` (folds 1-9), `test` (fold 10), `all` |
 | **GTZAN**        | Music genre recognition                | 10      | 1,000   | `all`                                        |
 | **FSD50K**       | Freesound audio tagging (multi-label)  | 200     | 51,197  | `train` (dev set), `eval`                    |
-| **VGGSounder**   | Audio events from videos (multi-label) | 309     | ~200k   | `test`                                       |
+| **VGGSounder**   | Audio events from videos (multi-label) | 309     | ~200k   | `all`                                        |
 
 ## Supported Evaluation Tasks
 
@@ -60,7 +60,7 @@ python3 -m clip_benchmark.cli eval \
 
 - Download from: https://urbansounddataset.weebly.com/urbansound8k.html
 - Requires manual download and extraction
-- Standard 10-fold cross-validation (fold 10 used as test)
+- Uses fold 10 as test set, and the rest as train set (normally 10 fold cross validation)
 
 ### GTZAN
 
@@ -71,13 +71,11 @@ python3 -m clip_benchmark.cli eval \
 
 - Download from: https://zenodo.org/records/4060432
 - Multi-label classification (uses mAP metric)
-- Requires `FSD50K.ground_truth` and audio directories
 
 ### VGGSounder
 
 - Requires `vggsounder` Python package
-- Audio files must be extracted from videos
-- Multi-label classification
+- Manuel download of vggsound necessary
 
 ## CLAP Model Checkpoints
 
@@ -97,10 +95,10 @@ All audio is:
 - Converted to **mono**
 - Padded/cropped to dataset-specific target lengths
 
-| Dataset    | Target Length     | Duration |
-| ---------- | ----------------- | -------- |
-| ESC-50     | 240,000 samples   | 5.0s     |
-| US8K       | 192,000 samples   | 4.0s     |
-| GTZAN      | 1,440,000 samples | 30.0s    |
-| FSD50K     | 192,000 samples   | 4.0s     |
-| VGGSounder | 384,000 samples   | 8.0s     |
+| Dataset    | Target Length   | Duration |
+| ---------- | --------------- | -------- |
+| ESC-50     | 240,000 samples | 5.0s     |
+| US8K       | 192,000 samples | 4.0s     |
+| GTZAN      | 144,000 samples | 3.0s     |
+| FSD50K     | 192,000 samples | 4.0s     |
+| VGGSounder | 384,000 samples | 8.0s     |
