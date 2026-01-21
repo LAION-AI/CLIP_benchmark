@@ -4,6 +4,7 @@ Thanks to the authors of OpenCLIP
 """
 import logging
 from contextlib import suppress
+import time
 
 import torch
 import torch.nn.functional as F
@@ -103,8 +104,15 @@ def run_classification(model, classifier, dataloader, device, amp=True):
     pred = []
     true = []
     nb = 0
+    data_loading_checkpoint = time.time()
+    it = 0
     with torch.no_grad():
-        for images, target in tqdm(dataloader):
+        for images, target in (dataloader):
+            
+            data_loading_time = time.time() - data_loading_checkpoint
+            
+            forward_pass_checkpoint = time.time()
+            
             images = images.to(device)
             target = target.to(device)
 
@@ -116,6 +124,16 @@ def run_classification(model, classifier, dataloader, device, amp=True):
             
             true.append(target.cpu())
             pred.append(logits.float().cpu())
+            
+            forward_pass_time = time.time() - forward_pass_checkpoint
+            
+            data_loading_checkpoint = time.time()
+            throughput = images.size(0) / (data_loading_time + forward_pass_time)
+            avg_throughput = avg_throughput + (throughput - avg_throughput) / (it + 1) if it > 0 else throughput
+
+            if it % 10 == 0:
+                print(f"Data loading time: {data_loading_time:.3f}s, Forward pass time: {forward_pass_time:.3f}s , Throughput: {throughput:.1f} samples/s, Avg Throughput: {avg_throughput:.1f} samples/s")
+            it += 1
 
     pred = torch.cat(pred)
     true = torch.cat(true)

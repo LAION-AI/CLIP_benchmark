@@ -795,7 +795,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         # print("WARNING: dataset_type.txt not found, assuming type=classification")
         dataset_type = "classification"
     
-    assert dataset_type in ("classification", "multilabel", "retrieval", "video_classification"), f"Unsupported dataset_type: {dataset_type}"
+    assert dataset_type in ("classification", "multilabel", "retrieval", "video_classification", "video_retrieval"), f"Unsupported dataset_type: {dataset_type}"
     
     filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
     # Load webdataset (support WEBP, PNG, and JPG for now)
@@ -803,25 +803,33 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         cache_dir = None
     
     dataset = wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
-    if dataset_type == "video_classification":
+    img_extensions = ["webp", "png", "jpg", "jpeg"]
+    video_extensions = ["mp4", "avi"]
+    if dataset_type in ("video_classification", "video_retrieval"):
         dataset = dataset.decode(decode_video, handler=warn_and_continue)
         transform = lambda x:x  # No-op transform since decoding already done
     else:
-        dataset = dataset.decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
+        dataset = dataset.decode(wds.autodecode.ImageHandler("pil", extensions=img_extensions), handler=warn_and_continue)
     
     # Load based on classification or retrieval task
     if dataset_type == "retrieval":
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], "txt")
+            .to_tuple(img_extensions, "txt")
+            .map_tuple(transform, str.splitlines)
+        )
+        dataset.classes = dataset.templates = None
+    elif dataset_type == "video_retrieval":
+        dataset = (dataset
+            .to_tuple(video_extensions, "txt")
             .map_tuple(transform, str.splitlines)
         )
         dataset.classes = dataset.templates = None
     else:
         label_type = "npy" if dataset_type == "multilabel" else "cls" # Special case for multilabel
         if dataset_type in ("classification", "multilabel"):
-            dataset = dataset.to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
+            dataset = dataset.to_tuple(img_extensions, label_type)
         elif dataset_type == "video_classification":
-            dataset = dataset.to_tuple(["mp4"], label_type)
+            dataset = dataset.to_tuple(video_extensions, label_type)
         else:
             raise ValueError(f"Unsupported dataset_type: {dataset_type}")
         

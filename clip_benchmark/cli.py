@@ -231,10 +231,16 @@ def run(args):
     pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
     pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
     dataset_slug = dataset_name.replace('/', '_')
+    if args.model == "auto":
+        for line in open(os.path.join(os.path.dirname(args.pretrained), "..", "out.log")):
+            if " model:" in line:
+                args.model = line.split(" model:")[1].strip()
+                break
     output = args.output.format(
         model=args.model, 
         pretrained=pretrained_slug,
         pretrained_full_path=pretrained_slug_full_path,
+        pretrained_folder=os.path.dirname(args.pretrained),
         task=task, 
         dataset=dataset_slug,
         language=args.language

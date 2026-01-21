@@ -1,5 +1,6 @@
 import logging
 from contextlib import suppress
+import time
 
 import torch
 import torch.nn.functional as F
@@ -40,8 +41,15 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
     # for each text, we collect the corresponding image index, as each image can have multiple corresponding texts
     texts_image_index = []
     dataloader = dataloader_with_indices(dataloader)    
-    for batch_images, batch_texts, inds in tqdm(dataloader):
+    
+    data_loading_checkpoint = time.time()
+    it = 0
+    for batch_images, batch_texts, inds in (dataloader):
         batch_images = batch_images.to(device)
+
+        data_loading_time = time.time() - data_loading_checkpoint
+        
+        forward_pass_checkpoint = time.time()
         # tokenize all texts in the batch
         batch_texts_tok = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
         # store the index of image for each text
@@ -55,6 +63,14 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
         batch_images_emb_list.append(batch_images_emb.cpu())
         batch_texts_emb_list.append(batch_texts_emb.cpu())
         texts_image_index.extend(batch_texts_image_index)
+        forward_pass_time = time.time() - forward_pass_checkpoint
+        
+        data_loading_checkpoint = time.time()
+        throughput = len(batch_images) / (data_loading_time + forward_pass_time)
+        avg_throughput = avg_throughput + (throughput - avg_throughput ) / (it + 1) if it > 0 else throughput
+        if it % 10 == 0:
+            print(f"Data loading time: {data_loading_time:.3f}s, Forward pass time: {forward_pass_time:.3f}s, Throughput: {throughput:.1f} samples/s, Avg Throughput: {avg_throughput:.1f} samples/s")
+        it += 1
         
     batch_size = len(batch_images_emb_list[0])
 
