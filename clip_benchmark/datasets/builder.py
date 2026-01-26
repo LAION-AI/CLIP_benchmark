@@ -530,11 +530,19 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             assert ds.templates is not None, f"Templates not specified for {dataset_name}"            
         else:
             # dataset has templates already (e.g., WDS case), so we keep it as is.
-            pass
+            # But if it's None (WDS without templates file), try to load defaults
+             if ds.templates is None:
+                  ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup + [default_dataset_for_templates])
 
         # We override with custom classnames ONLY if they are provided.
         if custom_classnames:
             ds.classes = value_from_first_key_found(custom_classnames, keys=keys_to_lookup)
+        elif not hasattr(ds, "classes") or ds.classes is None:
+            # Provide fallback for WDS datasets if the name matches a standard one
+            if default_classnames:
+                val = value_from_first_key_found(default_classnames, keys=keys_to_lookup)
+                if val is not None:
+                    ds.classes = val
         
         assert ds.classes is not None, f"Classes not specified for {dataset_name}"
         assert ds.templates is not None, f"Templates not specified for {dataset_name}"
@@ -730,6 +738,9 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     return ds
 
 
+
+from .audio.wds_builder import audio_decoder
+
 def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
     """
     Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
@@ -784,7 +795,12 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
 
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
-    nshards = int(read_txt(nshards_fname)) # Do not catch FileNotFound, nshards.txt should be mandatory
+    if os.path.exists(nshards_fname):
+        nshards = int(read_txt(nshards_fname))
+    elif os.path.isdir(os.path.join(tardata_dir, split)):
+        nshards = len([f for f in os.listdir(os.path.join(tardata_dir, split)) if f.endswith(".tar")])
+    else:
+        raise FileNotFoundError(f"Could not find nshards.txt or count tar files in {os.path.join(tardata_dir, split)}")
 
     # Get dataset type (classification or retrieval)
     type_fname = os.path.join(metadata_dir, "dataset_type.txt")
@@ -802,13 +818,13 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         cache_dir = None
     dataset = (
         wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
-        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
+        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]), audio_decoder)
     )
 
     # Load based on classification or retrieval task
     if dataset_type == "retrieval":
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], "txt")
+            .to_tuple(["webp", "png", "jpg", "jpeg", "wav", "flac", "mp3"], "txt")
             .map_tuple(transform, str.splitlines)
         )
         dataset.classes = dataset.templates = None
