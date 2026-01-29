@@ -5,6 +5,7 @@ import warnings
 from subprocess import call
 
 import torch
+import glob
 from torch.utils.data import default_collate
 from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   STL10, SUN397, CocoCaptions, Country211,
@@ -741,6 +742,10 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
 
 from .audio.wds_builder import audio_decoder
 
+
+def _identity(x):
+    return x
+
 def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
     """
     Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
@@ -795,10 +800,13 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
 
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
-    if os.path.exists(nshards_fname):
+    if os.path.isdir(os.path.join(tardata_dir, split)):
+        # if local directory, we can list the files. This allows for more flexible naming of tar files and no need for nshards.txt
+        filepattern = sorted(glob.glob(os.path.join(tardata_dir, split, "*.tar")))
+        nshards = len(filepattern)
+    elif os.path.exists(nshards_fname):
         nshards = int(read_txt(nshards_fname))
-    elif os.path.isdir(os.path.join(tardata_dir, split)):
-        nshards = len([f for f in os.listdir(os.path.join(tardata_dir, split)) if f.endswith(".tar")])
+        filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
     else:
         raise FileNotFoundError(f"Could not find nshards.txt or count tar files in {os.path.join(tardata_dir, split)}")
 
@@ -810,14 +818,11 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         # print("WARNING: dataset_type.txt not found, assuming type=classification")
         dataset_type = "classification"
 
-    #
-    filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
-    
     # Load webdataset (support WEBP, PNG, and JPG for now)
     if not cache_dir or not isinstance(cache_dir, str):
         cache_dir = None
     dataset = (
-        wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
+        wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=_identity)
         .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]), audio_decoder)
     )
 
@@ -831,7 +836,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     else:
         label_type = "npy" if dataset_type == "multilabel" else "cls" # Special case for multilabel
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
+            .to_tuple(["webp", "png", "jpg", "jpeg", "wav", "flac", "mp3"], label_type)
             .map_tuple(transform, None)
         )
 
