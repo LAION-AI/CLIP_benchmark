@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5]):
+def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5], modality="image"):
     """
     Evaluate the model on the given dataset
 
@@ -34,7 +34,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
     dict of retrieval metrics
     """
     # list of batch of images embedding
-    batch_images_emb_list = []
+    batch_modality_emb_list = []
     # list of batch of text embedding
     batch_texts_emb_list = []
     # for each text, we collect the corresponding image index, as each image can have multiple corresponding texts
@@ -43,27 +43,39 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
     for batch_images, batch_texts, inds in tqdm(dataloader):
         batch_images = batch_images.to(device)
         # tokenize all texts in the batch
-        batch_texts_tok = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
+        if tokenizer is not None:
+            batch_texts_input = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
+        else:
+            if isinstance(batch_texts[0], list):
+                 batch_texts_input = [text for i, texts in enumerate(batch_texts) for text in texts]
+            else:
+                batch_texts_input = batch_texts
+
         # store the index of image for each text
         batch_texts_image_index = [ind for ind, texts in zip(inds, batch_texts) for text in texts]
 
         # compute the embedding of images and texts
         with torch.no_grad(), torch.autocast(device, enabled=amp):
-            batch_images_emb = F.normalize(model.encode_image(batch_images), dim=-1)
-            batch_texts_emb = F.normalize(model.encode_text(batch_texts_tok), dim=-1)
+            if modality == "audio":
+                batch_modality_emb = F.normalize(model.encode_audio(batch_images), dim=-1)
+            elif modality == "image":
+                batch_modality_emb = F.normalize(model.encode_image(batch_images), dim=-1)
+            else:
+                raise ValueError("modality must be 'image' or 'audio'")
+            batch_texts_emb = F.normalize(model.encode_text(batch_texts_input), dim=-1)
 
-        batch_images_emb_list.append(batch_images_emb.cpu())
+        batch_modality_emb_list.append(batch_modality_emb.cpu())
         batch_texts_emb_list.append(batch_texts_emb.cpu())
         texts_image_index.extend(batch_texts_image_index)
         
-    batch_size = len(batch_images_emb_list[0])
+    batch_size = len(batch_modality_emb_list[0])
 
     # concatenate all embeddings
-    images_emb = torch.cat(batch_images_emb_list)
+    modality_emb = torch.cat(batch_modality_emb_list)
     texts_emb = torch.cat(batch_texts_emb_list)
 
     # get the score for each text and image pair
-    scores  = texts_emb @ images_emb.t()
+    scores  = texts_emb @ modality_emb.t()
 
     # construct a the positive pair matrix, which tells whether each text-image pair is a positive or not
     positive_pairs = torch.zeros_like(scores, dtype=bool)
@@ -79,7 +91,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5])
         # so we can easily compute that using the actual recall, by checking whether there is at least one true positive,
         # which would be the case if the recall is greater than 0. One we compute the recal for each image (or text), we average
         # it over the dataset.
-        metrics[f"image_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores, positive_pairs, batch_size, device, k=recall_k)>0).float().mean().item()
+        metrics[f"{modality}_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores, positive_pairs, batch_size, device, k=recall_k)>0).float().mean().item()
         metrics[f"text_retrieval_recall@{recall_k}"] = (batchify(recall_at_k, scores.T, positive_pairs.T, batch_size, device, k=recall_k)>0).float().mean().item()
 
     return metrics

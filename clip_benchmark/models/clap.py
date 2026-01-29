@@ -17,7 +17,16 @@ class CLAPWrapper(torch.nn.Module):
         self.model = model
     
     def encode_text(self, text):
-        return self.model.get_text_embedding(text, use_tensor=True)
+        # for retrieval task, we need to embed list of list of text
+        if isinstance(text, list) and all(isinstance(item, list) for item in text):
+            # embed each list of text
+            embeddings = []
+            for item in text:
+                embeddings.append(self.model.get_text_embedding(item, use_tensor=True))
+            return torch.stack(embeddings)
+        else:   
+            return self.model.get_text_embedding(text, use_tensor=True)
+
     
     @torch.amp.autocast('cuda', enabled=False)
     def encode_audio(self, audio):

@@ -938,6 +938,8 @@ dataset_collection = {
         "mscoco_captions",
         "flickr8k",
         "flickr30k",
+        "clotho",
+        "audiocaps"
     ],
     "imagenet_robustness": [
         "imagenetv2",

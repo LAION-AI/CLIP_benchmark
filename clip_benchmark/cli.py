@@ -339,6 +339,7 @@ def run(args):
             model, 
             dataloader, 
             tokenizer, 
+            modality=modality,
             recall_k_list=args.recall_k,
             device=args.device, 
             amp=args.amp
