@@ -56,3 +56,6 @@ probe_benchmark/data
 downloads
 .env
 benchmark
+benchmark_local
+result_*
+run_*
