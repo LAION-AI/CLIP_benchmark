@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, Sampler
 import numpy as np
-from .zeroshot_classification import accuracy
+from .zeroshot_classification import accuracy, average_precision_per_class
 
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
@@ -60,7 +60,7 @@ class FeatureDataset(Dataset):
         return self.features[i], self.targets[i]
 
 
-def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, amp, device, seed):
+def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, amp, device, seed, is_multilabel=False):
     torch.manual_seed(seed)
     model = torch.nn.Linear(input_shape, output_shape)
     devices = [x for x in range(torch.cuda.device_count())]
@@ -71,7 +71,10 @@ def train(dataloader, input_shape, output_shape, weight_decay, lr, epochs, amp, 
         lr=lr,
         weight_decay=weight_decay,
     )
-    criterion = torch.nn.CrossEntropyLoss()
+    if is_multilabel:
+        criterion = torch.nn.BCEWithLogitsLoss()
+    else:
+        criterion = torch.nn.CrossEntropyLoss()
 
     len_loader = len(dataloader)
     scheduler = cosine_lr(optimizer, lr, 0., epochs * len_loader)
@@ -128,16 +131,19 @@ def infer(model, dataloader, amp, device):
     target = torch.cat(true)
     return logits, target
 
-
-def find_peak(wd_list, idxs, train_loader, val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed):
+def find_peak(wd_list, idxs, train_loader, val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed, is_multilabel=False):
     best_wd_idx, max_acc = 0, 0
     for idx in idxs:
         weight_decay = wd_list[idx]
-        model = train(train_loader, input_shape, output_shape, weight_decay, lr, epochs, amp, device, seed)
+        model = train(train_loader, input_shape, output_shape, weight_decay, lr, epochs, amp, device, seed, is_multilabel=is_multilabel)
         logits, target = infer(model, val_loader, amp, device)
-        acc1, = accuracy(logits.float(), target.float(), topk=(1,))
+        if is_multilabel:
+            ap_per_class = average_precision_per_class(logits, target)
+            acc1 = ap_per_class.mean().item()
+        else:
+            acc1, = accuracy(logits.float(), target.float(), topk=(1,))
         if verbose:
-            print(f"Valid accuracy with weight_decay {weight_decay}: {acc1}")
+            print(f"Valid accuracy/mAP with weight_decay {weight_decay}: {acc1}")
         if max_acc < acc1:
             best_wd_idx, max_acc = idx, acc1
     return best_wd_idx
@@ -167,9 +173,22 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
             targets = []
             num_batches_tracked = 0
             num_cached = 0
+            
+            # Helper function to move data to device
+            def to_device(x, device):
+                if isinstance(x, torch.Tensor):
+                    return x.to(device)
+                elif isinstance(x, dict):
+                    return {k: to_device(v, device) for k, v in x.items()}
+                elif isinstance(x, list):
+                    return [to_device(v, device) for v in x]
+                elif isinstance(x, tuple):
+                    return tuple([to_device(v, device) for v in x])
+                return x
+            
             with torch.no_grad():
                 for images, target in tqdm(loader):
-                    images = images.to(device)
+                    images = to_device(images, device)
 
                     with torch.autocast(device, enabled=amp):
                         feature = featurizer(images)
@@ -209,9 +228,11 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
 
             torch.save(features, os.path.join(feature_dir, f'features{save_str}.pt'))
             torch.save(targets, os.path.join(feature_dir, f'targets{save_str}.pt'))
-
     features = torch.load(os.path.join(feature_dir, 'features_train.pt'))
     targets = torch.load(os.path.join(feature_dir, 'targets_train.pt'))
+
+    # Determine if multi-label
+    is_multilabel = (len(targets.shape) == 2) and (targets.shape[1] > 1)
 
     # second, make a dataloader with k features per class. if k = -1, use all features.
     length = len(features)
@@ -220,16 +241,26 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     counts = {}
     num_classes = 0
 
-    for p in perm:
-        target = targets[p].item()
-        if target not in counts:
-            counts[target] = 0
-            num_classes += 1
+    if is_multilabel:
+        # For multi-label, we skip the few-shot balancing for now as it's non-trivial
+        if fewshot_k != -1:
+            print("Warning: fewshot_k is ignored for multi-label classification. Using all samples.")
+        idxs = perm
+    else:
+        for p in perm:
+            target = targets[p].item()
+            if target not in counts:
+                counts[target] = 0
+                num_classes += 1
 
-        if fewshot_k < 0 or counts[target] < fewshot_k:
-            counts[target] += 1
-            idxs.append(p)
+            if fewshot_k < 0 or counts[target] < fewshot_k:
+                counts[target] += 1
+                idxs.append(p)
 
+        for c in counts:
+            if fewshot_k > 0 and counts[c] != fewshot_k:
+                print('insufficient data for this eval')
+    
     for c in counts:
         if fewshot_k > 0 and counts[c] != fewshot_k:
             print('insufficient data for this eval')
@@ -256,16 +287,23 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
     feature_train_loader = DataLoader(feature_train_dset, batch_size=batch_size, 
                                     shuffle=True, num_workers=num_workers, 
                                     pin_memory=True,
-                                )
-    features_test = torch.load(os.path.join(feature_dir, 'features_test.pt'))
-    targets_test = torch.load(os.path.join(feature_dir, 'targets_test.pt'))
-    feature_test_dset = FeatureDataset(features_test, targets_test)
+    )
+
+    feature_test_dset = FeatureDataset(
+        torch.load(os.path.join(feature_dir, 'features_test.pt')),
+        torch.load(os.path.join(feature_dir, 'targets_test.pt'))
+    )
     feature_test_loader = DataLoader(
         feature_test_dset, batch_size=batch_size, 
         shuffle=True, num_workers=num_workers, 
         pin_memory=True,
     )
-    input_shape, output_shape = features[0].shape[0], targets.max().item() + 1
+
+    if is_multilabel:
+        input_shape, output_shape = features[0].shape[0], targets.shape[1]
+    else:
+        input_shape, output_shape = features[0].shape[0], targets.max().item() + 1
+
     if val_dataloader is not None:
         # perform openAI-like hyperparameter sweep
         # https://arxiv.org/pdf/2103.00020.pdf A.3
@@ -273,11 +311,11 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         wd_list = np.logspace(-6, 2, num=97).tolist()
         wd_list_init = np.logspace(-6, 2, num=7).tolist()
         wd_init_idx = [i for i, val in enumerate(wd_list) if val in wd_list_init]
-        peak_idx = find_peak(wd_list, wd_init_idx, feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed)
+        peak_idx = find_peak(wd_list, wd_init_idx, feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed, is_multilabel=is_multilabel)
         step_span = 8
         while step_span > 0:
             left, right = max(peak_idx - step_span, 0), min(peak_idx + step_span, len(wd_list)-1)
-            peak_idx = find_peak(wd_list, [left, peak_idx, right], feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed)
+            peak_idx = find_peak(wd_list, [left, peak_idx, right], feature_train_loader, feature_val_loader, input_shape, output_shape, lr, epochs, amp, device, verbose, seed, is_multilabel=is_multilabel)
             step_span //= 2
         best_wd = wd_list[peak_idx]
         if fewshot_k < 0:
@@ -291,8 +329,16 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
         best_wd = 0
         train_loader = feature_train_loader
 
-    final_model = train(train_loader, input_shape, output_shape, best_wd, lr, epochs, amp, device, seed)
+    final_model = train(train_loader, input_shape, output_shape, best_wd, lr, epochs, amp, device, seed, is_multilabel=is_multilabel)
     logits, target = infer(final_model, feature_test_loader, amp, device)       
+    
+    if is_multilabel:
+        ap_per_class = average_precision_per_class(logits, target)
+        mean_ap = ap_per_class.mean().item()
+        if verbose:
+            print(f"Test mAP: {mean_ap} with weight_decay: {best_wd}")
+        return {"mean_average_precision": mean_ap, "weight_decay": best_wd, 'epochs': epochs, 'seed': seed, 'fewshot_k': fewshot_k, 'normalized': normalize}
+
     pred = logits.argmax(axis=1)
     
     # measure accuracy

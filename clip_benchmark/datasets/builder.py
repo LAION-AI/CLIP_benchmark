@@ -1,3 +1,4 @@
+import inspect
 import json
 import os
 import sys
@@ -16,7 +17,7 @@ from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
                sugar_crepe, voc2007, winoground)
 
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, audio_loader=None, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -470,7 +471,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name.startswith("wds/"):
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
-        ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir)
+        ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir, audio_loader=audio_loader)
         # WDS specify classnames and templates on its own.
 
     # AUDIO DATASETS
@@ -740,13 +741,10 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
 
 
 
-from .audio.wds_builder import audio_decoder
-
-
 def _identity(x):
     return x
 
-def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
+def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None, audio_loader=None):
     """
     Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
     Expected file structure is:
@@ -821,9 +819,16 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     # Load webdataset (support WEBP, PNG, and JPG for now)
     if not cache_dir or not isinstance(cache_dir, str):
         cache_dir = None
+
+
+    # Build decoder handlers list
+    handlers = [wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"])]
+    if audio_loader is not None:
+        handlers.append(audio_loader)
+    
     dataset = (
         wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=_identity)
-        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]), audio_decoder)
+        .decode(*handlers)
     )
 
     # Load based on classification or retrieval task

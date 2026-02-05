@@ -5,6 +5,8 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
+from .utils import to_device
+
 def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5], modality="image"):
     """
     Evaluate the model on the given dataset
@@ -41,7 +43,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5],
     texts_image_index = []
     dataloader = dataloader_with_indices(dataloader)    
     for batch_images, batch_texts, inds in tqdm(dataloader):
-        batch_images = batch_images.to(device)
+        batch_images = to_device(batch_images, device)
         # tokenize all texts in the batch
         if tokenizer is not None:
             batch_texts_input = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)

@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
+from .utils import to_device
 
 
 def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
@@ -108,9 +109,10 @@ def run_classification(model, classifier, dataloader, device, amp=True, modality
     pred = []
     true = []
     nb = 0
+    
     with torch.no_grad():
         for data, target in tqdm(dataloader):
-            data = data.to(device)
+            data = to_device(data, device)
             target = target.to(device)
 
             with torch.autocast(device, enabled=amp):

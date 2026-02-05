@@ -1,13 +1,27 @@
-import laion_clap
 import torch
+import numpy as np
+import io
+import sys
+import librosa
+import laion_clap
+import collections.abc
+from laion_clap.training.data import get_audio_features, int16_to_float32, float32_to_int16
+from transformers import RobertaTokenizer
 
-def int16_to_float32(x):
-    return (x / 32767.0).to(torch.float32)
-
-
-def float32_to_int16(x):
-    x = torch.clip(x, min=-1., max=1.)
-    return (x * 32767.0).to(torch.int16)
+def load_clap(model_name: str = "HTSAT-tiny", pretrained: str = "630k-audioset-best", device="cpu", **kwargs):
+    fusion = "fusion" in pretrained
+    
+    model = laion_clap.CLAP_Module(enable_fusion=fusion, amodel=model_name)
+    model.load_ckpt(pretrained)
+    model = model.to(device)
+    model.model.eval() # ensure internal model is in eval mode
+    
+    clap_wrapper = CLAPWrapper(model)
+    clap_tokenizer = CLAPTokenizer()
+    clap_transform = CLAPTransform()
+    clap_loader = AudioLoader(fusion, model.model_cfg)
+    
+    return clap_wrapper, clap_transform, clap_tokenizer, clap_loader
 
 class CLAPWrapper(torch.nn.Module):
     """ CLAP wrapper for CLIP benchmark """
@@ -17,44 +31,59 @@ class CLAPWrapper(torch.nn.Module):
         self.model = model
     
     def encode_text(self, text):
-        # for retrieval task, we need to embed list of list of text
-        if isinstance(text, list) and all(isinstance(item, list) for item in text):
-            # embed each list of text
-            embeddings = []
-            for item in text:
-                embeddings.append(self.model.get_text_embedding(item, use_tensor=True))
-            return torch.stack(embeddings)
-        else:   
-            return self.model.get_text_embedding(text, use_tensor=True)
-
+        return self.model.model.get_text_embedding(text)
     
-    @torch.amp.autocast('cuda', enabled=False)
     def encode_audio(self, audio):
-        assert type(audio) == torch.Tensor, "Audio must be a torch tensor"
-        assert len(audio.shape) == 2, "Audio must be 2D"
+        if isinstance(audio, dict):
+            device = next(self.model.parameters()).device
+            input_dict = {k: v.to(device) for k, v in audio.items()}
+            audio_embeds = self.model.model.encode_audio(input_dict, device=device)["embedding"]
+            audio_embeds = self.model.model.audio_projection(audio_embeds)
+            audio_embeds = torch.nn.functional.normalize(audio_embeds, dim=-1)
+            return audio_embeds
+        return self.model.model.get_audio_embedding(audio)
 
-        # emulate int16 quantization
-        audio_data = int16_to_float32(float32_to_int16(audio)).float()
+class CLAPTokenizer:
+    def __init__(self):
+        self.tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+
+    def __call__(self, texts):
+        return self.tokenizer(texts, padding="max_length", truncation=True, max_length=77, return_tensors="pt")
+
+class CLAPTransform:
+    def __call__(self, audio):
+        return audio
+
+class AudioLoader:
+    def __init__(self, enable_fusion, model_cfg):
+        self.enable_fusion = enable_fusion
+        self.model_cfg = model_cfg
+    
+    def __call__(self, key, data):
+        """
+        Decodes audio data using librosa.
+        """
+        extension = key.split(".")[-1].lower()
+        if extension not in ["wav", "flac", "mp3"]:
+            return None
         
-        # Encode Audio - Pass as list to avoid tensor path issues
-        audio_embed = self.model.get_audio_embedding_from_data(x=audio_data, use_tensor=True)
-        assert audio_embed.shape[0] == audio_data.shape[0], "Audio embedding shape mismatch"
-        return audio_embed
+        try:
+            # Load audio using librosa from bytes
+            audio_waveform, _ = librosa.load(io.BytesIO(data), sr=48000)
+            
+            # quantize
+            audio_waveform = int16_to_float32(float32_to_int16(audio_waveform))
+            audio_waveform = torch.from_numpy(audio_waveform).float()
 
-def load_clap(model_name: str = "HTSAT-base", pretrained: str = "630k-audioset-best", device="cpu", **kwargs):
-    """
-    Load CLAP by laion (https://github.com/laion-ai/CLAP)
-    
-    :model_name: name of audio encoder
-    :pretrained: path to checkpoint (find checkpoints here: https://huggingface.co/lukewys/laion_clap/tree/main)
-    :device: device to load model onto
-    """
-    fusion = "fusion" in pretrained
-    
-    model = laion_clap.CLAP_Module(enable_fusion=fusion, amodel=model_name)
-    model.load_ckpt(pretrained)
-    model = model.to(device)
-    
-    clap_wrapper = CLAPWrapper(model)
-    
-    return clap_wrapper, None, None
+            temp_dict = {}
+            temp_dict = get_audio_features(
+                temp_dict, audio_waveform, 480000, 
+                data_truncating='fusion' if self.enable_fusion else 'rand_trunc', 
+                data_filling='repeatpad',
+                audio_cfg=self.model_cfg['audio_cfg'],
+                require_grad=audio_waveform.requires_grad
+            )
+            return temp_dict
+        except Exception as e:
+            print(f"Error loading {key}: {e}")
+            return None

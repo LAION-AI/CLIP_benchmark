@@ -1,33 +1,59 @@
 # Audio Benchmarks for CLIP Benchmark
 
-This document describes the audio modality support in CLIP Benchmark, enabling evaluation of audio-language models like CLAP.
+This document describes the audio modality support in CLIP Benchmark, enabling evaluation of audio-language models like CLAP. Note that the current version only supports webdatasets for audio modality datasets.
 
 ## Supported Audio Datasets
 
-| Dataset          | Description                            | Classes | Available Splits                             |
-| ---------------- | -------------------------------------- | ------- | -------------------------------------------- |
-| **ESC-50**       | Environmental sound classification     | 50      | `test` (this includes all data)              |
-| **UrbanSound8K** | Urban sound classification             | 10      | `train` (folds 1-9), `test` (fold 10), `all` |
-| **GTZAN**        | Music genre recognition                | 10      | `test`                                       |
-| **FSD50K**       | Freesound audio tagging (multi-label)  | 200     | `train` (dev set), `test`                    |
-| **VGGSound**     | Audio events from videos (multi-label) | 309     | `test`                                       |
+| Dataset          | Description                            | Task                                      | Classes | Available Splits                             |
+| ---------------- | -------------------------------------- | ----------------------------------------- | ------- | -------------------------------------------- |
+| **ESC-50**       | Environmental sound classification     | `zeroshot_classification`, `linear_probe` | 50      | `train`, `test`                              |
+| **UrbanSound8K** | Urban sound classification             | `zeroshot_classification`, `linear_probe` | 10      | `train` (folds 1-9), `test` (fold 10)        |
+| **GTZAN**        | Music genre recognition                | `zeroshot_classification` | 10      | `test`                                       |
+| **FSD50K**       | Freesound audio tagging (multi-label)  | `zeroshot_classification`, `linear_probe` | 200     | `train`, `validation`, `test`                |
+| **AudioCaps**    | Audio captioning dataset               | `zeroshot_retrieval`                      | -       | `train`, `validation`, `test`                |
+| **Clotho**       | Audio captioning dataset               | `zeroshot_retrieval`                      | -       | `train`, `validation`, `test`                |
+
 
 ## Benchmark Results
 
-Zero-shot classification results using CLAP (HTSAT-tiny) on audio datasets:
+### Zero-Shot Classification
+
+Results using CLAP (HTSAT-tiny) on audio datasets:
 
 | Dataset      | Fusion |  Acc@1 |  Acc@5 |    mAP |
 | ------------ | :----: | -----: | -----: | -----: |
-| ESC-50       |        | 92.15% | 99.35% |      - |
-| ESC-50       |   ✓    | 90.95% | 99.10% |      - |
-| UrbanSound8K |        | 76.58% | 94.62% |      - |
-| UrbanSound8K |   ✓    | 79.21% | 96.42% |      - |
-| GTZAN        |        | 52.30% | 89.30% |      - |
-| GTZAN        |   ✓    | 45.00% | 80.10% |      - |
-| FSD50K       |        |      - |      - | 54.05% |
-| FSD50K       |   ✓    |      - |      - | 53.41% |
-| VGGSound     |        |      - |      - | 28.26% |
-| VGGSound     |   ✓    |      - |      - | 24.68% |
+| ESC-50       |        | 92.50% | 99.50% |      - |
+| ESC-50       |   ✓    | 92.75% | 98.75% |      - |
+| UrbanSound8K |        | 80.65% | 96.54% |      - |
+| UrbanSound8K |   ✓    | 76.94% | 97.13% |      - |
+| GTZAN        |        | 53.65% | 74.97% |      - |
+| GTZAN        |   ✓    | 34.53% | 67.87% |      - |
+| FSD50K       |        |      - |      - | 55.97% |
+| FSD50K       |   ✓    |      - |      - | 56.90% |
+
+### Linear Probe
+
+Results using CLAP (HTSAT-tiny) on audio datasets:
+
+| Dataset      | Fusion |  Acc@1 |    mAP |   Gain |
+| ------------ | :----: | -----: | -----: | -----: |
+| ESC-50       |        | 97.00% |      - | +4.50% |
+| ESC-50       |   ✓    | 95.75% |      - | +3.00% |
+| UrbanSound8K |        | 88.89% |      - | +8.24% |
+| UrbanSound8K |   ✓    | 88.29% |      - |+11.35% |
+| FSD50K       |        |      - | 67.52% |+11.55% |
+| FSD50K       |   ✓    |      - | 68.06% |+11.16% |
+
+### Zero-Shot Retrieval
+
+Results using CLAP (HTSAT-tiny) on audio datasets:
+
+| Dataset   | Fusion | Audio R@5 |
+| --------- | :----: | --------: |
+| AudioCaps |        |    79.34% |
+| AudioCaps |   ✓    |    76.64% |
+| Clotho    |        |    42.11% |
+| Clotho    |   ✓    |    43.16% |
 
 > **Note**: Fusion models use `630k-audioset-fusion-best.pt`, standard models use `630k-audioset-best.pt`.
 
@@ -35,36 +61,22 @@ Zero-shot classification results using CLAP (HTSAT-tiny) on audio datasets:
 
 ### Zero-Shot Classification
 
-Evaluates how well the model classifies audio using only text descriptions of classes.
-
 ```bash
 python3 -m clip_benchmark.cli eval \
     --model_type clap \
     --model "HTSAT-tiny" \
-    --pretrained /path/to/630k-audioset-best.pt \
-    --dataset esc50 \
-    --dataset_root /path/to/esc50 \
+    --pretrained "/path/to/630k-audioset-best.pt" \
+    --dataset wds/fsd50k \
+    --num_workers 1 \
+    --dataset_root /path/to/fsd50k \
     --task zeroshot_classification \
-    --output result_esc50.json \
-    --split all
+    --output benchmark/result_wds_fsd50k.json \
+    --split test \
+    --modality audio \
+    --no_amp
 ```
+> **Note**: Replace 'fsd50k' with the other dataset names. 
 
-Run multi-eval:
-
-```bash
-python3 -m clip_benchmark.cli eval \
-    --model_type clap \
-    --pretrained_model benchmark/models.txt \
-    --dataset benchmark/datasets.txt \
-    --dataset_root "../data/{dataset}" \
-    --output "./benchmark/results/{dataset}_{pretrained}_{model}_{task}.json" \
-```
-
-Build result CSV:
-
-```bash
-python3 -m clip_benchmark.cli build ./benchmark/results/*.json --output benchmark/benchmark.csv
-```
 
 ### Linear Probe
 
@@ -74,67 +86,92 @@ Trains a linear classifier on frozen audio embeddings.
 python3 -m clip_benchmark.cli eval \
     --model_type clap \
     --model "HTSAT-tiny" \
-    --pretrained /path/to/630k-audioset-best.pt \
-    --dataset us8k \
-    --dataset_root /path/to/UrbanSound8K \
+    --pretrained "/path/to/630k-audioset-best.pt" \
+    --dataset wds/fsd50k \
+    --dataset_root "/path/to/web-dataset_conv/fsd50k" \
     --task linear_probe \
     --train_split train \
     --test_split test \
-    --output result_us8k_lp.json \
-    --batch_size 64
+    --output results/benchmark/result_fsd50k_linear_probe.json \
+    --batch_size 64 \
+    --modality audio \
+    --num_workers 1
 ```
 
-## Dataset-Specific Notes
+### Zero-Shot Retrieval
 
-### ESC-50
+Evaluates retrieval performance (e.g., Audio-to-Text or Text-to-Audio).
 
-- Source: [HuggingFace `ashraq/esc50`](https://huggingface.co/datasets/ashraq/esc50)
-- Automatically downloaded when first used
-- Single-label classification
+```bash
+python3 -m clip_benchmark.cli eval \
+    --model_type clap \
+    --model "HTSAT-tiny" \
+    --pretrained "/path/to/630k-audioset-best.pt" \
+    --dataset wds/audiocaps \
+    --num_workers 1 \
+    --dataset_root /path/to/web-dataset_conv/wds_audiocaps \
+    --task zeroshot_retrieval \
+    --output benchmark/result_wds_audiocaps_retrieval.json \
+    --split test \
+    --modality audio \
+    --no_amp
+```
 
-### UrbanSound8K
+### Build result CSV:
 
-- Download from: https://urbansounddataset.weebly.com/urbansound8k.html
-- Requires manual download and extraction
-- Uses fold 10 as test set, and the rest as train set (normally 10 fold cross validation)
+```bash
+python3 -m clip_benchmark.cli build ./benchmark/results/*.json --output benchmark/benchmark.csv
+```
 
-### GTZAN
+# Run multi-eval:
 
-- Download via Kaggle: `kaggle datasets download -d andradaolteanu/gtzan-dataset-music-genre-classification`
-- Automatically downloads if Kaggle CLI is installed
+```bash
+python3 -m clip_benchmark.cli eval \
+    --model_type clap \
+    --pretrained_model path/to/models.txt" \
+    --dataset benchmark/datasets.txt \
+    --dataset_root /path/to/{dataset} \
+    --task zeroshot_classification \
+    --output benchmark/{dataset}_{pretrained}_{model}_{language}_{task}.json \
+    --modality audio \
+    --num_workers 1 \
+    --no_amp
+```
 
-### FSD50K
+>**Note:** Replace the task and models/dataset file accordingly. 
 
-- Download from: https://zenodo.org/records/4060432
-- Multi-label classification (uses mAP metric)
+## Configuration Files
 
-### VGGSounder
+Here are the configuration files used for the benchmark, referenced in the multi-eval commands.
 
-- Requires `vggsounder` Python package
-- Manuel download of vggsound necessary
+### `models.txt`
 
-## CLAP Model Checkpoints
+```text
+HTSAT-tiny,../models/630k-audioset-best.pt
+HTSAT-tiny,../models/630k-audioset-fusion-best.pt
+```
 
-Download pre-trained CLAP checkpoints from [HuggingFace](https://huggingface.co/lukewys/laion_clap):
+### `classification_datasets.txt`
 
-| Checkpoint                             | Audio Encoder | Description              |
-| -------------------------------------- | ------------- | ------------------------ |
-| `630k-audioset-best.pt`                | HTSAT-tiny    | Trained on AudioSet 630k |
-| `630k-audioset-fusion-best.pt`         | HTSAT-tiny    | With audio-text fusion   |
-| `music_audioset_epoch_15_esc_90.14.pt` | HTSAT-tiny    | Fine-tuned on music      |
+```text
+wds/esc50
+wds/UrbanSound8K
+wds/gtzan
+wds/fsd50k
+```
 
-## Audio Preprocessing
+### `linear_probe_datasets.txt`
 
-All audio is:
+```text
+wds/esc50
+wds/UrbanSound8K
+wds/fsd50k
+```
 
-- Resampled to **48kHz** (CLAP standard)
-- Converted to **mono**
-- Padded/cropped to dataset-specific target lengths
+### `retrieval_datasets.txt`
 
-| Dataset    | Target Length   | Duration |
-| ---------- | --------------- | -------- |
-| ESC-50     | 240,000 samples | 5.0s     |
-| US8K       | 192,000 samples | 4.0s     |
-| GTZAN      | 144,000 samples | 3.0s     |
-| FSD50K     | 192,000 samples | 4.0s     |
-| VGGSounder | 384,000 samples | 8.0s     |
+```text
+wds/clotho
+wds/audiocaps
+```
+```

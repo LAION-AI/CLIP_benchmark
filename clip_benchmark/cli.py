@@ -244,19 +244,44 @@ def run(args):
         if args.verbose:
             print(f"Skip {output}, exists already.")
         return
+    
     if args.verbose:
         print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
     dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, transform, tokenizer = load_clip(
+        loaded_modules = load_clip(
             model_type=args.model_type,
             model_name=args.model,
             pretrained=args.pretrained,
             cache_dir=args.model_cache_dir,
             device=args.device
         )
+
+        # audomatically select audio modality if not specified
+        if len(loaded_modules) == 4 and (args.modality is None or args.modality == "audio"):
+            if args.modality is None:
+                modality = "audio"
+                print("Warning: Modality not specified, auto select audio.")
+            else:
+                modality = args.modality
+                if modality != "audio":
+                    raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
+
+            model, transform, tokenizer, audio_loader = loaded_modules
+        else:
+            if args.modality is None:
+                modality = "image"
+                print("Warning: Modality not specified, auto select image.")
+            else:
+                modality = args.modality
+                if modality != "image":
+                    raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
+
+            model, transform, tokenizer = loaded_modules
+            audio_loader = None
+
         model.eval()
         if args.model.count("nllb-clip") > 0:
             # for NLLB-CLIP models, we need to set the language prior to running the tests
@@ -275,6 +300,7 @@ def run(args):
             custom_template_file=args.custom_template_file,
             custom_classname_file=args.custom_classname_file,
             wds_cache_dir=args.wds_cache_dir,
+            audio_loader=audio_loader,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
@@ -301,19 +327,6 @@ def run(args):
                 shuffle=False, num_workers=args.num_workers, 
                 collate_fn=collate_fn
             )
-
-    # selects the modality automatically if not specified
-    if args.modality == "auto":
-        has_encode_image = hasattr(model, "encode_image")
-        has_encode_audio = hasattr(model, "encode_audio")
-        assert has_encode_image ^ has_encode_audio, "Model has both encode_image and encode_audio methods, please specify modality with --modality flag.."
-
-        if has_encode_image:
-            modality = "image"
-        else:
-            modality = "audio"
-    else:
-        modality = args.modality
 
     if task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
@@ -362,6 +375,8 @@ def run(args):
             split=args.train_split, 
             annotation_file=args.annotation_file,
             download=True,
+            wds_cache_dir=args.wds_cache_dir,
+            audio_loader=audio_loader,
         )
         if args.val_split is not None:
             val_dataset = build_dataset(
@@ -371,6 +386,8 @@ def run(args):
                 split=args.val_split, 
                 annotation_file=args.annotation_file,
                 download=True,
+                wds_cache_dir=args.wds_cache_dir,
+                audio_loader=audio_loader,
             )
         elif args.val_proportion is not None:
             train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [1 - args.val_proportion, args.val_proportion])
