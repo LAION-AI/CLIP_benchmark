@@ -44,15 +44,7 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5],
     dataloader = dataloader_with_indices(dataloader)    
     for batch_images, batch_texts, inds in tqdm(dataloader):
         batch_images = to_device(batch_images, device)
-        # tokenize all texts in the batch
-        if tokenizer is not None:
-            batch_texts_input = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
-        else:
-            if isinstance(batch_texts[0], list):
-                 batch_texts_input = [text for i, texts in enumerate(batch_texts) for text in texts]
-            else:
-                batch_texts_input = batch_texts
-
+        batch_texts_input = tokenizer([text for i, texts in enumerate(batch_texts) for text in texts]).to(device)
         # store the index of image for each text
         batch_texts_image_index = [ind for ind, texts in zip(inds, batch_texts) for text in texts]
 
