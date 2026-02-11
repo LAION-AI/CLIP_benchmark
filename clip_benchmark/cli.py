@@ -57,7 +57,7 @@ def get_parser_args():
     parser_eval.add_argument('--custom_template_file', default=None, type=str, help="use custom json file with prompts for each dataset, where keys are dataset names and values are list of prompts. For instance, to use CuPL prompts, use --custom_template_file='cupl_prompts.json'")
     parser_eval.add_argument('--dump_classnames', default=False, action="store_true", help="dump classnames to the results json file.")
     parser_eval.add_argument('--dump_templates', default=False, action="store_true", help="dump templates to the results json file.")
-    parser_eval.add_argument('--modality', default="auto", type=str, choices=["image", "audio", "auto"], help="modality of the dataset. 'auto' will try to infer the modality from the available model functions.")
+    parser_eval.add_argument('--modality', default="auto", type=str, choices=["image", "audio", "auto"], help="modality of the dataset. 'auto' will try to infer the modality from the model that is loaded./")
 
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="{dataset}_{pretrained}_{model}_{language}_{task}.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
@@ -251,7 +251,7 @@ def run(args):
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        loaded_modules = load_clip(
+        loaded = load_clip(
             model_type=args.model_type,
             model_name=args.model,
             pretrained=args.pretrained,
@@ -259,28 +259,26 @@ def run(args):
             device=args.device
         )
 
-        # audomatically select audio modality if not specified
-        if len(loaded_modules) == 4 and (args.modality is None or args.modality == "audio"):
-            if args.modality is None:
+        model = loaded.model
+        transform = loaded.transform
+        tokenizer = loaded.tokenizer
+        audio_loader = loaded.audio_loader
+
+        # automatically select audio modality if not specified
+        if args.modality == "auto":
+            if audio_loader is not None:
                 modality = "audio"
-                print("Warning: Modality not specified, auto select audio.")
+                print("INFO: Modality not specified, auto select audio.")
             else:
-                modality = args.modality
-                if modality != "audio":
-                    raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
-
-            model, transform, tokenizer, audio_loader = loaded_modules
-        else:
-            if args.modality is None:
                 modality = "image"
-                print("Warning: Modality not specified, auto select image.")
-            else:
-                modality = args.modality
-                if modality != "image":
-                    raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
+                print("INFO: Modality not specified, auto select image.")
+        else:
+            if audio_loader is not None and args.modality == "image":
+                raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
+            elif audio_loader is None and args.modality == "audio":
+                raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
+            modality = args.modality
 
-            model, transform, tokenizer = loaded_modules
-            audio_loader = None
 
         model.eval()
         if args.model.count("nllb-clip") > 0:

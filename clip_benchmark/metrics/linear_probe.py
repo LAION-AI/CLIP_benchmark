@@ -9,6 +9,7 @@ import numpy as np
 from .zeroshot_classification import accuracy, average_precision_per_class
 
 from sklearn.metrics import classification_report, balanced_accuracy_score
+from .utils import to_device
 
 def assign_learning_rate(param_group, new_lr):
     param_group["lr"] = new_lr
@@ -174,18 +175,6 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
             num_batches_tracked = 0
             num_cached = 0
             
-            # Helper function to move data to device
-            def to_device(x, device):
-                if isinstance(x, torch.Tensor):
-                    return x.to(device)
-                elif isinstance(x, dict):
-                    return {k: to_device(v, device) for k, v in x.items()}
-                elif isinstance(x, list):
-                    return [to_device(v, device) for v in x]
-                elif isinstance(x, tuple):
-                    return tuple([to_device(v, device) for v in x])
-                return x
-            
             with torch.no_grad():
                 for images, target in tqdm(loader):
                     images = to_device(images, device)
@@ -257,10 +246,6 @@ def evaluate(model, train_dataloader, dataloader, fewshot_k, batch_size, num_wor
                 counts[target] += 1
                 idxs.append(p)
 
-        for c in counts:
-            if fewshot_k > 0 and counts[c] != fewshot_k:
-                print('insufficient data for this eval')
-    
     for c in counts:
         if fewshot_k > 0 and counts[c] != fewshot_k:
             print('insufficient data for this eval')

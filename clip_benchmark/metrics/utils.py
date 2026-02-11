@@ -8,9 +8,6 @@ def to_device(x, device):
     """
     Recursively move data to device, handling tensors, dicts, lists, and tuples.
     
-    This is particularly useful for audio models where data may come as
-    dictionaries or lists of dictionaries from WebDataset.
-    
     Args:
         x: Data to move (tensor, dict, list, tuple, or other)
         device: Target device (e.g., 'cuda', 'cpu')

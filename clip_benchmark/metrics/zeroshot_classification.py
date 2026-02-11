@@ -50,9 +50,7 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
             else:
                 raise ValueError("templates must be a list or a dict")
             
-            # some models do not require tokenization or device trasfer (e.g. CLAP)
-            if tokenizer is not None:
-                texts = tokenizer(texts).to(device)  # tokenize
+            texts = tokenizer(texts).to(device)  # tokenize
             
             class_embeddings = model.encode_text(texts)
             class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
@@ -83,7 +81,8 @@ def accuracy(output, target, topk=(1,)):
     """
     pred = output.topk(max(topk), 1, True, True)[1].t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    return [float(correct[:k].reshape(-1).float().sum().item()) / len(target) for k in topk]
+    n = len(target)
+    return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) / n for k in topk]
 
 
 def run_classification(model, classifier, dataloader, device, amp=True, modality="image"):
@@ -175,7 +174,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, modality, amp=True, verbose=False, save_clf=None, load_clfs=[]):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, save_clf=None, load_clfs=[], modality="image"):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -227,11 +226,11 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, modali
             print("Detected a multi-label classification dataset")
         # Multiple labels per image, multiple classes on the dataset
         ap_per_class = average_precision_per_class(logits, target)
+        mean_ap = ap_per_class.mean().item()
         if verbose:
             for class_name, ap in zip(dataloader.dataset.classes, ap_per_class.tolist()):
                 print(f"Class: {class_name}, AveragePrecision: {ap}")
-        mean_ap = ap_per_class.mean().item()
-        print(f"Mean Average Precision: {mean_ap}")
+            print(f"Mean Average Precision: {mean_ap}")
         return {"mean_average_precision": mean_ap}
     else:
         # Single label per image, multiple classes on the dataset

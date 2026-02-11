@@ -473,32 +473,6 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         name = dataset_name.split("/", 1)[1]
         ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir, audio_loader=audio_loader)
         # WDS specify classnames and templates on its own.
-
-    # AUDIO DATASETS
-    elif dataset_name == "gtzan":
-        from .audio.gtzan import GTZAN
-        assert split in GTZAN.available_splits(), f"Only splits {GTZAN.available_splits()} are available for {dataset_name}"
-
-        ds = GTZAN(root=root, split=split, transform=transform)
-        #ds.classes = default_classnames["gtzan"]
-    elif dataset_name == "esc50":
-        from .audio.esc50 import ESC50
-        assert split in ESC50.available_splits(), f"Only splits {ESC50.available_splits()} are available for {dataset_name}"
-        ds = ESC50(root=root, split=split, transform=transform)
-        ds.classes = default_classnames["esc50"]
-    elif dataset_name == "UrbanSound8K":
-        from .audio.us8k import US8K
-        assert split in US8K.available_splits(), f"Only splits {US8K.available_splits()} are available for {dataset_name}"
-        ds = US8K(root=root, split=split, transform=transform)
-        ds.classes = default_classnames["us8k"]
-    elif dataset_name == "fsd50k":
-        from .audio.fsd50k import FSD50K
-        assert split in FSD50K.available_splits(), f"Only splits {FSD50K.available_splits()} are available for {dataset_name}"
-        ds = FSD50K(root=root, split=split, transform=transform)
-    elif dataset_name.lower() == "vggsounder" or dataset_name.lower() == "vggsound":
-        from .audio.vggsounder import VGGSounder
-        assert split in VGGSounder.available_splits(), f"Only splits {VGGSounder.available_splits()} are available for {dataset_name}"
-        ds = VGGSounder(root=root, split=split, transform=transform)
     elif dataset_name == "dummy":
         ds = Dummy()
     else:
@@ -533,8 +507,8 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
         else:
             # dataset has templates already (e.g., WDS case), so we keep it as is.
             # But if it's None (WDS without templates file), try to load defaults
-             if ds.templates is None:
-                  ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup + [default_dataset_for_templates])
+            if ds.templates is None:
+                ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup + [default_dataset_for_templates])
 
         # We override with custom classnames ONLY if they are provided.
         if custom_classnames:
@@ -799,7 +773,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
     if os.path.isdir(os.path.join(tardata_dir, split)):
-        # if local directory, we can list the files. This allows for more flexible naming of tar files and no need for nshards.txt
+        # if local directory, we can list the files. No need for nshards.txt
         filepattern = sorted(glob.glob(os.path.join(tardata_dir, split, "*.tar")))
         nshards = len(filepattern)
     elif os.path.exists(nshards_fname):
@@ -821,7 +795,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         cache_dir = None
 
 
-    # Build decoder handlers list
+    # Build decoder handlers list. Only include audio loader if provided.
     handlers = [wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"])]
     if audio_loader is not None:
         handlers.append(audio_loader)

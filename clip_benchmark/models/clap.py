@@ -1,14 +1,13 @@
 import torch
-import numpy as np
 import io
-import sys
 import librosa
 import laion_clap
-import collections.abc
 from laion_clap.training.data import get_audio_features, int16_to_float32, float32_to_int16
 from transformers import RobertaTokenizer
 
 def load_clap(model_name: str = "HTSAT-tiny", pretrained: str = "630k-audioset-best", device="cpu", **kwargs):
+    from . import ModelBundle
+
     fusion = "fusion" in pretrained
     
     model = laion_clap.CLAP_Module(enable_fusion=fusion, amodel=model_name)
@@ -21,7 +20,8 @@ def load_clap(model_name: str = "HTSAT-tiny", pretrained: str = "630k-audioset-b
     clap_transform = CLAPTransform()
     clap_loader = AudioLoader(fusion, model.model_cfg)
     
-    return clap_wrapper, clap_transform, clap_tokenizer, clap_loader
+    return ModelBundle(model=clap_wrapper, transform=clap_transform, tokenizer=clap_tokenizer, audio_loader=clap_loader)
+
 
 class CLAPWrapper(torch.nn.Module):
     """ CLAP wrapper for CLIP benchmark """
