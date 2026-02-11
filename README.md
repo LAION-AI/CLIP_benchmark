@@ -413,12 +413,12 @@ python setup.py install
 ## Citation
 
 ```
-@software{cherti_2025_15403103,
+@software{cherti_clip_bench,
   author       = {Cherti, Mehdi and
                   Beaumont, Romain},
   title        = {CLIP benchmark},
-  month        = may,
-  year         = 2025,
+  month        = nov,
+  year         = 2022,
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.15403103},
   url          = {https://doi.org/10.5281/zenodo.15403103},

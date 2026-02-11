@@ -24,8 +24,12 @@ Results using CLAP (HTSAT-tiny) on audio datasets:
 | ------------ | :----: | -----: | -----: | -----: |
 | ESC-50       |        | 92.50% | 99.50% |      - |
 | ESC-50       |   ✓    | 92.75% | 98.75% |      - |
+| ESC-50 (no overlap)|   | 91.03% | 99.35% |      - |
+| ESC-50 (no overlap)| ✓ | 89.65% | 98.79% |      - |
 | UrbanSound8K |        | 80.65% | 96.54% |      - |
 | UrbanSound8K |   ✓    | 76.94% | 97.13% |      - |
+| UrbanSound8K (no overlap)|   | 75.60% | 97.02% |      - |
+| UrbanSound8K (no overlap)| ✓ | 75.95% | 98.40% |      - |
 | GTZAN        |        | 53.65% | 74.97% |      - |
 | GTZAN        |   ✓    | 34.53% | 67.87% |      - |
 | FSD50K       |        |      - |      - | 55.97% |
