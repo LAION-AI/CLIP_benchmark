@@ -4,15 +4,14 @@ This document describes the audio modality support in CLIP Benchmark, enabling e
 
 ## Supported Audio Datasets
 
-| Dataset          | Description                            | Task                                      | Classes | Available Splits                             |
-| ---------------- | -------------------------------------- | ----------------------------------------- | ------- | -------------------------------------------- |
-| **ESC-50**       | Environmental sound classification     | `zeroshot_classification`, `linear_probe` | 50      | `train`, `test`                              |
-| **UrbanSound8K** | Urban sound classification             | `zeroshot_classification`, `linear_probe` | 10      | `train` (folds 1-9), `test` (fold 10)        |
-| **GTZAN**        | Music genre recognition                | `zeroshot_classification` | 10      | `test`                                       |
-| **FSD50K**       | Freesound audio tagging (multi-label)  | `zeroshot_classification`, `linear_probe` | 200     | `train`, `validation`, `test`                |
-| **AudioCaps**    | Audio captioning dataset               | `zeroshot_retrieval`                      | -       | `train`, `validation`, `test`                |
-| **Clotho**       | Audio captioning dataset               | `zeroshot_retrieval`                      | -       | `train`, `validation`, `test`                |
-
+| Dataset          | Description                           | Task                                      | Classes | Available Splits                      |
+| ---------------- | ------------------------------------- | ----------------------------------------- | ------- | ------------------------------------- |
+| **ESC-50**       | Environmental sound classification    | `zeroshot_classification`, `linear_probe` | 50      | `train`, `test`                       |
+| **UrbanSound8K** | Urban sound classification            | `zeroshot_classification`, `linear_probe` | 10      | `train` (folds 1-9), `test` (fold 10) |
+| **GTZAN**        | Music genre recognition               | `zeroshot_classification`                 | 10      | `test`                                |
+| **FSD50K**       | Freesound audio tagging (multi-label) | `zeroshot_classification`, `linear_probe` | 200     | `train`, `validation`, `test`         |
+| **AudioCaps**    | Audio captioning dataset              | `zeroshot_retrieval`                      | -       | `train`, `validation`, `test`         |
+| **Clotho**       | Audio captioning dataset              | `zeroshot_retrieval`                      | -       | `train`, `validation`, `test`         |
 
 ## Benchmark Results
 
@@ -20,33 +19,33 @@ This document describes the audio modality support in CLIP Benchmark, enabling e
 
 Results using CLAP (HTSAT-tiny) on audio datasets:
 
-| Dataset      | Fusion |  Acc@1 |  Acc@5 |    mAP |
-| ------------ | :----: | -----: | -----: | -----: |
-| ESC-50       |        | 92.50% | 99.50% |      - |
-| ESC-50       |   ✓    | 92.75% | 98.75% |      - |
-| ESC-50 (no overlap)|   | 91.03% | 99.35% |      - |
-| ESC-50 (no overlap)| ✓ | 89.65% | 98.79% |      - |
-| UrbanSound8K |        | 80.65% | 96.54% |      - |
-| UrbanSound8K |   ✓    | 76.94% | 97.13% |      - |
-| UrbanSound8K (no overlap)|   | 75.60% | 97.02% |      - |
-| UrbanSound8K (no overlap)| ✓ | 75.95% | 98.40% |      - |
-| GTZAN        |        | 53.65% | 74.97% |      - |
-| GTZAN        |   ✓    | 34.53% | 67.87% |      - |
-| FSD50K       |        |      - |      - | 55.97% |
-| FSD50K       |   ✓    |      - |      - | 56.90% |
+| Dataset                   | Fusion |  Acc@1 |  Acc@5 |    mAP |
+| ------------------------- | :----: | -----: | -----: | -----: |
+| ESC-50                    |        | 92.50% | 99.50% |      - |
+| ESC-50                    |   ✓    | 92.75% | 98.75% |      - |
+| ESC-50 (no overlap)       |        | 91.03% | 99.35% |      - |
+| ESC-50 (no overlap)       |   ✓    | 89.65% | 98.79% |      - |
+| UrbanSound8K              |        | 80.65% | 96.54% |      - |
+| UrbanSound8K              |   ✓    | 76.94% | 97.13% |      - |
+| UrbanSound8K (no overlap) |        | 75.60% | 97.02% |      - |
+| UrbanSound8K (no overlap) |   ✓    | 75.95% | 98.40% |      - |
+| GTZAN                     |        | 53.65% | 74.97% |      - |
+| GTZAN                     |   ✓    | 34.53% | 67.87% |      - |
+| FSD50K                    |        |      - |      - | 55.97% |
+| FSD50K                    |   ✓    |      - |      - | 56.90% |
 
 ### Linear Probe
 
 Results using CLAP (HTSAT-tiny) on audio datasets:
 
-| Dataset      | Fusion |  Acc@1 |    mAP |   Gain |
-| ------------ | :----: | -----: | -----: | -----: |
-| ESC-50       |        | 97.00% |      - | +4.50% |
-| ESC-50       |   ✓    | 95.75% |      - | +3.00% |
-| UrbanSound8K |        | 88.89% |      - | +8.24% |
-| UrbanSound8K |   ✓    | 88.29% |      - |+11.35% |
-| FSD50K       |        |      - | 67.52% |+11.55% |
-| FSD50K       |   ✓    |      - | 68.06% |+11.16% |
+| Dataset      | Fusion |  Acc@1 |    mAP |    Gain |
+| ------------ | :----: | -----: | -----: | ------: |
+| ESC-50       |        | 97.00% |      - |  +4.50% |
+| ESC-50       |   ✓    | 95.75% |      - |  +3.00% |
+| UrbanSound8K |        | 88.89% |      - |  +8.24% |
+| UrbanSound8K |   ✓    | 88.29% |      - | +11.35% |
+| FSD50K       |        |      - | 67.52% | +11.55% |
+| FSD50K       |   ✓    |      - | 68.06% | +11.16% |
 
 ### Zero-Shot Retrieval
 
@@ -79,8 +78,6 @@ python3 -m clip_benchmark.cli eval \
     --modality audio \
     --no_amp
 ```
-> **Note**: Replace 'fsd50k' with the other dataset names. 
-
 
 ### Linear Probe
 
@@ -96,10 +93,11 @@ python3 -m clip_benchmark.cli eval \
     --task linear_probe \
     --train_split train \
     --test_split test \
-    --output results/benchmark/result_fsd50k_linear_probe.json \
+    --output benchmark/result_fsd50k_linear_probe.json \
     --batch_size 64 \
+    --num_workers 1 \
     --modality audio \
-    --num_workers 1
+    --no_amp
 ```
 
 ### Zero-Shot Retrieval
@@ -124,17 +122,17 @@ python3 -m clip_benchmark.cli eval \
 ### Build result CSV:
 
 ```bash
-python3 -m clip_benchmark.cli build ./benchmark/results/*.json --output benchmark/benchmark.csv
+python3 -m clip_benchmark.cli build ./results/benchmark/*.json --output benchmark/benchmark.csv
 ```
 
-# Run multi-eval:
+## Run multi-eval:
 
 ```bash
 python3 -m clip_benchmark.cli eval \
     --model_type clap \
     --pretrained_model path/to/models.txt" \
-    --dataset benchmark/datasets.txt \
-    --dataset_root /path/to/{dataset} \
+    --dataset path/to/datasets.txt \
+    --dataset_root path/to/{dataset} \
     --task zeroshot_classification \
     --output benchmark/{dataset}_{pretrained}_{model}_{language}_{task}.json \
     --modality audio \
@@ -142,11 +140,11 @@ python3 -m clip_benchmark.cli eval \
     --no_amp
 ```
 
->**Note:** Replace the task and models/dataset file accordingly. 
+> **Note:** Replace the task and models/dataset file accordingly.
 
 ## Configuration Files
 
-Here are the configuration files used for the benchmark, referenced in the multi-eval commands.
+These configuration files are referenced by the multi-eval scripts.
 
 ### `models.txt`
 
@@ -177,5 +175,4 @@ wds/fsd50k
 ```text
 wds/clotho
 wds/audiocaps
-```
 ```
