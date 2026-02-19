@@ -51,14 +51,16 @@ def evaluate(model, dataloader, tokenizer,  device, amp=True, recall_k_list=[5],
         batch_texts_image_index = [ind for ind, texts in zip(inds, batch_texts) for text in texts]
 
         # compute the embedding of images and texts
-        with torch.no_grad(), torch.autocast(device, enabled=amp):
+        # NOTE: autocast disabled — float16 precision loss on GH200 destroys
+        # cosine similarity discriminability (same fix as zeroshot_classification).
+        with torch.no_grad():
             if modality == "audio":
-                batch_modality_emb = F.normalize(model.encode_audio(batch_images), dim=-1)
+                batch_modality_emb = F.normalize(model.encode_audio(batch_images).float(), dim=-1)
             elif modality == "image":
-                batch_modality_emb = F.normalize(model.encode_image(batch_images), dim=-1)
+                batch_modality_emb = F.normalize(model.encode_image(batch_images).float(), dim=-1)
             else:
                 raise ValueError("modality must be 'image' or 'audio'")
-            batch_texts_emb = F.normalize(model.encode_text(batch_texts_input), dim=-1)
+            batch_texts_emb = F.normalize(model.encode_text(batch_texts_input).float(), dim=-1)
 
         batch_modality_emb_list.append(batch_modality_emb.cpu())
         batch_texts_emb_list.append(batch_texts_emb.cpu())

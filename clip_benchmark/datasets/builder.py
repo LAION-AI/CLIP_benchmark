@@ -807,9 +807,15 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
 
     # Load based on classification or retrieval task
     if dataset_type == "retrieval":
+        def _parse_captions(text_or_json):
+            """Handle both .txt (newline-separated) and .json ({"text": [...]}) caption formats."""
+            if isinstance(text_or_json, dict):
+                return text_or_json["text"]
+            return text_or_json.splitlines()
+
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg", "wav", "flac", "mp3"], "txt")
-            .map_tuple(transform, str.splitlines)
+            .to_tuple(["webp", "png", "jpg", "jpeg", "wav", "flac", "mp3"], ["txt", "json"])
+            .map_tuple(transform, _parse_captions)
         )
         dataset.classes = dataset.templates = None
     else:

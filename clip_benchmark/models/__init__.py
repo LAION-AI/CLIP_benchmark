@@ -12,16 +12,24 @@ class ModelBundle(NamedTuple):
 
 from .open_clip import load_open_clip
 from .japanese_clip import load_japanese_clip
-from .clap import load_clap
-
-
 
 # loading function must return ModelBundle or (model, transform, tokenizer)
 TYPE2FUNC = {
     "open_clip": load_open_clip,
     "ja_clip": load_japanese_clip,
-    "clap": load_clap
 }
+
+try:
+    from .clap import load_clap
+    TYPE2FUNC["clap"] = load_clap
+except ImportError:
+    pass
+
+try:
+    from .clap_v2 import load_clap_v2
+    TYPE2FUNC["clap_v2"] = load_clap_v2
+except ImportError:
+    pass
 MODEL_TYPES = list(TYPE2FUNC.keys())
 
 

@@ -38,7 +38,7 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     torch.Tensor of shape (N,C) where N is the number
     of templates, and C is the number of classes.
     """
-    with torch.no_grad(), torch.autocast(device, enabled=amp):
+    with torch.no_grad():
         zeroshot_weights = []
         for classname in tqdm(classnames):
             if type(templates) == dict:
@@ -49,11 +49,13 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
                 texts = [template.format(c=classname) for template in templates]
             else:
                 raise ValueError("templates must be a list or a dict")
-            
+
             texts = tokenizer(texts).to(device)  # tokenize
-            
+
+            # NOTE: autocast disabled — float16 precision loss on GH200
+            # destroys cosine similarity discriminability for CLAP models.
             class_embeddings = model.encode_text(texts)
-            class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
+            class_embedding = F.normalize(class_embeddings.float(), dim=-1).mean(dim=0)
             class_embedding /= class_embedding.norm()
             zeroshot_weights.append(class_embedding)
         zeroshot_weights = torch.stack(zeroshot_weights, dim=1).to(device)
@@ -112,19 +114,21 @@ def run_classification(model, classifier, dataloader, device, amp=True, modality
     with torch.no_grad():
         for data, target in tqdm(dataloader):
             data = to_device(data, device)
+            if not isinstance(target, torch.Tensor):
+                target = torch.tensor(target, dtype=torch.long)
             target = target.to(device)
 
-            with torch.autocast(device, enabled=amp):
-                # predict
-                if modality == "image":
-                    data_features = model.encode_image(data)
-                elif modality == "audio":
-                    data_features = model.encode_audio(data)
-                else:
-                    raise ValueError("modality must be 'image' or 'audio'")
-                
-                data_features = F.normalize(data_features, dim=-1)
-                logits = 100. * data_features @ classifier
+            # NOTE: autocast disabled — float16 precision loss on GH200
+            # destroys cosine similarity discriminability for CLAP models.
+            if modality == "image":
+                data_features = model.encode_image(data)
+            elif modality == "audio":
+                data_features = model.encode_audio(data)
+            else:
+                raise ValueError("modality must be 'image' or 'audio'")
+
+            data_features = F.normalize(data_features.float(), dim=-1)
+            logits = 100. * data_features @ classifier.float()
             
             true.append(target.cpu())
             pred.append(logits.float().cpu())
