@@ -264,20 +264,20 @@ def run(args):
         tokenizer = loaded.tokenizer
         audio_loader = loaded.audio_loader
 
-        # automatically select audio modality if not specified
-        if args.modality == "auto":
+        # Determine modality (default "auto" for backward compatibility)
+        requested_modality = getattr(args, 'modality', 'auto')
+        if requested_modality == "auto":
             if audio_loader is not None:
                 modality = "audio"
                 print("INFO: Modality not specified, auto select audio.")
             else:
                 modality = "image"
-                print("INFO: Modality not specified, auto select image.")
         else:
-            if audio_loader is not None and args.modality == "image":
-                raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
-            elif audio_loader is None and args.modality == "audio":
-                raise ValueError(f"Modality {args.modality} is not supported for model {args.model}")
-            modality = args.modality
+            if audio_loader is not None and requested_modality == "image":
+                raise ValueError(f"Modality {requested_modality} is not supported for model {args.model}")
+            elif audio_loader is None and requested_modality == "audio":
+                raise ValueError(f"Modality {requested_modality} is not supported for model {args.model}")
+            modality = requested_modality
 
 
         model.eval()
@@ -444,9 +444,9 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    if hasattr(dataset, "classes") and dataset.classes and args.dump_classnames:
+    if hasattr(dataset, "classes") and dataset.classes and getattr(args, 'dump_classnames', False):
         dump["classnames"] = dataset.classes
-    if hasattr(dataset, "templates") and dataset.templates and args.dump_templates:
+    if hasattr(dataset, "templates") and dataset.templates and getattr(args, 'dump_templates', False):
         dump["templates"] = dataset.templates
     if args.verbose:
         print(f"Dump results to: {output}")
