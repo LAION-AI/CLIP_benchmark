@@ -33,12 +33,16 @@ Results using CLAP (HTSAT-tiny) on audio datasets:
 | GTZAN                     |   ✓    | 34.53% | 67.87% |      - |
 | FSD50K                    |        |      - |      - | 55.97% |
 | FSD50K                    |   ✓    |      - |      - | 56.90% |
+| VGGSound                  |        |      - |      - | 24.87% |
+| VGGSound                  |   ✓    |      - |      - | 17.23% |
+| VGGSounder                |        |      - |      - | 26.65% |
+| VGGSounder                |   ✓    |      - |      - | 18.85% |
 
 ### Linear Probe
 
 Results using CLAP (HTSAT-tiny) on audio datasets:
 
-| Dataset      | Fusion |  Acc@1 |    mAP |    Gain |
+| Dataset      | Fusion |  Acc@1 |    mAP |    Gain (vs ZS) |
 | ------------ | :----: | -----: | -----: | ------: |
 | ESC-50       |        | 97.00% |      - |  +4.50% |
 | ESC-50       |   ✓    | 95.75% |      - |  +3.00% |
@@ -46,6 +50,8 @@ Results using CLAP (HTSAT-tiny) on audio datasets:
 | UrbanSound8K |   ✓    | 88.29% |      - | +11.35% |
 | FSD50K       |        |      - | 67.52% | +11.55% |
 | FSD50K       |   ✓    |      - | 68.06% | +11.16% |
+| VGGSound     |        |      - | 52.47% | +27.60% |
+| VGGSound     |   ✓    |      - | 50.90% | +33.67% |
 
 ### Zero-Shot Retrieval
 
