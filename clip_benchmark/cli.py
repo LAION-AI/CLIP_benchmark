@@ -224,10 +224,15 @@ def run(args):
     task = args.task
     if args.dataset.startswith("wds/"):
         dataset_name = args.dataset.replace("wds/", "", 1)
+        dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
+        if task == "auto":
+            fname = os.path.join(dataset_root, "dataset_type.txt")
+            task = open(fname).read().strip()
     else:
         dataset_name = args.dataset
-    if task == "auto":
-        task = get_dataset_default_task(dataset_name)
+        if task == "auto":
+            task = get_dataset_default_task(dataset_name)
+        dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     pretrained_slug = os.path.basename(args.pretrained) if os.path.isfile(args.pretrained) else args.pretrained
     pretrained_slug_full_path = args.pretrained.replace('/', '_') if os.path.isfile(args.pretrained) else args.pretrained
     dataset_slug = dataset_name.replace('/', '_')
@@ -251,7 +256,6 @@ def run(args):
         return
     if args.verbose:
         print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
-    dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
@@ -306,7 +310,7 @@ def run(args):
                 shuffle=False, num_workers=args.num_workers, 
                 collate_fn=collate_fn
             )
-    if task == "zeroshot_classification":
+    if task in  ("zeroshot_classification", "video_classification"):
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.verbose:
             print(f"Zero-shot templates: {zeroshot_templates}")
@@ -323,7 +327,7 @@ def run(args):
             save_clf=args.save_clf,
             load_clfs=args.load_clfs,
         ) 
-    elif task == "zeroshot_retrieval":
+    elif task in ("zeroshot_retrieval", "video_retrieval"):
         metrics = zeroshot_retrieval.evaluate(
             model, 
             dataloader, 

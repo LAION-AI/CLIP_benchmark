@@ -719,6 +719,7 @@ def decode_video(
         "mpg",
         "webm",
         "wmv",
+        "mkv"
     ]:
         return None
     num_frames = 8
@@ -804,7 +805,18 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     
     dataset = wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
     img_extensions = ["webp", "png", "jpg", "jpeg"]
-    video_extensions = ["mp4", "avi"]
+    video_extensions = [
+        "mp4",
+        "ogv",
+        "mjpeg",
+        "avi",
+        "mov",
+        "h264",
+        "mpg",
+        "webm",
+        "wmv",
+        "mkv",
+    ]
     if dataset_type in ("video_classification", "video_retrieval"):
         dataset = dataset.decode(decode_video, handler=warn_and_continue)
         transform = lambda x:x  # No-op transform since decoding already done
