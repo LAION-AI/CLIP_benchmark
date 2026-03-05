@@ -708,6 +708,7 @@ def decode_video(
     key, data
 ):
     from torchcodec.decoders import VideoDecoder
+    import re
     extension = re.sub(r".*[.]", "", key)
     if extension not in [
         "mp4",
