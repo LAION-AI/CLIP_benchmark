@@ -707,7 +707,7 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
 def decode_video(
     key, data
 ):
-    import re, io, decord
+    from torchcodec.decoders import VideoDecoder
     extension = re.sub(r".*[.]", "", key)
     if extension not in [
         "mp4",
@@ -719,20 +719,17 @@ def decode_video(
         "mpg",
         "webm",
         "wmv",
-        "mkv"
     ]:
         return None
     num_frames = 8
-    reader = decord.VideoReader(io.BytesIO(data), num_threads=8)
-    end_frame = len(reader)
-    indices = torch.linspace(0, end_frame - 1, steps=num_frames).tolist()
-    frames = reader.get_batch(indices)
-    frames = frames.asnumpy()
-    frames = torch.from_numpy(frames)
-    frames = frames.permute(3, 0, 1, 2)  # Change to [C, num_frames, H, W]
-    frames = F.interpolate(frames, size=(224, 224), mode='bilinear', align_corners=False)    
-    frames = (frames / 255.0 - 0.5) / 0.5  # Assuming the input is in [0, 255] range
-    return frames
+    decoder = VideoDecoder(data)
+    end_frame = len(decoder)
+    indices = torch.linspace(0, end_frame - 1, steps=num_frames, dtype=int).tolist()
+    video  = decoder.get_frames_at(indices).data
+    video = video.permute(1, 0, 2, 3)  # Change to [C, num_frames, H, W]
+    video_tensor = F.interpolate(video, size=(224, 224), mode='bilinear', align_corners=False)
+    video_tensor = (video_tensor / 255.0 - 0.5) / 0.5  # Assuming the input is in [0, 255] range
+    return video_tensor
 
 def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
     """
