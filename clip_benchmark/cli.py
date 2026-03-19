@@ -226,8 +226,11 @@ def run(args):
         dataset_name = args.dataset.replace("wds/", "", 1)
         dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
         if task == "auto":
-            fname = os.path.join(dataset_root, "dataset_type.txt")
-            task = open(fname).read().strip()
+            try:
+                fname = os.path.join(dataset_root, "dataset_type.txt")
+                task = open(fname).read().strip()
+            except Exception:
+                task = "zeroshot_classification"
     else:
         dataset_name = args.dataset
         if task == "auto":
