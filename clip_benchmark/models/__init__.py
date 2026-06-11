@@ -1,5 +1,8 @@
+import logging
 from typing import Union, NamedTuple, Optional
 import torch
+
+logger = logging.getLogger(__name__)
 
 
 class ModelBundle(NamedTuple):
@@ -22,8 +25,8 @@ TYPE2FUNC = {
 try:
     from .clap import load_clap
     TYPE2FUNC["clap"] = load_clap
-except ImportError:
-    pass
+except ImportError as e:
+    logger.warning(f"Could not import CLAP loader ('clap' model type unavailable): {e}")
 
 MODEL_TYPES = list(TYPE2FUNC.keys())
 
