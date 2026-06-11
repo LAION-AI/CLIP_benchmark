@@ -25,11 +25,6 @@ try:
 except ImportError:
     pass
 
-try:
-    from .clap_v2 import load_clap_v2
-    TYPE2FUNC["clap_v2"] = load_clap_v2
-except ImportError:
-    pass
 MODEL_TYPES = list(TYPE2FUNC.keys())
 
 
