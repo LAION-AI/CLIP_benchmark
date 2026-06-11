@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from sklearn.metrics import classification_report, balanced_accuracy_score
 
+from .utils import to_device
 
 
 def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=True):
@@ -37,7 +38,7 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
     torch.Tensor of shape (N,C) where N is the number
     of templates, and C is the number of classes.
     """
-    with torch.no_grad(), torch.autocast(device, enabled=amp):
+    with torch.no_grad():
         zeroshot_weights = []
         for classname in tqdm(classnames):
             if type(templates) == dict:
@@ -48,9 +49,13 @@ def zero_shot_classifier(model, tokenizer, classnames, templates, device, amp=Tr
                 texts = [template.format(c=classname) for template in templates]
             else:
                 raise ValueError("templates must be a list or a dict")
+
             texts = tokenizer(texts).to(device)  # tokenize
+
+            # NOTE: autocast disabled — float16 precision loss on GH200
+            # destroys cosine similarity discriminability for CLAP models.
             class_embeddings = model.encode_text(texts)
-            class_embedding = F.normalize(class_embeddings, dim=-1).mean(dim=0)
+            class_embedding = F.normalize(class_embeddings.float(), dim=-1).mean(dim=0)
             class_embedding /= class_embedding.norm()
             zeroshot_weights.append(class_embedding)
         zeroshot_weights = torch.stack(zeroshot_weights, dim=1).to(device)
@@ -82,17 +87,19 @@ def accuracy(output, target, topk=(1,)):
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) / n for k in topk]
 
 
-def run_classification(model, classifier, dataloader, device, amp=True):
+def run_classification(model, classifier, dataloader, device, amp=True, modality="image"):
     """
-    Run zero-shot classifcation
+    Run zero-shot classification
 
     model: torch.nn.Module
-        CLIP-like model with `encode_image` and `encode_text`
+        CLIP-like model with `encode_image`/'encode_audio' and `encode_text`
     
     classifier: torch.Tensor
         obtained from the function `zero_shot_classifier`
     
     dataloader: torch.utils.data.Dataloader 
+    
+    modality: "image" or "audio"
     
     Returns
     -------
@@ -103,16 +110,25 @@ def run_classification(model, classifier, dataloader, device, amp=True):
     pred = []
     true = []
     nb = 0
+    
     with torch.no_grad():
-        for images, target in tqdm(dataloader):
-            images = images.to(device)
+        for data, target in tqdm(dataloader):
+            data = to_device(data, device)
+            if not isinstance(target, torch.Tensor):
+                target = torch.tensor(target, dtype=torch.long)
             target = target.to(device)
 
-            with torch.autocast(device, enabled=amp):
-                # predict
-                image_features = model.encode_image(images)
-                image_features = F.normalize(image_features, dim=-1)
-                logits = 100. * image_features @ classifier
+            # NOTE: autocast disabled — float16 precision loss on GH200
+            # destroys cosine similarity discriminability for CLAP models.
+            if modality == "image":
+                data_features = model.encode_image(data)
+            elif modality == "audio":
+                data_features = model.encode_audio(data)
+            else:
+                raise ValueError("modality must be 'image' or 'audio'")
+
+            data_features = F.normalize(data_features.float(), dim=-1)
+            logits = 100. * data_features @ classifier.float()
             
             true.append(target.cpu())
             pred.append(logits.float().cpu())
@@ -162,7 +178,7 @@ def average_precision_per_class(scores, targets):
     return ap
 
 
-def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, save_clf=None, load_clfs=[]):
+def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=True, verbose=False, save_clf=None, load_clfs=[], modality="image"):
     """
     Run zero-shot classification and evaluate the metrics
 
@@ -206,7 +222,7 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
         torch.save(classifier, save_clf)
         # exit() - not sure if we want to exit here or not.
 
-    logits, target = run_classification(model, classifier, dataloader, device, amp=amp)
+    logits, target = run_classification(model, classifier, dataloader, device, amp=amp, modality=modality)
     is_multilabel = (len(target.shape) == 2)
 
     if is_multilabel:
@@ -214,10 +230,12 @@ def evaluate(model, dataloader, tokenizer, classnames, templates, device, amp=Tr
             print("Detected a multi-label classification dataset")
         # Multiple labels per image, multiple classes on the dataset
         ap_per_class = average_precision_per_class(logits, target)
+        mean_ap = ap_per_class.mean().item()
         if verbose:
             for class_name, ap in zip(dataloader.dataset.classes, ap_per_class.tolist()):
                 print(f"Class: {class_name}, AveragePrecision: {ap}")
-        return {"mean_average_precision": ap_per_class.mean().item()}
+            print(f"Mean Average Precision: {mean_ap}")
+        return {"mean_average_precision": mean_ap}
     else:
         # Single label per image, multiple classes on the dataset
         # just compute accuracy and mean_per_class_recall

@@ -1,3 +1,4 @@
+import inspect
 import json
 import os
 import sys
@@ -5,18 +6,18 @@ import warnings
 from subprocess import call
 
 import torch
+import glob
 from torch.utils.data import default_collate
 from torchvision.datasets import (CIFAR10, CIFAR100, DTD, GTSRB, MNIST, PCAM,
                                   STL10, SUN397, CocoCaptions, Country211,
                                   EuroSAT, FGVCAircraft, Flowers102, Food101,
                                   ImageFolder, ImageNet, OxfordIIITPet,
                                   RenderedSST2, StanfordCars)
-
 from . import (babel_imagenet, caltech101, flickr, imagenetv2, objectnet,
                sugar_crepe, voc2007, winoground)
 
 
-def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, **kwargs):
+def build_dataset(dataset_name, root="root", transform=None, split="test", download=True, annotation_file=None, language="en", task="zeroshot_classification", wds_cache_dir=None, custom_classname_file=None, custom_template_file=None, audio_loader=None, **kwargs):
     """
     Main function to use in order to build a dataset instance,
 
@@ -470,7 +471,7 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
     elif dataset_name.startswith("wds/"):
         # WebDataset support using `webdataset` library
         name = dataset_name.split("/", 1)[1]
-        ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir)
+        ds = build_wds_dataset(name, transform=transform, split=split, data_dir=root, cache_dir=wds_cache_dir, audio_loader=audio_loader)
         # WDS specify classnames and templates on its own.
     elif dataset_name == "dummy":
         ds = Dummy()
@@ -505,11 +506,19 @@ def build_dataset(dataset_name, root="root", transform=None, split="test", downl
             assert ds.templates is not None, f"Templates not specified for {dataset_name}"            
         else:
             # dataset has templates already (e.g., WDS case), so we keep it as is.
-            pass
+            # But if it's None (WDS without templates file), try to load defaults
+            if ds.templates is None:
+                ds.templates = value_from_first_key_found(default_templates, keys=keys_to_lookup + [default_dataset_for_templates])
 
-         # We override with custom classnames ONLY if they are provided.
+        # We override with custom classnames ONLY if they are provided.
         if custom_classnames:
             ds.classes = value_from_first_key_found(custom_classnames, keys=keys_to_lookup)
+        elif not hasattr(ds, "classes") or ds.classes is None:
+            # Provide fallback for WDS datasets if the name matches a standard one
+            if default_classnames:
+                val = value_from_first_key_found(default_classnames, keys=keys_to_lookup)
+                if val is not None:
+                    ds.classes = val
         
         assert ds.classes is not None, f"Classes not specified for {dataset_name}"
         assert ds.templates is not None, f"Templates not specified for {dataset_name}"
@@ -705,7 +714,11 @@ def build_tfds_dataset(name, transform, download=True, split="test", data_dir="r
     return ds
 
 
-def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None):
+
+def _identity(x):
+    return x
+
+def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", cache_dir=None, audio_loader=None):
     """
     Load a dataset in WebDataset format. Either local paths or HTTP URLs can be specified.
     Expected file structure is:
@@ -745,6 +758,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
             with open(fname, "r") as file:
                 value = file.read()
         return value
+
     # Special handling for Huggingface datasets
     # Git LFS files have a different file path to access the raw data than other files
     if data_dir.startswith("https://huggingface.co/datasets"):
@@ -755,9 +769,19 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         tardata_dir = "/".join([url_head, "resolve", url_path])
     else:
         metadata_dir = tardata_dir = data_dir
+
     # Get number of shards
     nshards_fname = os.path.join(metadata_dir, split, "nshards.txt")
-    nshards = int(read_txt(nshards_fname)) # Do not catch FileNotFound, nshards.txt should be mandatory
+    if os.path.isdir(os.path.join(tardata_dir, split)):
+        # if local directory, we can list the files. No need for nshards.txt
+        filepattern = sorted(glob.glob(os.path.join(tardata_dir, split, "*.tar")))
+        nshards = len(filepattern)
+    elif os.path.exists(nshards_fname):
+        nshards = int(read_txt(nshards_fname))
+        filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
+    else:
+        raise FileNotFoundError(f"Could not find nshards.txt or count tar files in {os.path.join(tardata_dir, split)}")
+
     # Get dataset type (classification or retrieval)
     type_fname = os.path.join(metadata_dir, "dataset_type.txt")
     try:
@@ -765,28 +789,42 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
     except FileNotFoundError:
         # print("WARNING: dataset_type.txt not found, assuming type=classification")
         dataset_type = "classification"
-    #
-    filepattern = os.path.join(tardata_dir, split, "{0..%d}.tar" % (nshards - 1))
+
     # Load webdataset (support WEBP, PNG, and JPG for now)
     if not cache_dir or not isinstance(cache_dir, str):
         cache_dir = None
+
+
+    # Build decoder handlers list. Only include audio loader if provided.
+    handlers = [wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"])]
+    if audio_loader is not None:
+        handlers.append(audio_loader)
+    
     dataset = (
-        wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=lambda src: src)
-        .decode(wds.autodecode.ImageHandler("pil", extensions=["webp", "png", "jpg", "jpeg"]))
+        wds.WebDataset(filepattern, cache_dir=cache_dir, nodesplitter=_identity)
+        .decode(*handlers)
     )
+
     # Load based on classification or retrieval task
     if dataset_type == "retrieval":
+        def _parse_captions(text_or_json):
+            """Handle both .txt (newline-separated) and .json ({"text": [...]}) caption formats."""
+            if isinstance(text_or_json, dict):
+                return text_or_json["text"]
+            return text_or_json.splitlines()
+
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], "txt")
-            .map_tuple(transform, str.splitlines)
+            .to_tuple(["webp", "png", "jpg", "jpeg", "wav", "flac", "mp3"], ["txt", "json"])
+            .map_tuple(transform, _parse_captions)
         )
         dataset.classes = dataset.templates = None
     else:
         label_type = "npy" if dataset_type == "multilabel" else "cls" # Special case for multilabel
         dataset = (dataset
-            .to_tuple(["webp", "png", "jpg", "jpeg"], label_type)
+            .to_tuple(["webp", "png", "jpg", "jpeg", "wav", "flac", "mp3"], label_type)
             .map_tuple(transform, None)
         )
+
         # Get class names if present
         classnames_fname = os.path.join(metadata_dir, "classnames.txt")
         try:
@@ -794,6 +832,7 @@ def build_wds_dataset(dataset_name, transform, split="test", data_dir="root", ca
         except FileNotFoundError:
             print("WARNING: classnames.txt not found")
             dataset.classes = None
+
         # Get zeroshot classification templates if present
         templates_fname = os.path.join(metadata_dir, "zeroshot_classification_templates.txt")
         try:
@@ -884,6 +923,8 @@ dataset_collection = {
         "mscoco_captions",
         "flickr8k",
         "flickr30k",
+        "clotho",
+        "audiocaps"
     ],
     "imagenet_robustness": [
         "imagenetv2",

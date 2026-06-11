@@ -1,5 +1,8 @@
 # CLIP Benchmark
+
 [![pypi](https://img.shields.io/pypi/v/clip_benchmark.svg)](https://pypi.python.org/pypi/clip_benchmark)
+
+> **Audio Evaluation Support**: For evaluating CLAP models on audio datasets (ESC-50, UrbanSound8K, FSD50K, etc.), see [AUDIO_README.md](AUDIO_README.md).
 
 The goal of this repo is to evaluate CLIP-like models on a standard set
 of datasets on different tasks such as zero-shot classification and zero-shot
@@ -11,11 +14,12 @@ retrieval, and captioning.
 
 ## Features
 
-* Support for zero-shot classification and zero-shot retrieval, linear probing, and captioning.
-* Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models, [Japanese CLIP](https://github.com/rinnakk/japanese-clip), and [NLLB CLIP](https://arxiv.org/abs/2309.01859) for general multilingual abilities.
-* Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
-* Support for various multilingual datasets for classification and retrieval
-* Support for compositionality tasks
+- Support for zero-shot classification and zero-shot retrieval, linear probing, and captioning.
+- Support for [OpenCLIP](https://github.com/mlfoundations/open_clip) pre-trained models, [Japanese CLIP](https://github.com/rinnakk/japanese-clip), and [NLLB CLIP](https://arxiv.org/abs/2309.01859) for general multilingual abilities.
+- Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
+- Support for various multilingual datasets for classification and retrieval
+- Support for compositionality tasks
+- Support for audio evaluation with CLAP models - see [AUDIO_README.md](AUDIO_README.md) for details
 
 ## How to install?
 
@@ -24,11 +28,13 @@ retrieval, and captioning.
 ## How to use?
 
 To evaluate we recommend to create a models.txt like
+
 ```
 ViT-B-32,openai
 ```
 
-to get the list of datasets 
+to get the list of datasets
+
 ```
 wget https://raw.githubusercontent.com/LAION-AI/CLIP_benchmark/main/clip_benchmark/datasets/webdatasets.txt
 ```
@@ -48,7 +54,6 @@ Then to get the full table
 clip_benchmark build benchmark_*.json --output benchmark.csv
 ```
 
-
 ### Command line interface (CLI)
 
 The easiest way to benchmark the models is using the CLI, `clip_benchmark`.
@@ -64,11 +69,11 @@ Here is an example of use
 ```
 >>> python3 clip_benchmark/cli.py eval \
   --model_type "ja_clip" \ # flag to use japanese-clip
-  --pretrained "rinna/japanese-cloob-vit-b-16" \ # now, we have `rinna/japanese-cloob-vit-b-16` or `rinna/japanese-clip-vit-b-16`. 
+  --pretrained "rinna/japanese-cloob-vit-b-16" \ # now, we have `rinna/japanese-cloob-vit-b-16` or `rinna/japanese-clip-vit-b-16`.
   --language "jp" \
   --task "zeroshot_classification"  \
   --dataset "imagenet1k"  \
-  --dataset_root {ROOT_PATH} 
+  --dataset_root {ROOT_PATH}
 
 >>> cat result.json
 {"dataset": "imagenet1k", "model": "ViT-B-32-quickgelu", "pretrained": "rinna/japanese-cloob-vit-b-16", "task": "zeroshot_classification", "metrics": {"acc1": 0.54636, "acc5": 0.72856, "mean_per_class_recall": 0.54522}, "language": "jp"}
@@ -77,46 +82,54 @@ Here is an example of use
 ### How to add other CLIP models
 
 Please follow these steps:
+
 1. Add a identity file to load model in `clip_benchmark/models`
-2. Define a loading function, that returns a tuple (model, transform, tokenizer). Please see `clip_benchmark/models/open_clip.py` as an example. 
+2. Define a loading function, that returns a tuple (model, transform, tokenizer). Please see `clip_benchmark/models/open_clip.py` as an example.
 3. Add the function into `TYPE2FUNC` in `clip_benchmark/models/__init__.py`
 
 Remarks:
+
 - The new tokenizer/model must enable to do the following things as https://github.com/openai/CLIP#usage
-  - `tokenizer(texts).to(device)`  ... `texts` is a list of string
+  - `tokenizer(texts).to(device)` ... `texts` is a list of string
   - `model.encode_text(tokenized_texts)` ... `tokenized_texts` is a output from `tokenizer(texts).to(device)`
   - `model.encode_image(images)` ... `images` is a image tensor by the `transform`
 
-
 ### CIFAR-10 example
 
- Here is an example for CIFAR-10 zero-shot classification using OpenCLIP's pre-trained model on LAION-400m:
+Here is an example for CIFAR-10 zero-shot classification using OpenCLIP's pre-trained model on LAION-400m:
 
- `clip_benchmark eval --dataset=cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+`clip_benchmark eval --dataset=cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
- By default, the dataset is downloaded into `--dataset_root`, which by default is `root`.
+By default, the dataset is downloaded into `--dataset_root`, which by default is `root`.
 
 Here is the content of `result.json` after the evaluation is done:
 
 ```json
 {
-    "dataset": "cifar10", "model": "ViT-B-32-quickgelu", 
-    "pretrained": "laion400m_e32", "task": "zeroshot_classification",
-    "metrics": {"acc1": 0.9074, "acc5": 0.998}
+  "dataset": "cifar10",
+  "model": "ViT-B-32-quickgelu",
+  "pretrained": "laion400m_e32",
+  "task": "zeroshot_classification",
+  "metrics": { "acc1": 0.9074, "acc5": 0.998 }
 }
 ```
-
 
 ### VOC2007 example
 
 Here is another example with VOC2007, which is a multi-label classification dataset.
 
- `clip_benchmark eval --dataset=voc2007_multilabel --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+`clip_benchmark eval --dataset=voc2007_multilabel --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
 Here is the content of `result.json` after the evaluation is done:
 
 ```json
-{"dataset": "voc2007_multilabel", "model": "ViT-B-32-quickgelu", "pretrained": "laion400m_e32", "task": "zeroshot_classification", "metrics": {"mean_average_precision": 0.7627869844436646}}
+{
+  "dataset": "voc2007_multilabel",
+  "model": "ViT-B-32-quickgelu",
+  "pretrained": "laion400m_e32",
+  "task": "zeroshot_classification",
+  "metrics": { "mean_average_precision": 0.7627869844436646 }
+}
 ```
 
 Here, we compute the mean average precision or mAP, more details about that metric [here](https://fangdahan.medium.com/calculate-mean-average-precision-map-for-multi-label-classification-b082679d31be) in the context of multi-label classification.
@@ -131,11 +144,10 @@ First, you need to install VTAB's dedicated package.
 Then, you can run it by providing the full dataset name.
 Example with `eurosat`:
 
- `clip_benchmark eval --dataset=vtab/eurosat --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
+`clip_benchmark eval --dataset=vtab/eurosat --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
-See [clip_benchmark/datasets/builder.py#L634](clip_benchmark/datasets/builder.py#L634) for the full list of 
+See [clip_benchmark/datasets/builder.py#L634](clip_benchmark/datasets/builder.py#L634) for the full list of
 VTAB dataset collection.
-
 
 ### TensorFlow dataset example
 
@@ -144,37 +156,33 @@ First, you need to install `tfds-nightly` and `timm`.
 
 `pip install timm tfds-nightly`
 
-
 The name of the dataset follows the template `tfds/<DATASET_NAME>`.
 
 Example with `cifar10`:
 
- `clip_benchmark eval --dataset=tfds/cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
-
+`clip_benchmark eval --dataset=tfds/cifar10 --task=zeroshot_classification --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
 ### COCO captions retrieval example
 
- Here is an example for COCO captions zero-shot retrieval:
+Here is an example for COCO captions zero-shot retrieval:
 
- `clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64` 
- 
- Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`).
+`clip_benchmark eval --dataset=mscoco_captions --task=zeroshot_retrieval --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64`
 
+Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`).
 
 ### COCO captions captioning example
 
- Here is an example for COCO captions captioning task:
+Here is an example for COCO captions captioning task:
 
- `clip_benchmark eval --dataset=mscoco_captions --task=captioning --model=coca_ViT-L-14 --output=result.json --pretrained mscoco_finetuned_laion2b_s13b_b90k`
+`clip_benchmark eval --dataset=mscoco_captions --task=captioning --model=coca_ViT-L-14 --output=result.json --pretrained mscoco_finetuned_laion2b_s13b_b90k`
 
- Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`) and `pycocoevalcap`.
+Note that for using COCO, you also need to install `pycocotools` (e.g., using `pip install pycocotools`) and `pycocoevalcap`.
 
 ### Linear probing example
 
 Full linear probing on train split, evaluate on test split:
 
 `clip_benchmark eval --dataset=cifar10 --task=linear_probe --pretrained=laion400m_e32 --model=ViT-B-32-quickgelu --output=result.json --batch_size=64 --fewshot_lr 0.1 --fewshot_epochs 20 --batch_size 512 --train_split train --test_split test`
-
 
 few-shot (k=5) linear probing on train split, evaluate on test split:
 
@@ -195,8 +203,8 @@ We also provide datasets for evaluating multilingual models (see e.g. https://gi
 For ImageNet-1k (zero-shot classification):
 
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=imagenet1k --output=result.json --batch_size=64 --language=<LANG>`, where `<LANG>` can be among `zh` (chinese), `it` (italian), `jp` (japanese), `en` (english), `ar` (arabic).
-- We also support Babel ImageNet classnames and prompts (https://github.com/gregor-ge/Babel-ImageNet), which can be used as the following: `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=babel_imagenet --output=result.json --batch_size=64 --language=<LANG>`, 
-where `<LANG>` is a two letter string from the [ISO language code list](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). Supported values for language are: `'ne', 'id', 'de', 'nl', 'af', 'he', 'sq', 'uz', 'kn', 'ku', 'ta', 'lv', 'ko', 'ug', 'br', 'el', 'su', 'kk', 'sk', 'gl', 'om', 'fa', 'jv', 'cs', 'lo', 'hy', 'xh', 'hr', 'so', 'gu', 'am', 'ar', 'sa', 'ca', 'is', 'it', 'sv', 'ga', 'bg', 'vi', 'sd', 'ur', 'km', 'pl', 'hu', 'sr', 'fr', 'hi', 'fy', 'et', 'bs', 'sw', 'az', 'mk', 'es', 'mn', 'ja', 'tl', 'tr', 'gd', 'ro', 'mg', 'mr', 'sl', 'pt', 'lt', 'no', 'yi', 'uk', 'ky', 'ka', 'bn', 'or', 'my', 'en', 'ps', 'fi', 'zh', 'da', 'ml', 'be', 'eo', 'ha', 'eu', 'as', 'te', 'th', 'cy', 'si', 'ru', 'la', 'pa', 'ms'` 
+- We also support Babel ImageNet classnames and prompts (https://github.com/gregor-ge/Babel-ImageNet), which can be used as the following: `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=babel_imagenet --output=result.json --batch_size=64 --language=<LANG>`,
+  where `<LANG>` is a two letter string from the [ISO language code list](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). Supported values for language are: `'ne', 'id', 'de', 'nl', 'af', 'he', 'sq', 'uz', 'kn', 'ku', 'ta', 'lv', 'ko', 'ug', 'br', 'el', 'su', 'kk', 'sk', 'gl', 'om', 'fa', 'jv', 'cs', 'lo', 'hy', 'xh', 'hr', 'so', 'gu', 'am', 'ar', 'sa', 'ca', 'is', 'it', 'sv', 'ga', 'bg', 'vi', 'sd', 'ur', 'km', 'pl', 'hu', 'sr', 'fr', 'hi', 'fy', 'et', 'bs', 'sw', 'az', 'mk', 'es', 'mn', 'ja', 'tl', 'tr', 'gd', 'ro', 'mg', 'mr', 'sl', 'pt', 'lt', 'no', 'yi', 'uk', 'ky', 'ka', 'bn', 'or', 'my', 'en', 'ps', 'fi', 'zh', 'da', 'ml', 'be', 'eo', 'ha', 'eu', 'as', 'te', 'th', 'cy', 'si', 'ru', 'la', 'pa', 'ms'`
 
 for COCO (zero-shot retrieval):
 
@@ -226,16 +234,13 @@ For XTD200 dataset, which has captions from [XTD10](https://github.com/adobe-res
 
 - `clip_benchmark eval --model xlm-roberta-base-ViT-B-32 --pretrained laion5b_s13b_b90k --dataset=xtd200 --output=result.json --batch_size=64 --language=<LANG>`, see supported languages [here](https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/xtd200.py#L15).
 
-
 ### Compositionality evaluation
-
 
 For [Sugar Crepe](https://github.com/RAIVNLab/sugar-crepe):
 
-
 `clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe/<TASK> --output=result.json`
 
-where `<TASK>` can be among  `add_att`, `add_obj`, `replace_att`, `replace_obj`, `replace_rel`, `swap_att`, `swap_obj`.
+where `<TASK>` can be among `add_att`, `add_obj`, `replace_att`, `replace_obj`, `replace_rel`, `swap_att`, `swap_obj`.
 To evaluate on all the tasks together, you can do:
 
 `clip_benchmark eval --model ViT-B-32 --pretrained laion400m_e32 --dataset=sugar_crepe --output=result.json`
@@ -298,12 +303,10 @@ Example with `mscoco_captions` (retrieval):
 - local: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=zeroshot_retrieval`
 - remote: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=zeroshot_retrieval`
 
-
 Example with `mscoco_captions` (captioning):
 
 - local: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=captioning`
 - remote: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=captioning`
-
 
 All other arguments remain the same as in the other examples. See `https://huggingface.co/clip-benchmark` for a full list of datasets that have already been uploaded to Huggingface.
 
@@ -312,10 +315,9 @@ All other arguments remain the same as in the other examples. See `https://huggi
 For the purpose of benchmarking, it is possible to run the CLI with multiple
 pre-trained models on multiple datasets.
 
-
 ### Pretrained models and datasets list as arguments
 
-For models, we can provide list of pretrained model names in the form of 'model,pretrained' (so `model` and `pretrained` are comma separated). For datasets, we can provide a list of datasets.  For languages, we can provide a list of languages.
+For models, we can provide list of pretrained model names in the form of 'model,pretrained' (so `model` and `pretrained` are comma separated). For datasets, we can provide a list of datasets. For languages, we can provide a list of languages.
 Example:
 
 ```bash
@@ -372,11 +374,11 @@ For instance:
 
 The template file can be either in the usual format https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/en_zeroshot_classification_templates.json or in the CuPL format https://github.com/LAION-AI/CLIP_benchmark/blob/main/clip_benchmark/datasets/cupl_prompts.json to have class-specific prompts. In the case of the CuPL format, the classnames file will not be used, thus one only needs to provide the template file `--custom_template_file`.
 
-For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 for ImagetNet-1k can be used this way    :
+For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 for ImagetNet-1k can be used this way :
 
 `clip_benchmark eval --dataset "imagenet1k" --model ViT-B-32 --pretrained laion400m_e32 --custom_template_file cupl_prompts.json`
 
-### Development 
+### Development
 
 For development, you can also do this:
 

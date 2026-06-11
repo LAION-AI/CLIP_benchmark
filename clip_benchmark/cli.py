@@ -57,6 +57,7 @@ def get_parser_args():
     parser_eval.add_argument('--custom_template_file', default=None, type=str, help="use custom json file with prompts for each dataset, where keys are dataset names and values are list of prompts. For instance, to use CuPL prompts, use --custom_template_file='cupl_prompts.json'")
     parser_eval.add_argument('--dump_classnames', default=False, action="store_true", help="dump classnames to the results json file.")
     parser_eval.add_argument('--dump_templates', default=False, action="store_true", help="dump templates to the results json file.")
+    parser_eval.add_argument('--modality', default="auto", type=str, choices=["image", "audio", "auto"], help="modality of the dataset. 'auto' will try to infer the modality from the model that is loaded./")
 
     parser_eval.add_argument('--language', default="en", type=str, nargs="+", help="language(s) of classname and prompts to use for zeroshot classification.")
     parser_eval.add_argument('--output', default="{dataset}_{pretrained}_{model}_{language}_{task}.json", type=str, help="output file where to dump the metrics. Can be in form of a template, e.g., --output='{dataset}_{pretrained}_{model}_{language}_{task}.json'")
@@ -243,19 +244,42 @@ def run(args):
         if args.verbose:
             print(f"Skip {output}, exists already.")
         return
+    
     if args.verbose:
         print(f"Running '{task}' on '{dataset_name}' with the model '{args.pretrained}' on language '{args.language}'")
     dataset_root = args.dataset_root.format(dataset=dataset_name, dataset_cleaned=dataset_name.replace("/", "-"))
     if args.skip_load:
         model, transform, collate_fn, dataloader = None, None, None, None
     else:
-        model, transform, tokenizer = load_clip(
+        loaded = load_clip(
             model_type=args.model_type,
             model_name=args.model,
             pretrained=args.pretrained,
             cache_dir=args.model_cache_dir,
             device=args.device
         )
+
+        model = loaded.model
+        transform = loaded.transform
+        tokenizer = loaded.tokenizer
+        audio_loader = loaded.audio_loader
+
+        # Determine modality (default "auto" for backward compatibility)
+        requested_modality = getattr(args, 'modality', 'auto')
+        if requested_modality == "auto":
+            if audio_loader is not None:
+                modality = "audio"
+                print("INFO: Modality not specified, auto select audio.")
+            else:
+                modality = "image"
+        else:
+            if audio_loader is not None and requested_modality == "image":
+                raise ValueError(f"Modality {requested_modality} is not supported for model {args.model}")
+            elif audio_loader is None and requested_modality == "audio":
+                raise ValueError(f"Modality {requested_modality} is not supported for model {args.model}")
+            modality = requested_modality
+
+
         model.eval()
         if args.model.count("nllb-clip") > 0:
             # for NLLB-CLIP models, we need to set the language prior to running the tests
@@ -274,6 +298,7 @@ def run(args):
             custom_template_file=args.custom_template_file,
             custom_classname_file=args.custom_classname_file,
             wds_cache_dir=args.wds_cache_dir,
+            audio_loader=audio_loader,
         )
         collate_fn = get_dataset_collate_fn(args.dataset)
         if args.verbose:
@@ -300,6 +325,7 @@ def run(args):
                 shuffle=False, num_workers=args.num_workers, 
                 collate_fn=collate_fn
             )
+
     if task == "zeroshot_classification":
         zeroshot_templates = dataset.templates if hasattr(dataset, "templates") else None
         if args.verbose:
@@ -310,7 +336,9 @@ def run(args):
             model, 
             dataloader, 
             tokenizer, 
-            classnames, zeroshot_templates, 
+            classnames, 
+            zeroshot_templates, 
+            modality=modality,
             device=args.device, 
             amp=args.amp,
             verbose=args.verbose,
@@ -322,6 +350,7 @@ def run(args):
             model, 
             dataloader, 
             tokenizer, 
+            modality=modality,
             recall_k_list=args.recall_k,
             device=args.device, 
             amp=args.amp
@@ -344,6 +373,8 @@ def run(args):
             split=args.train_split, 
             annotation_file=args.annotation_file,
             download=True,
+            wds_cache_dir=args.wds_cache_dir,
+            audio_loader=audio_loader,
         )
         if args.val_split is not None:
             val_dataset = build_dataset(
@@ -353,6 +384,8 @@ def run(args):
                 split=args.val_split, 
                 annotation_file=args.annotation_file,
                 download=True,
+                wds_cache_dir=args.wds_cache_dir,
+                audio_loader=audio_loader,
             )
         elif args.val_proportion is not None:
             train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [1 - args.val_proportion, args.val_proportion])
@@ -388,6 +421,7 @@ def run(args):
             normalize=args.normalize,
             amp=args.amp,
             verbose=args.verbose,
+            modality=modality,
         )
     elif task == "captioning":
         metrics = captioning.evaluate(
@@ -410,9 +444,9 @@ def run(args):
         "metrics": metrics,
         "language": args.language,
     }
-    if hasattr(dataset, "classes") and dataset.classes and args.dump_classnames:
+    if hasattr(dataset, "classes") and dataset.classes and getattr(args, 'dump_classnames', False):
         dump["classnames"] = dataset.classes
-    if hasattr(dataset, "templates") and dataset.templates and args.dump_templates:
+    if hasattr(dataset, "templates") and dataset.templates and getattr(args, 'dump_templates', False):
         dump["templates"] = dataset.templates
     if args.verbose:
         print(f"Dump results to: {output}")
