@@ -6,3 +6,4 @@ open_clip_torch>=0.2.1
 pycocoevalcap
 webdataset>=0.2.31
 transformers
+all_clip>=1.0.0,<2
