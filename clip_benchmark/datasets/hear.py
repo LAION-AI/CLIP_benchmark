@@ -1,6 +1,8 @@
 """HEAR (Holistic Evaluation of Audio Representations): model interface for heareval, which embeds and scores a task."""
 
+import json
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -81,6 +83,8 @@ def run(args, model, transform, tokenizer):
             marker.unlink(missing_ok=True)
         embedding = Embedding(__name__, model_options={"model": model, "transform": transform})
         task_embeddings(embedding, task, output)
+        for split in json.loads((output / "task_metadata.json").read_text())["splits"]:
+            shutil.rmtree(output / split)   # heareval's per-file copies; its probes read only the per-split files
         done.touch()
     # heareval's downstream probes (skipped once prediction-done.json exists); it reloads checkpoints with pickle
     os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
