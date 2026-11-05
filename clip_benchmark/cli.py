@@ -6,6 +6,7 @@ import os
 import random
 import sys
 from copy import copy
+from importlib import import_module
 from itertools import product
 
 import torch
@@ -141,6 +142,9 @@ def main_eval(base):
         elif name in dataset_collection:
             # if part of `dataset_collection`, retrieve from it
             datasets.extend(dataset_collection[name])
+        elif name in ("maeb", "mseb", "hear"):
+            # audio benchmarks, whose tasks are listed by their adapters: "maeb/<task>", "mseb/<task>", "hear/<task>"
+            datasets.extend(import_module(f"clip_benchmark.datasets.{name}").dataset_names())
         else:
             # if not, assume it is simply the name of the dataset
             datasets.append(name)
@@ -262,6 +266,11 @@ def run(args):
             from clip_benchmark.models.nllb_clip import set_language
 
             set_language(tokenizer, args.language)
+        if task in ("maeb", "mseb", "hear"):
+            # MAEB, MSEB and HEAR run in their own libraries, which write a directory of results per task
+            assert output.endswith(".json"), "--output must end with .json; the results go to that path without it"
+            args.output, args.dataset_root = output.removesuffix(".json"), dataset_root
+            return import_module(f"clip_benchmark.datasets.{task}").run(args, model, transform, tokenizer)
         dataset = build_dataset(
             dataset_name=args.dataset, 
             root=dataset_root, 

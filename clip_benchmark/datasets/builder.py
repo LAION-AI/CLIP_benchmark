@@ -542,6 +542,8 @@ def get_dataset_default_task(dataset):
         return "zeroshot_retrieval"
     elif dataset.startswith("sugar_crepe") or dataset == "winoground":
         return "image_caption_selection"
+    elif dataset.split("/")[0] in ("maeb", "mseb", "hear"):
+        return dataset.split("/")[0]
     else:
         return "zeroshot_classification"
 
