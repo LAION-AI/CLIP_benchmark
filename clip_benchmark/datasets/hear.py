@@ -88,4 +88,6 @@ def run(args, model, transform, tokenizer):
         done.touch()
     # heareval's downstream probes (skipped once prediction-done.json exists); it reloads checkpoints with pickle
     os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
-    runner.main([str(output)], standalone_mode=False)
+    # the probes train on this process's GPU (heareval's default is GPU 0, also for every worker of --distributed)
+    gpus = [torch.cuda.current_device()] if torch.cuda.is_available() else None
+    runner.main([str(output), "--gpus", json.dumps(gpus)], standalone_mode=False)
