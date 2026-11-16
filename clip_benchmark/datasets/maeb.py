@@ -2,10 +2,13 @@
 
 from pathlib import Path
 
+import datasets
 import mteb
 import numpy as np
 import torch
+from huggingface_hub import snapshot_download
 from mteb._set_seed import _set_seed
+from mteb.abstasks.retrieval import AbsTaskRetrieval
 from mteb.models.abs_encoder import AbsEncoder
 from mteb.models.modality_collators import AudioCollator
 from mteb.models.model_meta import ModelMeta, ScoringFunction
@@ -74,6 +77,12 @@ def run(args, model, transform, tokenizer):
     task = _tasks()[args.dataset.removeprefix(PREFIX)]
     task.seed = args.seed
     task.rng_state, task.np_rng = _set_seed(args.seed)
+    if datasets.config.HF_HUB_OFFLINE and type(task).load_data is AbsTaskRetrieval.load_data:
+        # Offline, `datasets` lists a cached Hub dataset with the single config "default", so MTEB's retrieval loader
+        # does not find the qrels and top_ranked configs: it reads the cached snapshot directory instead.
+        source = type(task).metadata.dataset
+        path = snapshot_download(source["path"], repo_type="dataset", revision=source["revision"], local_files_only=True)
+        task.metadata = type(task).metadata.model_copy(update={"dataset": {**source, "path": path}})
     encoder = MAEBEncoder(model, transform, tokenizer, args.model, args.device)
     return mteb.evaluate(
         encoder,
