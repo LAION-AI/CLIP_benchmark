@@ -99,7 +99,7 @@ def run(args, model, transform, tokenizer):
     flags.FLAGS[task.TASK_CACHE_BASEPATH.name].value = str(cache / "tasks")
     evaluator = runner.DirectRunner(
         encoder=MSEBEncoder(model, transform, tokenizer, args.device), batch_size=args.batch_size,
-        num_threads=1, output_path=str(cache / "embeddings"),
+        num_threads=args.num_workers, output_path=str(cache / "embeddings"),
     )
     benchmark_task = tasks.get_task_by_name(name)()
     benchmark_task.setup(runner=evaluator)
