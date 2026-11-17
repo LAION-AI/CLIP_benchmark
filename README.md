@@ -16,6 +16,7 @@ retrieval, and captioning.
 * Support various datasets from [torchvision](https://pytorch.org/vision/stable/datasets.html), [tensorflow datasets](https://www.tensorflow.org/datasets), and [VTAB](https://github.com/google-research/task_adaptation).
 * Support for various multilingual datasets for classification and retrieval
 * Support for compositionality tasks
+* Support for audio-text models (CLAP) on [MAEB, MSEB and HEAR](#audio-evaluation)
 
 ## How to install?
 
@@ -375,6 +376,57 @@ The template file can be either in the usual format https://github.com/LAION-AI/
 For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 for ImagetNet-1k can be used this way    :
 
 `clip_benchmark eval --dataset "imagenet1k" --model ViT-B-32 --pretrained laion400m_e32 --custom_template_file cupl_prompts.json`
+
+### Audio evaluation
+
+Audio-text models are evaluated on [MAEB](https://github.com/embeddings-benchmark/mteb),
+[MSEB](https://github.com/google-research/mseb) and [HEAR](https://hearbenchmark.com) with the same CLI. The `audio`
+extra installs OpenCLIP (4.2.1 or later), MTEB and MSEB; MSEB needs Python 3.12 or later, and audio is decoded with
+FFmpeg (through torchcodec):
+
+```bash
+conda create -n clip_benchmark python=3.14 ffmpeg && conda activate clip_benchmark
+pip install -e ".[audio]"
+```
+
+`--model_type clap2` loads the CLAP2 (NaFlex CLAP) models: `--model hf-hub:laion/clap2-<size>-audioxl-s1B` with
+`<size>` one of `xxs`, `xs`, `small`, `medium`, `large` (the same weights as the OpenCLIP model `naflexclap_<size>` with
+`--pretrained laion_audio_xl_s1b`). `--model` can also be any other OpenCLIP audio-text model, with a pretrained tag or a
+checkpoint file as `--pretrained`, or `local-dir:<directory>`.
+`--model_type clap` loads LAION-CLAP models: `--model CLAP-HTSAT-tiny-Roberta-base --pretrained laion` downloads
+laion/clap-htsat-unfused (`CLAP-HTSAT-tiny-Roberta-base-fused` for laion/clap-htsat-fused).
+
+```bash
+# all tasks of MAEB (30), MSEB (57) and HEAR (17), each task into its own directory; the data is downloaded when missing
+clip_benchmark eval --model_type clap2 --model hf-hub:laion/clap2-large-audioxl-s1B --dataset maeb mseb hear \
+    --dataset_root data --batch_size 8 --output 'results/clap2-large-audioxl-s1B/{dataset}.json'
+# a single task
+clip_benchmark eval --model_type clap2 --model hf-hub:laion/clap2-large-audioxl-s1B --dataset maeb/BeijingOpera \
+    --output 'results/clap2-large-audioxl-s1B/{dataset}.json'
+```
+
+MAEB, MSEB and HEAR write the native results of their libraries into a directory per task, `--output` without `.json`
+(`--skip_existing` keeps finished tasks). Audio is not truncated: NaFlex models process every clip at its native length
+(use a smaller `--batch_size` for the long clips of MAEB).
+
+**MAEB** is evaluated by MTEB (`MAEB(beta)`, mteb 2.21). Text written entirely in capitals (at least three words, e.g.
+the GigaSpeech transcripts) is lowercased. `--seed` seeds the probes and clustering.
+
+**MSEB** runs the upstream evaluation. The collection `mseb` holds its 57
+English sound and text embedding tasks. Its
+source datasets go to `--dataset_root/fsd50k`, `birdset` and `svq`: MSEB downloads FSD50K, and the English part of
+[SVQ](https://huggingface.co/datasets/google/svq) and the BirdSet files MSEB reads
+([laion/eval-mseb-birdset](https://huggingface.co/datasets/laion/eval-mseb-birdset), made from the test data of
+[BirdSet](https://huggingface.co/datasets/DBD-research-group/BirdSet)) are downloaded.
+
+**HEAR** tasks are downloaded from the HEAR 2021 release on [Zenodo](https://zenodo.org/records/6332517) into
+`--dataset_root` when missing. Timestamp embeddings are those of a centered 1 s window every 50 ms. The command writes
+the embeddings and heareval's scores (`test.predicted-scores.json`). heareval pins outdated dependencies, so it is
+installed without them:
+
+```bash
+pip install -e ".[audio,hear]" && pip install --no-deps heareval==2021.1.3
+```
 
 ### Development 
 
