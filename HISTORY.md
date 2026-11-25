@@ -1,5 +1,14 @@
 ## History
 
+### 1.7.0
+
+- Add audio-text (CLAP) evaluation on MAEB, MSEB and HEAR (#154)
+- Migrate packaging from `setup.py` to `pyproject.toml`
+- Require Python 3.12 or higher (VTAB datasets need Python 3.11 or lower, use 1.6.2 or earlier for them)
+- Remove the `vtab` extra, as `task_adaptation` cannot be installed on Python 3.12 or higher
+- Fix pickling error with Python 3.14 (forkserver is the default start method)
+- Fix TypeError in zero-shot classification ("only 0-dimensional arrays can be converted to Python scalars")
+
 ### 1.6.2
 
 - Separate results from clip benchmark repo 
