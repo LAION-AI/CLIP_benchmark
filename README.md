@@ -435,7 +435,7 @@ For development, you can also do this:
 ```bash
 git clone https://github.com/LAION-AI/CLIP_benchmark
 cd CLIP_benchmark
-python setup.py install
+pip install -e ".[test]"
 ```
 
 ## Credits

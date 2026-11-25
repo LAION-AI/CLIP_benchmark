@@ -56,7 +56,7 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source clip_benchmark setup.py test
+	coverage run --source clip_benchmark -m pytest tests
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
@@ -76,8 +76,7 @@ release: dist ## package and upload a release
 	twine upload dist/*
 
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python -m build
 	ls -l dist
 
 install: ## [Local development] Upgrade pip, install requirements, install package.
@@ -85,7 +84,7 @@ install: ## [Local development] Upgrade pip, install requirements, install packa
 	python -m pip install -e .
 
 install-dev: ## [Local development] Install test requirements
-	python -m pip install -r requirements-test.txt
+	python -m pip install -e ".[test]"
 
 test: ## [Local development] Run unit tests
 	python -m pytest -x -s -v tests
