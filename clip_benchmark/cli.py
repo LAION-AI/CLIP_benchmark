@@ -28,7 +28,7 @@ def get_parser_args():
     subparsers = parser.add_subparsers()
     
     parser_eval = subparsers.add_parser('eval', help='Evaluate')
-    parser_eval.add_argument('--dataset', type=str, default="cifar10", nargs="+", help="Dataset(s) to use for the benchmark. Can be the name of a dataset, or a collection name ('vtab', 'vtab+', 'imagenet_robustness', 'retrieval') or path of a text file where each line is a dataset name")
+    parser_eval.add_argument('--dataset', type=str, default=None, nargs="+", help="(Required) Dataset(s) to use for the benchmark. Can be the name of a dataset, or a collection name ('vtab', 'vtab+', 'imagenet_robustness', 'retrieval') or path of a text file where each line is a dataset name")
     parser_eval.add_argument('--dataset_root', default="root", type=str, help="dataset root folder where the datasets are downloaded. Can be in the form of a template depending on dataset name, e.g., --dataset_root='datasets/{dataset}'. This is useful if you evaluate on multiple datasets.")
     parser_eval.add_argument('--split', type=str, default="test", help="Dataset split to use")
     parser_eval.add_argument('--test_split', dest="split", action='store', type=str, default="test", help="Dataset split to use")
@@ -36,8 +36,8 @@ def get_parser_args():
     mutually_exclusive = parser_eval.add_mutually_exclusive_group()
     mutually_exclusive.add_argument('--val_split', default=None, type=str, nargs="+", help="Dataset(s) validation split names. Mutually exclusive with val_proportion.")
     mutually_exclusive.add_argument('--val_proportion', default=None, type=float, nargs="+", help="what is the share of the train dataset will be used for validation part, if it doesn't predefined. Mutually exclusive with val_split")
-    parser_eval.add_argument('--model', type=str, nargs="+", default=["ViT-B-32-quickgelu"], help="Model architecture to use from OpenCLIP")
-    parser_eval.add_argument('--pretrained', type=str, nargs="+", default=["laion400m_e32"], help="Model checkpoint name to use from OpenCLIP")
+    parser_eval.add_argument('--model', type=str, nargs="+", default=None, help="Model architecture(s) to use from OpenCLIP, e.g. ViT-B-32-quickgelu. Required unless --pretrained_model is used (or --model_type=ja_clip).")
+    parser_eval.add_argument('--pretrained', type=str, nargs="+", default=None, help="Model checkpoint name(s) or path(s) to use from OpenCLIP, e.g. laion400m_e32. Required unless --pretrained_model is used, or all models are 'hf-hub:' or 'local-dir:' models.")
     parser_eval.add_argument('--pretrained_model', type=str, default="", nargs="+", help="Pre-trained model(s) to use. Can be the full model name where `model` and `pretrained` are comma separated (e.g., --pretrained_model='ViT-B-32-quickgelu,laion400m_e32'), a model collection name ('openai' or 'openclip_base' or 'openclip_multilingual' or 'openclip_all'), or path of a text file where each line is a model fullname where model and pretrained are comma separated (e.g., ViT-B-32-quickgelu,laion400m_e32). --model and --pretrained are ignored if --pretrained_model is used.")
     parser_eval.add_argument('--task', type=str, default="auto", choices=["zeroshot_classification", "zeroshot_retrieval", "linear_probe", "captioning", "image_caption_selection", "auto"], help="Task to evaluate on. With --task=auto, the task is automatically inferred from the dataset.")
     parser_eval.add_argument('--no_amp', action="store_false", dest="amp", default=True, help="whether to use mixed precision")
@@ -75,7 +75,31 @@ def get_parser_args():
     parser_build.set_defaults(which='build')
 
     args = parser.parse_args()
+    if getattr(args, "which", None) == "eval":
+        _check_eval_args(parser_eval, args)
     return parser, args
+
+def _check_eval_args(parser, args):
+    # No defaults for the dataset and the model: fail instead of silently evaluating on a default one
+    if not args.dataset:
+        parser.error("--dataset is required")
+    if args.pretrained_model:
+        return
+    if args.model_type == "ja_clip":
+        # japanese-clip models are only identified by --pretrained, --model is not used
+        if not args.pretrained:
+            parser.error("--pretrained (or --pretrained_model) is required")
+        if not args.model:
+            args.model = [""]
+        return
+    if not args.model:
+        parser.error("--model and --pretrained (or --pretrained_model) are required")
+    if not args.pretrained:
+        # 'hf-hub:' and 'local-dir:' models contain their weights, --pretrained is not used for them
+        if all(m.startswith(("hf-hub:", "local-dir:")) for m in args.model):
+            args.pretrained = [""]
+        else:
+            parser.error("--pretrained is required (except for 'hf-hub:' or 'local-dir:' models)")
 
 def main():
     parser, base = get_parser_args()

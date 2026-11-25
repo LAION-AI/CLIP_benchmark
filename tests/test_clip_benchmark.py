@@ -5,6 +5,7 @@
 import os
 from clip_benchmark.cli import run
 import logging
+import pytest
 import torch
 
 class base_args:
@@ -116,3 +117,37 @@ def test_base():
         logging.warning("GPU acceleration is required for linear evaluation to ensure optimal performance and efficiency.")
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     run(base_args)
+
+
+def _parse_eval(argv, monkeypatch):
+    import sys
+    from clip_benchmark.cli import get_parser_args
+    monkeypatch.setattr(sys, "argv", ["clip_benchmark", "eval"] + argv)
+    _, args = get_parser_args()
+    return args
+
+
+@pytest.mark.parametrize("argv", [
+    [],
+    ["--model", "ViT-B-32-quickgelu", "--pretrained", "laion400m_e32"],
+    ["--dataset", "cifar10"],
+    ["--dataset", "cifar10", "--model", "ViT-B-32-quickgelu"],
+    ["--dataset", "cifar10", "--pretrained", "laion400m_e32"],
+    ["--dataset", "cifar10", "--model", "hf-hub:org/model", "ViT-B-32-quickgelu"],
+    ["--dataset", "cifar10", "--model_type", "ja_clip"],
+])
+def test_eval_missing_required_args(argv, monkeypatch):
+    with pytest.raises(SystemExit):
+        _parse_eval(argv, monkeypatch)
+
+
+@pytest.mark.parametrize("argv,model,pretrained", [
+    (["--dataset", "cifar10", "--model", "ViT-B-32-quickgelu", "--pretrained", "laion400m_e32"], ["ViT-B-32-quickgelu"], ["laion400m_e32"]),
+    (["--dataset", "cifar10", "--pretrained_model", "ViT-B-32-quickgelu,laion400m_e32"], None, None),
+    (["--dataset", "cifar10", "--model", "hf-hub:org/model"], ["hf-hub:org/model"], [""]),
+    (["--dataset", "cifar10", "--model_type", "ja_clip", "--pretrained", "rinna/japanese-cloob-vit-b-16"], [""], ["rinna/japanese-cloob-vit-b-16"]),
+])
+def test_eval_valid_args(argv, model, pretrained, monkeypatch):
+    args = _parse_eval(argv, monkeypatch)
+    assert args.model == model
+    assert args.pretrained == pretrained
