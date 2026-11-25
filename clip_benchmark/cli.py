@@ -93,7 +93,11 @@ def _check_eval_args(parser, args):
             args.model = [""]
         return
     if not args.model:
-        parser.error("--model and --pretrained (or --pretrained_model) are required")
+        parser.error(
+            "--model and --pretrained (or --pretrained_model) are required, "
+            "e.g. --model ViT-B-32-quickgelu --pretrained laion400m_e32 "
+            "(or --pretrained_model ViT-B-32-quickgelu,laion400m_e32)"
+        )
     if not args.pretrained:
         # 'hf-hub:' and 'local-dir:' models contain their weights, --pretrained is not used for them
         if all(m.startswith(("hf-hub:", "local-dir:")) for m in args.model):
