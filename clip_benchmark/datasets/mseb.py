@@ -7,7 +7,13 @@ from typing import Sequence
 import numpy as np
 import torch
 from huggingface_hub import snapshot_download
-from mseb import encoder, types
+try:
+    from mseb import encoder, types
+except ImportError as e:
+    raise ImportError(
+        "MSEB is not installed, install it with: "
+        'pip install "mseb @ git+https://github.com/google-research/mseb.git@42595cf4fb55a96adfc77ace544fb19d27490a3b"'
+    ) from e
 
 PREFIX = "mseb/"
 

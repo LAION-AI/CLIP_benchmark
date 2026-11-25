@@ -395,12 +395,13 @@ For instance, the prompts from the CuPL paper https://arxiv.org/abs/2209.03320 f
 
 Audio-text models are evaluated on [MAEB](https://github.com/embeddings-benchmark/mteb),
 [MSEB](https://github.com/google-research/mseb) and [HEAR](https://hearbenchmark.com) with the same CLI. The `audio`
-extra installs OpenCLIP (4.2.1 or later), MTEB and MSEB; MSEB needs Python 3.12 or later, and audio is decoded with
+extra installs OpenCLIP (4.2.1 or later) and MTEB. MSEB is installed separately from a pinned commit, as the PyPI
+release is older than the version used here. Audio evaluation needs Python 3.12 or later, and audio is decoded with
 FFmpeg (through torchcodec):
 
 ```bash
 conda create -n clip_benchmark python=3.14 ffmpeg && conda activate clip_benchmark
-pip install -e ".[audio]"
+pip install -e ".[audio]" "mseb @ git+https://github.com/google-research/mseb.git@42595cf4fb55a96adfc77ace544fb19d27490a3b"
 ```
 
 `--model_type clap2` loads the CLAP2 (NaFlex CLAP) models: `--model hf-hub:laion/clap2-<size>-audioxl-s1B` with
