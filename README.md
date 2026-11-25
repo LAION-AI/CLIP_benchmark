@@ -129,6 +129,15 @@ First, you need to install VTAB's dedicated package.
 
 `pip install task_adaptation==0.1`
 
+Note that `task_adaptation` depends on `tensorflow-addons`, which is only available for Python 3.11 or lower,
+so VTAB datasets require Python 3.11 or lower. As recent versions of `clip_benchmark` require Python 3.12 or higher,
+you need to install version 1.6.2 or earlier, the last ones supporting Python 3.11 and lower:
+
+`pip install "clip_benchmark<=1.6.2" task_adaptation==0.1`
+
+Alternatively, the webdataset versions of the VTAB datasets
+(`wds/vtab/<DATASET_NAME>`, see [Webdataset example](#webdataset-example)) work with any Python version.
+
 Then, you can run it by providing the full dataset name.
 Example with `eurosat`:
 
