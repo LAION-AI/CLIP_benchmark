@@ -513,7 +513,7 @@ pip install -e ".[test]"
 - Thanks to [@teasgen](https://github.com/teasgen) for support of validation set and tuning linear probing similar to OpenAI's CLIP.
 - Thanks to [@visheratin](https://github.com/visheratin) for multilingual retrieval datasets support from <https://arxiv.org/abs/2309.01859>.
 - This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template. Thanks to the author.
-- Thanks to @GLJS for implementing audio benchmarks for [CLAP models](https://projects.laion.ai/clap2/)
+- Thanks to [@GLJS](https://github.com/GLJS) for implementing audio benchmarks for [CLAP models](https://projects.laion.ai/clap2/)
   
 ## Citation
 
