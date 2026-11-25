@@ -82,7 +82,7 @@ def get_parser_args():
 def _check_eval_args(parser, args):
     # No defaults for the dataset and the model: fail instead of silently evaluating on a default one
     if not args.dataset:
-        parser.error("--dataset is required")
+        parser.error("--dataset is required, e.g. --dataset cifar10")
     if args.pretrained_model:
         return
     if args.model_type == "ja_clip":
