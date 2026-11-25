@@ -22,6 +22,45 @@ retrieval, and captioning.
 
 `pip install clip-benchmark`
 
+CLIP Benchmark requires Python 3.12 or later.
+
+### Installing with uv
+
+With [uv](https://docs.astral.sh/uv/), you can install the `clip_benchmark` command as a tool, in its own environment:
+
+```bash
+uv tool install clip-benchmark
+clip_benchmark eval --dataset cifar10 --model ViT-B-32-quickgelu --pretrained laion400m_e32
+```
+
+or run it without installing it:
+
+```bash
+uvx --from clip-benchmark clip_benchmark eval --dataset cifar10 --model ViT-B-32-quickgelu --pretrained laion400m_e32
+```
+
+To use it as a library in a project, add it as a dependency:
+
+```bash
+uv add clip-benchmark
+```
+
+Extras are given the same way as with pip, e.g. `uv tool install "clip-benchmark[coco]"`. For audio evaluation, MSEB is
+installed from GitHub (see [Audio evaluation](#audio-evaluation)):
+
+```bash
+uv tool install "clip-benchmark[audio]" --with "mseb @ git+https://github.com/google-research/mseb.git@42595cf4fb55a96adfc77ace544fb19d27490a3b"
+```
+
+For development, clone the repository and create its environment with `uv sync`:
+
+```bash
+git clone https://github.com/LAION-AI/CLIP_benchmark
+cd CLIP_benchmark
+uv sync --extra test
+uv run pytest tests
+```
+
 ## How to use?
 
 To evaluate we recommend to create a models.txt like
