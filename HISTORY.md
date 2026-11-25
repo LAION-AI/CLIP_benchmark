@@ -8,6 +8,7 @@
 - Remove the `vtab` extra, as `task_adaptation` cannot be installed on Python 3.12 or higher
 - Fix pickling error with Python 3.14 (forkserver is the default start method)
 - Fix TypeError in zero-shot classification ("only 0-dimensional arrays can be converted to Python scalars")
+- `clip_benchmark eval` no longer defaults to `cifar10` and `ViT-B-32-quickgelu`/`laion400m_e32`: `--dataset` and the model (`--model`/`--pretrained` or `--pretrained_model`) are now required
 
 ### 1.6.2
 

@@ -56,6 +56,11 @@ The easiest way to benchmark the models is using the CLI, `clip_benchmark`.
 You can specify the model to use, the dataset and the task to evaluate on. Once it is done, evaluation is performed and
 the results are written into a JSON file.
 
+`--dataset` and the model are required, there are no defaults. The model is given either with `--model` and
+`--pretrained` (e.g., `--model ViT-B-32-quickgelu --pretrained laion400m_e32`), or with `--pretrained_model`
+(e.g., `--pretrained_model ViT-B-32-quickgelu,laion400m_e32`). `--pretrained` is not needed for `hf-hub:` and
+`local-dir:` models, and `--model` is not needed with `--model_type ja_clip`.
+
 ### Using other models than openclip
 
 It is possible to use other models than openclip ones. For example japanese-clip is supported
@@ -72,7 +77,7 @@ Here is an example of use
   --dataset_root {ROOT_PATH} 
 
 >>> cat result.json
-{"dataset": "imagenet1k", "model": "ViT-B-32-quickgelu", "pretrained": "rinna/japanese-cloob-vit-b-16", "task": "zeroshot_classification", "metrics": {"acc1": 0.54636, "acc5": 0.72856, "mean_per_class_recall": 0.54522}, "language": "jp"}
+{"dataset": "imagenet1k", "model": "", "pretrained": "rinna/japanese-cloob-vit-b-16", "task": "zeroshot_classification", "metrics": {"acc1": 0.54636, "acc5": 0.72856, "mean_per_class_recall": 0.54522}, "language": "jp"}
 ```
 
 ### How to add other CLIP models
@@ -300,19 +305,19 @@ The name of the dataset follows the template `wds/<DATASET_NAME>`. Note that the
 
 Example with `vtab/cifar10` (zero-shot classification):
 
-- local: `clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root ROOT_DIR/wds_vtab-cifar10/`
-- remote: `clip_benchmark eval --dataset wds/vtab/cifar10 --dataset_root https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main`
+- local: `clip_benchmark eval --model ViT-B-32-quickgelu --pretrained laion400m_e32 --dataset wds/vtab/cifar10 --dataset_root ROOT_DIR/wds_vtab-cifar10/`
+- remote: `clip_benchmark eval --model ViT-B-32-quickgelu --pretrained laion400m_e32 --dataset wds/vtab/cifar10 --dataset_root https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main`
 
 Example with `mscoco_captions` (retrieval):
 
-- local: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=zeroshot_retrieval`
-- remote: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=zeroshot_retrieval`
+- local: `clip_benchmark eval --model ViT-B-32-quickgelu --pretrained laion400m_e32 --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=zeroshot_retrieval`
+- remote: `clip_benchmark eval --model ViT-B-32-quickgelu --pretrained laion400m_e32 --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=zeroshot_retrieval`
 
 
 Example with `mscoco_captions` (captioning):
 
-- local: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=captioning`
-- remote: `clip_benchmark eval --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=captioning`
+- local: `clip_benchmark eval --model coca_ViT-B-32 --pretrained laion2b_s13b_b90k --dataset=wds/mscoco_captions --dataset_root ROOT_DIR/wds_vtab-mscoco_captions/ --task=captioning`
+- remote: `clip_benchmark eval --model coca_ViT-B-32 --pretrained laion2b_s13b_b90k --dataset=wds/mscoco_captions --dataset_root="https://huggingface.co/datasets/clip-benchmark/wds_{dataset_cleaned}/tree/main" --task=captioning`
 
 
 All other arguments remain the same as in the other examples. See `https://huggingface.co/clip-benchmark` for a full list of datasets that have already been uploaded to Huggingface.
